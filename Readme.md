@@ -2,7 +2,7 @@ Webledger
 =========
 
 Webledger is web frontend for a ledger journal file. The ledger journal file is
-based on the command line [Ledger][1] journal file format and features double-entry 
+based on the command line [Ledger] [1] journal file format and features double-entry 
 accounting for personal finance tracking.
 
 
@@ -23,7 +23,7 @@ transactions would be a possibility.
 Dependencies
 ------------
 
-*	FParsec
+*	FParsec 1.0.1
 
 
 
