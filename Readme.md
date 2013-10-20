@@ -82,64 +82,64 @@ Phase 1 Implementation (Reporting)
 ### Main Tasks
 
 Parsing Ledger File
-[] Read/Parse ledger file
-[] Autobalance transactions
-[] Ensure transactions balance
+- [] Read/Parse ledger file
+- [] Autobalance transactions
+- [] Ensure transactions balance
 
 Initial Static Balance Reports:
-[] Assets vs Liabilities, ie Net Worth
-[] Income Statement (current & previous month)
-[] Net Worth chart
+- [] Assets vs Liabilities, ie Net Worth
+- [] Income Statement (current & previous month)
+- [] Net Worth chart
 
 Dynamic Website:
-[] Convert all existing reports to render dynamically instead of a static page
-	[] Get barebones nancy working
-	[] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
-	[] fix html/css (use proper elements ie h1, ul, etc...)
-	[] start using bootstrap css
-	[] turn into "one page" app that takes GET parameters for what to show (with command bar)
-	[] watch ledger file and reload on change
+- [] Convert all existing reports to render dynamically instead of a static page
+	- [] Get barebones nancy working
+	- [] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
+	- [] fix html/css (use proper elements ie h1, ul, etc...)
+	- [] start using bootstrap css
+	- [] turn into "one page" app that takes GET parameters for what to show (with command bar)
+	- [] watch ledger file and reload on change
 		1) On initial load, note last modified time of file
 		2) On every request, compare last modified time of file to noted time
 			If newer, (attempt to) reload journal
 
 Register Report
-[] Register report with parameters (ie accounts, date range)
-	[] build register report generator function
-	[] create register report template
-	[] link up to command bar
-	[] link to from balance reports
-[] Sorting:
-	[] Preserve file order for transactions and entries within transactions but output in reverse so most recent is on top
+- [] Register report with parameters (ie accounts, date range)
+	- [] build register report generator function
+	- [] create register report template
+	- [] link up to command bar
+	- [] link to from balance reports
+- [] Sorting:
+	- [] Preserve file order for transactions and entries within transactions but output in reverse so most recent is on top
 		- Need to do sorting at the end so that running total makes sense
-[] Accounts Payable vs Accounts Receivable
+- [] Accounts Payable vs Accounts Receivable
 	- Dynamically list non-zero accounts with balance in navlist. Link to register report
 
 All Reports
-[] Refactoring/clean up of all reports
+- [] Refactoring/clean up of all reports
 
 Command Bar Enhancements
-[] Clean up and improve date/period parsing
+- [] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
-[] Generate "networth" chart from the command bar
-[] Autocomplete hints (bootstrap typeahead)
+- [] Generate "networth" chart from the command bar
+- [] Autocomplete hints (bootstrap typeahead)
 
 Charts
-[] Income Statement chart (monthly, over time)
+- [] Income Statement chart (monthly, over time)
 
 Nav
-[] Configurable nav list
-[] Combine reports and payables / receivables into one dict?
-[] Default report?
+- [] Configurable nav list
+- [] Combine reports and payables / receivables into one dict?
+- [] Default report?
 
 Expenses
-[] Average in last 3 months, in last year
-[] Burn rate - using last 3 months expenses average, how long until savings is gone?
-[] Top Expenses over last period
+- [] Average in last 3 months, in last year
+- [] Burn rate - using last 3 months expenses average, how long until savings is gone?
+- [] Top Expenses over last period
 
 Documentation
-[] github wiki
-	[] how to use / setup
+- [] github wiki
+	- [] how to use / setup
 
 
 Phase 2 Implementation (Commodities)
