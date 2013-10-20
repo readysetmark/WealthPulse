@@ -24,6 +24,9 @@ Dependencies
 ------------
 
 *	FParsec 1.0.1
+*	FsUnit.xUnit.1.2.1.2
+*	xunit 1.9.1
+*	xunit.runners 1.9.1
 
 
 

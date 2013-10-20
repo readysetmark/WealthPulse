@@ -152,7 +152,48 @@ module Parser =
             sepEndBy (parseCommentLine <|> parseTransaction) (many (skipWS >>. newline))
 
 
+    // Parser unit tests
 
+    module Test =
+        open FsUnit.Xunit
+        open Xunit
+        open Parse
+
+        let testParse parser text =
+            match run parser text with
+            | Success(result, _, _) -> Some(result)
+            | Failure(_, _, _)      -> None
+
+        [<Fact>]
+        let ``skipWS ok on empty string`` () =
+            testParse skipWS "" |> should equal (Some(()))
+        
+        [<Fact>]
+        let ``skipWS ok when no space or tab`` () =
+            testParse skipWS "alpha" |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips single space`` () =
+            testParse skipWS " " |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips many spaces`` () =
+            testParse skipWS "     " |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips single tab`` () =
+            testParse skipWS "\t" |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips many tabs`` () =
+            testParse skipWS "\t\t\t" |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips tabs and spaces`` () =
+            testParse skipWS "   \t  \t \t " |> should equal (Some(()))
+
+    
+    
     // Module PostProcess contains post-parsing transformations
 
     module private PostProcess =
