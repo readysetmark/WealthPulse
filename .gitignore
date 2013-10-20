@@ -1,5 +1,5 @@
-Journal/obj
-Journal/bin
+*/bin
+*/obj
 packages/FParsec.1.0.1
 packages/FsUnit.xUnit.1.2.1.2
 packages/xunit.1.9.1

@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{457E12
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "webledger", "webledger\webledger.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,10 @@ Global
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

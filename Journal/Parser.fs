@@ -296,10 +296,15 @@ module Parser =
                 List.map toEntry es
             List.collect transactionToJournal ts
 
-
+        /// Returns journal data containing all transactions, a list of main accounts and a list of all accounts that includes parent accounts
+        let getJournalData (entries : Entry list) =
+            let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
+            let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
+            { Transactions=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts }
+ 
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let transformPipeline = 
-            transformASTToTransactions >> processTransactions >> toJournal
+            transformASTToTransactions >> processTransactions >> toJournal >> getJournalData
 
 
     
