@@ -1,8 +1,10 @@
 */bin
 */obj
-packages/FParsec.1.0.1
-packages/FsUnit.xUnit.1.2.1.2
-packages/xunit.1.9.1
-packages/xunit.runners.1.9.1
+output
+packages/FParsec.*
+packages/FsUnit.xUnit.*
+packages/Nustache*
+packages/xunit.*
+packages/xunit.runners.*
 .nuget
 

@@ -1,0 +1,65 @@
+<html>
+<head>
+	<title>Balance Sheet</title>
+	<link rel="stylesheet" type="text/css" href="report.css" />
+    <!-- jqPlot includes -->
+	<!--[if lt IE 9]><script language="javascript" type="text/javascript" src="lib/excanvas.min.js"></script><![endif]-->
+	<script language="javascript" type="text/javascript" src="lib/jquery.min.js"></script>
+	<script language="javascript" type="text/javascript" src="lib/jquery.jqplot.min.js"></script>
+	<script language="javascript" type="text/javascript" src="lib/plugins/jqplot.cursor.min.js"></script>
+	<script language="javascript" type="text/javascript" src="lib/plugins/jqplot.dateAxisRenderer.min.js"></script>
+	<script language="javascript" type="text/javascript" src="lib/plugins/jqplot.highlighter.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="lib/jquery.jqplot.css" />
+</head>
+<body>
+<div class="back"><a href="Index.html">Back to index</a></div>
+<div class="report_title">Balance Sheet</div>
+<div class="report_subtitle">As of {{ReportDate}}</div>
+<div class="report_body">
+
+<table>
+<tr><th>Balance</th><th>Account</th></tr>
+{{#AccountBalances}}
+<tr class="{{RowClass}}"><td class="currency {{BalanceClass}}">{{Balance}}</td><td style="{{AccountStyle}}">{{Account}}</td></tr>
+{{/AccountBalances}}
+</table>
+
+<br />
+<br />
+
+<center><div id="chart" style="height:400px; width:600px; text-align:center"></div></center>
+
+<script type="text/javascript">
+$(document).ready(function(){
+    var netWorthBookValue = {{{NetWorthBookValue}}}
+
+    var netWorthPlot = $.jqplot("chart", [netWorthBookValue], {
+            title:"Net Worth",
+            axes:{
+                xaxis:{
+                    renderer:$.jqplot.DateAxisRenderer,
+                    tickOptions:{
+                        formatString: "%b %Y"
+                    }
+                },
+                yaxis:{
+                    tickOptions:{
+                        formatString: "$%'.2f"
+                    }
+                }
+            },
+            highlighter:{
+                show:true,
+                sizeAdjust:7.5
+            },
+            cursor:{
+                show:false
+            }
+        });
+});
+</script>
+
+</div>
+</body>
+</html>
+	

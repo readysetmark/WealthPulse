@@ -1,4 +1,4 @@
-﻿namespace Webledger.Journal
+﻿namespace WealthPulse.Journal
 
 // Contains all the type definitions in the Journal
 

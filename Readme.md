@@ -1,7 +1,7 @@
-Webledger
-=========
+Wealth Pulse
+============
 
-Webledger is web frontend for a ledger journal file. The ledger journal file is
+Wealth Pulse is web frontend for a ledger journal file. The ledger journal file is
 based on the command line [Ledger] [1] journal file format and features double-entry 
 accounting for personal finance tracking.
 
@@ -24,6 +24,7 @@ Dependencies
 ------------
 
 *	FParsec 1.0.1
+*	Nustache 1.13.8.22
 *	FsUnit.xUnit.1.2.1.2
 *	xunit 1.9.1
 *	xunit.runners 1.9.1

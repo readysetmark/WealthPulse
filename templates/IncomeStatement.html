@@ -1,0 +1,22 @@
+<html>
+<head>
+	<title>Income Statement</title>
+	<link rel="stylesheet" type="text/css" href="report.css" />
+</head>
+<body>
+<div class="back"><a href="Index.html">Back to index</a></div>
+<div class="report_title">Income Statement</div>
+<div class="report_subtitle">For period of {{ReportStart}} to {{ReportEnd}}</div>
+<div class="report_body">
+<table>
+<tr><th>Income</th><th>Account</th></tr>
+
+{{#AccountIncome}}
+<tr class="{{RowClass}}"><td class="currency {{IncomeClass}}">{{Income}}</td><td style="{{AccountStyle}}">{{Account}}</td></tr>
+{{/AccountIncome}}
+
+</table>
+</div>
+</body>
+</html>
+	

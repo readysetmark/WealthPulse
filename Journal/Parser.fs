@@ -1,4 +1,4 @@
-﻿namespace Webledger.Journal
+﻿namespace WealthPulse.Journal
 
 open FParsec
 

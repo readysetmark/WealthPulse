@@ -22,7 +22,7 @@
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\Journal.XML</DocumentationFile>
     <StartAction>Program</StartAction>
-    <StartProgram>C:\Users\Mark\Nexus\Development\ledger\Webledger\packages\xunit.runners.1.9.1\tools\xunit.console.clr4.exe</StartProgram>
+    <StartProgram>C:\Users\Mark\Nexus\Development\ledger\WealthPulse\packages\xunit.runners.1.9.1\tools\xunit.console.clr4.exe</StartProgram>
     <StartArguments>Journal.dll /wait</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -40,8 +40,10 @@
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
   <ItemGroup>
     <None Include="packages.config" />
+    <Compile Include="DateUtils.fs" />
     <Compile Include="Journal.fs" />
     <Compile Include="Parser.fs" />
+    <Compile Include="Query.fs" />
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>

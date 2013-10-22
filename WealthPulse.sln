@@ -14,7 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{457E12
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "webledger", "webledger\webledger.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WealthPulse", "WealthPulse\WealthPulse.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
