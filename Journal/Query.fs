@@ -1,6 +1,48 @@
 ﻿namespace WealthPulse.Journal
 
+open System
+
 module Query =
+
+    type BalanceParameters = {
+        AccountsWith: string list option;
+        ExcludeAccountsWith: string list option;
+        PeriodStart: DateTime option;
+        PeriodEnd: DateTime option;
+    }
+
+
+    module private Support =
+            
+        let reduceAccountsTo accountsWithList =
+            let inAccountsWithList (account :string) =
+                List.exists (fun (token :string) -> account.ToLower().Contains(token.ToLower())) accountsWithList
+            Set.filter inAccountsWithList
+
+        let removeExcludedAccounts excludeAccountsWithList =
+            let inExcludeAccountsWithList (account :string) =
+                List.exists (fun (token :string) -> (account.ToLower().Contains(token.ToLower()))) excludeAccountsWithList
+            Set.filter (inExcludeAccountsWithList >> not)
+
+        // TODO: this generalization below doesn't quite work because the not needs to be applied inside filter function
+        // what if the Option match goes inside accountContainsOneOf ... ? Nope, still doesn't work
+
+        let accountContainsOneOf termsOption (account :string) =
+            match termsOption with
+            | Some(terms) -> List.exists (fun (token :string) -> (account.ToLower().Contains(token.ToLower()))) terms
+            | None        -> true
+
+        let optionalFilter filterFunction filterOption =
+            match filterOption with
+            | Some(filter) -> Set.filter (filterFunction filter)
+            | None         -> id
+
+        
+
+    let balance (journal : JournalData) (parameters : BalanceParameters) =
+        journal
+
+
 
     type BalanceSheetRow = {
         Account: string;
