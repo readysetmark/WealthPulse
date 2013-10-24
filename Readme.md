@@ -2,7 +2,7 @@ Wealth Pulse
 ============
 
 Wealth Pulse is web frontend for a ledger journal file. The ledger journal file is
-based on the command line [Ledger] [1] journal file format and features double-entry 
+based on the command line [Ledger][1] journal file format and features double-entry 
 accounting for personal finance tracking.
 
 
@@ -83,29 +83,46 @@ Phase 1 Implementation (Reporting)
 *	Provide some basic reporting like net worth, income vs expenses, ...
 *	See http://bugsplat.info/static/stan-demo-report.html for some examples
 
-### Main Tasks
+
+### First Milestone
 
 Parsing Ledger File
-- [] Read/Parse ledger file
-- [] Autobalance transactions
-- [] Ensure transactions balance
+- [x] Basic / optimistic parsing of ledger file
+- [x] Autobalance transactions
 
 Initial Static Balance Reports:
-- [] Assets vs Liabilities, ie Net Worth
-- [] Income Statement (current & previous month)
-- [] Net Worth chart
+- [x] Assets vs Liabilities, ie Net Worth
+- [x] Income Statement (current & previous month)
+- [x] Net Worth chart
+
+
+### Second Milestone
+
+Parsing Ledger File
+- [] Review / revise parsing & post-processing:
+	- [] Ensure transactions balance (if not autobalanced)
+	- [] Can I remove mutable fields?
+	- [] Add unit tests
+
+Balance Report
+- [] Combine balance sheet & income report into single balance report with parameters
 
 Dynamic Website:
 - [] Convert all existing reports to render dynamically instead of a static page
 	- [] Get barebones nancy working
 	- [] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
-	- [] fix html/css (use proper elements ie h1, ul, etc...)
-	- [] start using bootstrap css
+	- [] Update rendering:
+		- [] Convert to use bootstrap css
+		- [] fix html/css (use proper elements ie h1, ul, etc...)
+		- [] Convert to use d3.js for charts
 	- [] turn into "one page" app that takes GET parameters for what to show (with command bar)
 	- [] watch ledger file and reload on change
 		1) On initial load, note last modified time of file
 		2) On every request, compare last modified time of file to noted time
 			If newer, (attempt to) reload journal
+
+
+### Third Milestone
 
 Register Report
 - [] Register report with parameters (ie accounts, date range)
@@ -122,24 +139,14 @@ Register Report
 All Reports
 - [] Refactoring/clean up of all reports
 
+
+### Fourth Milestone
+
 Command Bar Enhancements
 - [] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
 - [] Generate "networth" chart from the command bar
 - [] Autocomplete hints (bootstrap typeahead)
-
-Charts
-- [] Income Statement chart (monthly, over time)
-
-Nav
-- [] Configurable nav list
-- [] Combine reports and payables / receivables into one dict?
-- [] Default report?
-
-Expenses
-- [] Average in last 3 months, in last year
-- [] Burn rate - using last 3 months expenses average, how long until savings is gone?
-- [] Top Expenses over last period
 
 Documentation
 - [] github wiki
@@ -150,33 +157,36 @@ Phase 2 Implementation (Commodities)
 ----------------------
 
 Commodity Prices
-[] Update to handle commodities
-[] (While continuing to use ledger file format) Detect investment transactions and merge transaction lines
-[] Identify commodities from ledger file
-[] Fetch prices from internet and add to cache
-	[] Store commodity prices in a local cache
-	[] Prices should go from first date in ledger file to today
+- [] Update to handle commodities
+- [] (While continuing to use ledger file format) Detect investment transactions and merge transaction lines
+- [] Identify commodities from ledger file
+- [] Fetch prices from internet and add to cache
+	- [] Store commodity prices in a local cache
+	- [] Prices should go from first date in ledger file to today
 
 Net Worth
-[] Update chart with book value line and actual line
+- [] Update chart with book value line and actual line
 
 Balance Sheet
-[] Update Net Worth sheet with actual vs book value columns
+- [] Update Net Worth sheet with actual vs book value columns
 
 Portfolio
-[] Overall portfolio return and per investment
-[] Expected T3s/T5s to receive for last year (ie had distribution)
-[] Rebalancing calculator - for rebalancing investments to proper allocation
+- [] Overall portfolio return and per investment
+- [] Expected T3s/T5s to receive for last year (ie had distribution)
+- [] Rebalancing calculator - for rebalancing investments to proper allocation
 
+Expenses
+- [] Average in last 3 months, in last year
+- [] Burn rate - using last 3 months expenses average, how long until savings is gone?
+- [] Top Expenses over last period
 
+Charts
+- [] Income Statement chart (monthly, over time)
 
-Phase 3 Ideas (Entry)
--------------
-
-- Replace bal and reg functions from ledger command line
-- Move away from ledger file format
-	- Define my own that handles investments better
-- Entry/editing of transactions
+Nav
+- [] Configurable nav list
+- [] Combine reports and payables / receivables into one dict?
+- [] Default report?
 
 
 [1]: http://www.ledger-cli.org/			"Ledger command-line accounting system"

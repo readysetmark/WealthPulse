@@ -21,7 +21,7 @@ module Parser =
             Code: string option;
             Description: string;
             Comment: string option
-            }
+        }
 
         type TransactionEntry = {
             mutable Account: string;
@@ -29,11 +29,11 @@ module Parser =
             mutable Amount: Amount option;
             Value: ValueSpecification option;
             Comment: string option
-            }
+        }
 
-        type AST =
+        type ASTNode =
             | Comment of string
-            | Transaction of TransactionHeader * AST list
+            | Transaction of TransactionHeader * ASTNode list
             | Entry of TransactionEntry
 
 
@@ -152,48 +152,7 @@ module Parser =
             sepEndBy (parseCommentLine <|> parseTransaction) (many (skipWS >>. newline))
 
 
-    // Parser unit tests
-
-    module Test =
-        open FsUnit.Xunit
-        open Xunit
-        open Parse
-
-        let testParse parser text =
-            match run parser text with
-            | Success(result, _, _) -> Some(result)
-            | Failure(_, _, _)      -> None
-
-        [<Fact>]
-        let ``skipWS ok on empty string`` () =
-            testParse skipWS "" |> should equal (Some(()))
         
-        [<Fact>]
-        let ``skipWS ok when no space or tab`` () =
-            testParse skipWS "alpha" |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips single space`` () =
-            testParse skipWS " " |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips many spaces`` () =
-            testParse skipWS "     " |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips single tab`` () =
-            testParse skipWS "\t" |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips many tabs`` () =
-            testParse skipWS "\t\t\t" |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips tabs and spaces`` () =
-            testParse skipWS "   \t  \t \t " |> should equal (Some(()))
-
-    
-    
     // Module PostProcess contains post-parsing transformations
 
     module private PostProcess =
@@ -202,23 +161,23 @@ module Parser =
         /// Transforms the AST data structure into a list of (TransactionHeader, TransactionEntry list) tuples
         /// Basically, we're dropping all the comment nodes
         let transformASTToTransactions ast =
-            let transactionFilter (e: AST) =
-                match e with
+            let transactionFilter (node: ASTNode) =
+                match node with
                 | Transaction(_,_) -> true
                 | _ -> false
 
-            let getTransactionHeader (e: AST) =
-                match e with
+            let getTransactionHeader (node: ASTNode) =
+                match node with
                 | Transaction(header, ast) -> (header, ast)
                 | _ -> failwith "Unexpected AST value in getTransactionHeader"
 
-            let transactionEntryFilter (e: AST) =
-                match e with
+            let transactionEntryFilter (node: ASTNode) =
+                match node with
                 | Entry(_) -> true
                 | _ -> false
 
-            let getTransactionEntry (e: AST) =
-                match e with
+            let getTransactionEntry (node: ASTNode) =
+                match node with
                 | Entry(te) -> te
                 | _ -> failwith "Unexpected AST value in getTransactionEntry"
 
@@ -296,21 +255,23 @@ module Parser =
                 List.map toEntry es
             List.collect transactionToJournal ts
 
+
         /// Returns journal data containing all transactions, a list of main accounts and a list of all accounts that includes parent accounts
         let getJournalData (entries : Entry list) =
             let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
             let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
             { Transactions=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts }
- 
+
+        
         /// Pipelined functions applied to the AST to produce the final journal data structure
-        let transformPipeline = 
+        let transform = 
             transformASTToTransactions >> processTransactions >> toJournal >> getJournalData
 
 
     
     let private processResult result =
         match result with
-            | Success(ast, _, _) -> ast |> PostProcess.transformPipeline
+            | Success(ast, _, _) -> PostProcess.transform ast
             | Failure(errorMsg, _, _) -> failwith errorMsg
 
     /// Run the parser against a file
@@ -323,3 +284,44 @@ module Parser =
         runParserOnStream Parse.parseJournal () "" stream encoding
         |> processResult
 
+
+
+    // Parser unit tests
+
+    module Test =
+        open FsUnit.Xunit
+        open Xunit
+        open Parse
+
+        let testParse parser text =
+            match run parser text with
+            | Success(result, _, _) -> Some(result)
+            | Failure(_, _, _)      -> None
+
+        [<Fact>]
+        let ``skipWS ok on empty string`` () =
+            testParse skipWS "" |> should equal (Some(()))
+        
+        [<Fact>]
+        let ``skipWS ok when no space or tab`` () =
+            testParse skipWS "alpha" |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips single space`` () =
+            testParse skipWS " " |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips many spaces`` () =
+            testParse skipWS "     " |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips single tab`` () =
+            testParse skipWS "\t" |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips many tabs`` () =
+            testParse skipWS "\t\t\t" |> should equal (Some(()))
+
+        [<Fact>]
+        let ``skipWS skips tabs and spaces`` () =
+            testParse skipWS "   \t  \t \t " |> should equal (Some(()))
