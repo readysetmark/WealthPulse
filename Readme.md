@@ -106,6 +106,7 @@ Parsing Ledger File
 
 Balance Report
 - [] Combine balance sheet & income report into single balance report with parameters
+	- [] Can I improve the account filtering code?
 
 Dynamic Website:
 - [] Convert all existing reports to render dynamically instead of a static page
