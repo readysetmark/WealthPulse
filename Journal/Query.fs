@@ -30,6 +30,7 @@ module Query =
 
     open Support
 
+    /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters
     let balance (journal : JournalData) (parameters : BalanceParameters) =
         // TODO: Not fond of the call to "oneOfIn" needing the default parameter, there must be a better way...
         // filter all accounts to selected accounts
@@ -38,6 +39,7 @@ module Query =
             |> Set.filter (oneOfIn true parameters.AccountsWith)
             |> Set.filter (oneOfIn false parameters.ExcludeAccountsWith >> not)
 
+        // TODO: Can I get rid of the list comprehension?
         // filter entries based on selected accounts
         let entries = 
             [ for entry in journal.Transactions do 
@@ -46,7 +48,7 @@ module Query =
                         yield(account, fst entry.Amount) 
             ]
 
-        // sum to get account balances
+        // sum to get account balances, discard accounts with 0 balance
         let accountBalances =
             entries
             |> Seq.ofList
@@ -57,12 +59,27 @@ module Query =
                     |> Seq.map snd
                     |> Seq.sum
                 (account, balance))
+            |> Seq.filter (fun (account, balance) -> balance <> 0M)
             |> Seq.toList
-
-        // filter out zero account sums
-        let accountBalances = List.filter (fun (account, balance) -> balance <> 0M) accountBalances
         
-        accounts
+        // filter parent accounts where amount is the same as the (assumed) single child
+        let accountBalances =
+            let existsChildAccountWithSameAmount allBalances (account, amount) =
+                allBalances
+                |> List.exists (fun ((otherAccount : String), otherAmount) -> otherAccount.StartsWith(account) && otherAccount.Length > account.Length && otherAmount = amount)
+                |> not
+
+            accountBalances
+            |> List.filter (existsChildAccountWithSameAmount accountBalances)
+
+        // calculate total balance
+        let totalBalance = 
+            accountBalances
+            |> List.filter (fun (account, _) -> Set.contains account journal.MainAccounts)
+            |> List.map (fun (_, amount) -> amount)
+            |> List.sum
+
+        (accountBalances, totalBalance)
 
 
 
