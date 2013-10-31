@@ -108,6 +108,7 @@ Balance Report
 - [] Combine balance sheet & income report into single balance report with parameters
 	- [] Can I improve the account filtering code?
 	- [] Can I get rid of the list comprehension?
+	- [] Can I clean it up so the main function is just sub-function calls?
 
 Dynamic Website:
 - [] Convert all existing reports to render dynamically instead of a static page
