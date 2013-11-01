@@ -26,7 +26,18 @@ module StaticRunner =
         Title: string;
         Subtitle: string;
         AccountBalances: BalanceSheetRow list;
-        //NetWorthBookValue: string;
+    }
+
+    type LineChartPoint = {
+        X: string;
+        Y: string;
+        Hover: string;
+    }
+
+    type LineChartReportData = {
+        Title: string;
+        //Data: LineChartPoint list;
+        Data: string;
     }
 
 
@@ -51,7 +62,33 @@ module StaticRunner =
                 RowClass = (if account = "" then "grand_total" else ""); 
                 BalanceClass = (if account = "" then "" elif amount >= 0M then "positive" else "negative"); 
                 AccountStyle = (sprintf "padding-left: %dpx;" (paddingLeftBase+(indent*indentPadding))) })
-        
+    
+
+    let generateNetWorthData journalData =
+        let generatePeriodBalance month =
+            let parameters = {
+                AccountsWith = Some ["assets"; "liabilities"];
+                ExcludeAccountsWith = Some ["units"];
+                PeriodStart = None;
+                PeriodEnd = Some (DateUtils.getLastOfMonth(month));
+            }
+            let _, totalBalance = Query.balance journalData parameters
+            {
+                X = month.ToString("dd-MMM-yyyy"); 
+                Y = totalBalance.ToString(); 
+                Hover = month.ToString("MMM yyyy") + ": " + totalBalance.ToString("C");
+            }
+
+        let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
+        let months = seq { for i in 0 .. 25 do yield firstMonth.AddMonths(i) }
+
+        let netWorthData =
+            months
+            |> Seq.map generatePeriodBalance
+            |> Seq.toList
+
+        let jsonSerializer = new System.Web.Script.Serialization.JavaScriptSerializer()
+        jsonSerializer.Serialize(netWorthData)
 
     let generateAllReports journalData path =
         let renderReport (indexTitle: string) data templateFile outputFile =
@@ -62,7 +99,7 @@ module StaticRunner =
         let outputPath = path + @"output\"
         let (reportList: IndexLink list) = []
         
-        let netWorthParameters = {
+        let balanceSheetParameters = {
             AccountsWith = Some ["assets"; "liabilities"]; 
             ExcludeAccountsWith = Some ["units"]; 
             PeriodStart = None; 
@@ -71,9 +108,15 @@ module StaticRunner =
         let balanceSheetData = {
             Title = "Balance Sheet";
             Subtitle = "As of " + System.DateTime.Now.ToString("MMMM %d, yyyy");
-            AccountBalances = layoutBalanceData <| Query.balance journalData netWorthParameters;
+            AccountBalances = layoutBalanceData <| Query.balance journalData balanceSheetParameters;
         }
         let reportList = (renderReport "Balance Sheet" balanceSheetData (templatesPath + "balance.html") (outputPath + "BalanceSheet.html")) :: reportList
+
+        let netWorthData = {
+            Title = "Net Worth";
+            Data = generateNetWorthData journalData;
+        }
+        let reportList = (renderReport "Net Worth" netWorthData (templatesPath + "linechart.html") (outputPath + "NetWorth.html")) :: reportList
 
         let currentMonthIncomeStatementParameters = {
             AccountsWith = Some ["income"; "expenses"]; 
@@ -102,7 +145,7 @@ module StaticRunner =
         let reportList = (renderReport "Income Statement - Previous Month" previousMonthIncomeStatementData (templatesPath + "balance.html") (outputPath + "IncomeStatement-PreviousMonth.html")) :: reportList
 
         let indexData = { IndexLinks = List.rev reportList }
-        let reportList = renderReport "Index" indexData (templatesPath + "Index.html") (outputPath + "Index.html") :: reportList
+        let reportList = renderReport "Index" indexData (templatesPath + "index.html") (outputPath + "Index.html") :: reportList
     
         reportList
 

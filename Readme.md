@@ -105,10 +105,15 @@ Parsing Ledger File
 	- [] Add unit tests
 
 Balance Report
-- [] Combine balance sheet & income report into single balance report with parameters
-	- [] Can I improve the account filtering code?
-	- [] Can I get rid of the list comprehension?
-	- [] Can I clean it up so the main function is just sub-function calls?
+- [x] Combine balance sheet & income report into single balance report with parameters
+- [] Can I improve the account filtering code?
+- [] Can I get rid of the list comprehension?
+- [] Can I clean it up so the main function is just sub-function calls?
+
+Net Worth Chart
+- [] Make it a separate page/report
+- [] Can I patch Nustache so that it serializes objects to json?
+	I shouldn't need the JavascriptSerializer to convert LineChartPoint list to JSON list of objects.
 
 Dynamic Website:
 - [] Convert all existing reports to render dynamically instead of a static page

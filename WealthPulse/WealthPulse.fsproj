@@ -65,6 +65,7 @@
       <Project>{3f76b8d5-0b39-42f0-9d72-fb1cd77e0cc3}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
