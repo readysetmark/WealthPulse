@@ -38,6 +38,7 @@
   <ItemGroup>
     <None Include="Interactive.fsx" />
     <Compile Include="StaticRunner.fs" />
+    <Compile Include="NancyRunner.fs" />
     <Compile Include="main.fs" />
     <None Include="packages.config" />
     <None Include="app.config" />

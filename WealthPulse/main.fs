@@ -18,9 +18,10 @@ module Main =
         do printfn "Parsing ledger file: %s" ledgerFilePath
         let (journal, parseTime) = parse ledgerFilePath System.Text.Encoding.ASCII
         do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
-
-        let reportList = WealthPulse.StaticRunner.generateAllReports journal path
-        do printfn "Generated reports: %A" reportList
+        
+        //let reportList = WealthPulse.StaticRunner.generateAllReports journal path
+        //do printfn "Generated reports: %A" reportList
+        NancyRunner.run journal
     
 
     //let ledgerFilePath = @"C:\Users\Mark\Nexus\Development\ledger\WealthPulse\templates\stan.dat"
