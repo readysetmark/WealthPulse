@@ -111,7 +111,7 @@ Balance Report
 - [] Can I clean it up so the main function is just sub-function calls?
 
 Net Worth Chart
-- [] Make it a separate page/report
+- [x] Make it a separate page/report
 - [] Can I patch Nustache so that it serializes objects to json?
 	I shouldn't need the JavascriptSerializer to convert LineChartPoint list to JSON list of objects.
 
