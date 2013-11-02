@@ -23,12 +23,18 @@ transactions would be a possibility.
 Dependencies
 ------------
 
+Journal
 *	FParsec 1.0.1
-*	Nustache 1.13.8.22
 *	FsUnit.xUnit.1.2.1.2
 *	xunit 1.9.1
 *	xunit.runners 1.9.1
 
+WealthPulse
+*	FParsec 1.0.1
+*	Nancy 0.21.1
+*	Nancy.Hosting.Self 0.21.1
+*	Nancy.ViewEngines.Nustache 0.21.1
+*	Nustache 1.13.8.22
 
 
 How to Run

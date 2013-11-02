@@ -6,5 +6,8 @@ packages/FsUnit.xUnit.*
 packages/Nustache*
 packages/xunit.*
 packages/xunit.runners.*
+packages/Nancy.*
+packages/Nancy.Hosting.Self.*
+packages/Nancy.Viewengines.Nustache.*
 .nuget
 

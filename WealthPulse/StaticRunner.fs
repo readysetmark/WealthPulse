@@ -72,7 +72,7 @@ module StaticRunner =
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
-            let _, totalBalance = Query.balance journalData parameters
+            let _, totalBalance = Query.balance parameters journalData
             {
                 X = month.ToString("dd-MMM-yyyy"); 
                 Y = totalBalance.ToString(); 
@@ -108,7 +108,7 @@ module StaticRunner =
         let balanceSheetData = {
             Title = "Balance Sheet";
             Subtitle = "As of " + System.DateTime.Now.ToString("MMMM %d, yyyy");
-            AccountBalances = layoutBalanceData <| Query.balance journalData balanceSheetParameters;
+            AccountBalances = layoutBalanceData <| Query.balance balanceSheetParameters journalData;
         }
         let reportList = (renderReport "Balance Sheet" balanceSheetData (templatesPath + "balance.html") (outputPath + "BalanceSheet.html")) :: reportList
 
@@ -127,7 +127,7 @@ module StaticRunner =
         let currentMonthIncomeStatementData = {
             Title = "Income Statement";
             Subtitle = "For period of " + currentMonthIncomeStatementParameters.PeriodStart.Value.ToString("MMMM %d, yyyy") + " to " + currentMonthIncomeStatementParameters.PeriodEnd.Value.ToString("MMMM %d, yyyy");
-            AccountBalances = layoutBalanceData <| Query.balance journalData currentMonthIncomeStatementParameters;
+            AccountBalances = layoutBalanceData <| Query.balance currentMonthIncomeStatementParameters journalData;
         }
         let reportList = (renderReport "Income Statement - Current Month" currentMonthIncomeStatementData (templatesPath + "balance.html") (outputPath + "IncomeStatement-CurrentMonth.html")) :: reportList
 
@@ -140,7 +140,7 @@ module StaticRunner =
         let previousMonthIncomeStatementData = {
             Title = "Income Statement";
             Subtitle = "For period of " + previousMonthIncomeStatementParameters.PeriodStart.Value.ToString("MMMM %d, yyyy") + " to " + previousMonthIncomeStatementParameters.PeriodEnd.Value.ToString("MMMM %d, yyyy");
-            AccountBalances = layoutBalanceData <| Query.balance journalData previousMonthIncomeStatementParameters;
+            AccountBalances = layoutBalanceData <| Query.balance previousMonthIncomeStatementParameters journalData;
         }
         let reportList = (renderReport "Income Statement - Previous Month" previousMonthIncomeStatementData (templatesPath + "balance.html") (outputPath + "IncomeStatement-PreviousMonth.html")) :: reportList
 

@@ -32,7 +32,7 @@ module Query =
 
     /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
     /// where accountBalances is a list of (account, amount) tuples.
-    let balance (journal : JournalData) (parameters : BalanceParameters) =
+    let balance (parameters : BalanceParameters) (journal : JournalData) =
         // TODO: Not fond of the call to "oneOfIn" needing the default parameter, there must be a better way...
         // filter all accounts to selected accounts
         let accounts = 
