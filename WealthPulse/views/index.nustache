@@ -1,0 +1,19 @@
+<html>
+<head>
+	<title>Wealth Pulse >> Index</title>
+	<!--<link rel="stylesheet" type="text/css" href="report.css" />-->
+</head>
+<body>
+<div class="report_title">Wealth Pulse Report List</div>
+<div class="index_body">
+
+<!--
+{{#IndexLinks}}
+<p><a href="{{LinkURL}}">{{LinkTitle}}</a></p>
+{{/IndexLinks}}
+-->
+
+</div>
+</body>
+</html>
+	

@@ -11,6 +11,7 @@
     <AssemblyName>webledger</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>WealthPulse</Name>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -37,8 +38,9 @@
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
   <ItemGroup>
     <None Include="Interactive.fsx" />
-    <Compile Include="StaticRunner.fs" />
+    <Compile Include="JournalService.fs" />
     <Compile Include="NancyRunner.fs" />
+    <Compile Include="StaticRunner.fs" />
     <Compile Include="main.fs" />
     <None Include="packages.config" />
     <None Include="app.config" />
@@ -54,16 +56,13 @@
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
-    <Reference Include="Nancy">
-      <HintPath>..\packages\Nancy.0.21.1\lib\net40\Nancy.dll</HintPath>
+    <Reference Include="Nancy, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
     </Reference>
-    <Reference Include="Nancy.Hosting.Self">
-      <HintPath>..\packages\Nancy.Hosting.Self.0.21.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
+    <Reference Include="Nancy.Hosting.Self, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
     </Reference>
-    <Reference Include="Nancy.ViewEngines.Nustache">
-      <HintPath>..\packages\Nancy.Viewengines.Nustache.0.21.1\lib\net40\Nancy.ViewEngines.Nustache.dll</HintPath>
+    <Reference Include="Nancy.ViewEngines.Nustache, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
     </Reference>
     <Reference Include="Nustache.Core, Version=1.13.8.22, Culture=neutral, PublicKeyToken=efd6f3d8f76ecd9f">
@@ -79,6 +78,11 @@
     </ProjectReference>
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>rem rmdir /Q /S views
+rem mkdir views
+rem xcopy $(ProjectDir)views views /S</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
