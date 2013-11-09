@@ -41,6 +41,7 @@ type WebServerModule() as this =
 
     do this.Get.["/"] <- 
         fun parameters ->
+            //Nustache.Core.Render.FileToString("hello.nustache", {Name="Smith"}) |> box
             this.View.["hello.nustache", {Name="Smith"}] |> box
 
 
