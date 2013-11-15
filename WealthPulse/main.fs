@@ -1,14 +1,9 @@
 ﻿namespace WealthPulse
 
 open WealthPulse.Journal
+open WealthPulse.Utility
 
 module Main =
-
-    let time f =
-        let start = System.DateTime.Now
-        let res = f()
-        let finish = System.DateTime.Now
-        (res, finish - start)
 
     let parse file encoding =
         time (fun () -> Parser.parseJournalFile file encoding)

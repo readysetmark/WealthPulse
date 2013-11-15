@@ -25,13 +25,12 @@ module NancyRunner =
 
         do this.Get.["/"] <-
             fun parameters ->
-                this.View.["hello.nustache", {Name = "Nancy"}] |> box
-//                let balance = { LinkTitle = "Balance Sheet"; LinkURL = "/balance"; }
-//                let networth = { LinkTitle = "Net Worth Chart"; LinkURL = "/networth"; }
-//                let currentIncomeStatement = { LinkTitle = "Income Statement - Current Month"; LinkURL = "/currentincomestatement"; }
-//                let previousIncomeStatement = { LinkTitle = "Income Statement - Previous Month"; LinkURL = "/previousincomestatement"; }
-//                let data = { IndexLinks = [balance; networth; currentIncomeStatement; previousIncomeStatement]; }
-//                this.View.["index", data] |> box
+                let balance = { LinkTitle = "Balance Sheet"; LinkURL = "/balance"; }
+                let networth = { LinkTitle = "Net Worth Chart"; LinkURL = "/networth"; }
+                let currentIncomeStatement = { LinkTitle = "Income Statement - Current Month"; LinkURL = "/currentincomestatement"; }
+                let previousIncomeStatement = { LinkTitle = "Income Statement - Previous Month"; LinkURL = "/previousincomestatement"; }
+                let data = { IndexLinks = [balance; networth; currentIncomeStatement; previousIncomeStatement]; }
+                this.View.["index", data] |> box
 
 
     let run =

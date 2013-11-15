@@ -38,6 +38,7 @@
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
   <ItemGroup>
     <None Include="Interactive.fsx" />
+    <Compile Include="Utility.fs" />
     <Compile Include="JournalService.fs" />
     <Compile Include="NancyRunner.fs" />
     <Compile Include="StaticRunner.fs" />
@@ -79,9 +80,9 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <PropertyGroup>
-    <PostBuildEvent>rem rmdir /Q /S views
-rem mkdir views
-rem xcopy $(ProjectDir)views views /S</PostBuildEvent>
+    <PostBuildEvent>rmdir /Q /S views
+mkdir views
+xcopy $(ProjectDir)views views /S</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

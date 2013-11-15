@@ -134,9 +134,7 @@ Dynamic Website:
 		- [] Convert to use d3.js for charts
 	- [] turn into "one page" app that takes GET parameters for what to show (with command bar)
 	- [] watch ledger file and reload on change
-		1) On initial load, note last modified time of file
-		2) On every request, compare last modified time of file to noted time
-			If newer, (attempt to) reload journal
+		- [] handle situation where file cannot be parsed
 
 
 ### Third Milestone

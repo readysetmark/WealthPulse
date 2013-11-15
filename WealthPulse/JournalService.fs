@@ -1,6 +1,7 @@
 ﻿namespace WealthPulse
 
 open WealthPulse.Journal
+open WealthPulse.Utility
 
 module JournalService =
 
@@ -10,15 +11,12 @@ module JournalService =
 
 
     type JournalService() =
-        let mutable journal = None
+        let journal = 
+            let ledgerFilePath = System.Environment.GetEnvironmentVariable("LEDGER_FILE")
+            do printfn "Parsing ledger file: %s" ledgerFilePath
+            let (j, parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
+            do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
+            j
 
         interface IJournalService with
-            member this.Journal =
-                match journal with
-                | Some journal -> journal
-                | none -> 
-                    let ledgerFilePath = System.Environment.GetEnvironmentVariable("LEDGER_FILE")
-                    do 
-                        printfn "Parsing ledger file: %s" ledgerFilePath
-                        journal <- Some (Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII)
-                    journal.Value
+            member this.Journal = journal
