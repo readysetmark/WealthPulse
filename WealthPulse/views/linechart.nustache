@@ -1,12 +1,12 @@
 <html>
 <head>
 	<title>{{Title}}</title>
-	<link rel="stylesheet" type="text/css" href="report.css" />
-    <link rel="stylesheet" type="text/css" href="linechart.css" />
-    <script language="javascript" type="text/javascript" src="lib/d3.v3.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="content/report.css" />
+    <link rel="stylesheet" type="text/css" href="content/linechart.css" />
+    <script language="javascript" type="text/javascript" src="content/lib/d3.v3.min.js"></script>
 </head>
 <body>
-<div class="back"><a href="Index.html">Back to index</a></div>
+<div class="back"><a href="/">Back to index</a></div>
 <div class="report_title">{{Title}}</div>
 <div class="report_body">
 

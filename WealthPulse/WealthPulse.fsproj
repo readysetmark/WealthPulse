@@ -11,7 +11,7 @@
     <AssemblyName>webledger</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>WealthPulse</Name>
-    <RunPostBuildEvent>Always</RunPostBuildEvent>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -41,7 +41,6 @@
     <Compile Include="Utility.fs" />
     <Compile Include="JournalService.fs" />
     <Compile Include="NancyRunner.fs" />
-    <Compile Include="StaticRunner.fs" />
     <Compile Include="main.fs" />
     <None Include="packages.config" />
     <None Include="app.config" />
@@ -82,7 +81,11 @@
   <PropertyGroup>
     <PostBuildEvent>rmdir /Q /S views
 mkdir views
-xcopy $(ProjectDir)views views /S</PostBuildEvent>
+xcopy $(ProjectDir)views views /S
+
+rmdir /Q /S content
+mkdir content
+xcopy $(ProjectDir)content content /S</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

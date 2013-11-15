@@ -1,10 +1,10 @@
 <html>
 <head>
 	<title>Balance Sheet</title>
-	<link rel="stylesheet" type="text/css" href="report.css" />
+	<link rel="stylesheet" type="text/css" href="content/report.css" />
 </head>
 <body>
-<div class="back"><a href="Index.html">Back to index</a></div>
+<div class="back"><a href="/">Back to index</a></div>
 <div class="report_title">{{Title}}</div>
 <div class="report_subtitle">{{Subtitle}}</div>
 <div class="report_body">

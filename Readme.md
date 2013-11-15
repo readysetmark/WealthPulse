@@ -127,7 +127,7 @@ Net Worth Chart
 Dynamic Website:
 - [] Convert all existing reports to render dynamically instead of a static page
 	- [x] Get barebones nancy working
-	- [] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
+	- [x] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
 	- [] Update rendering:
 		- [] Convert to use bootstrap css
 		- [] fix html/css (use proper elements ie h1, ul, etc...)

@@ -1,0 +1,37 @@
+body {
+  font-family: "Source Sans Pro", "Helvetica", Arial, sans-serif;
+  font-size: 12px;
+}
+
+#chart {
+  width: 600px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.node {
+  r: 5;
+  stroke: steelblue;
+  fill: steelblue;
+  stroke-width: 1.5px;
+}
+
+.node-hover-rect {
+  fill: #111;
+  opacity: 0.9;
+}
+
+.node-hover-text {
+  fill: #eee;
+}
