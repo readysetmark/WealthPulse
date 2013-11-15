@@ -35,11 +35,12 @@ module NancyRunner =
 
 
     let run =
+        let url = "http://localhost:5050"
         let configuration = new Nancy.Hosting.Self.HostConfiguration()
         configuration.UrlReservations.CreateAutomatically <- true
-        let nancyHost = new Nancy.Hosting.Self.NancyHost(configuration, new System.Uri("http://localhost:5050"))
+        let nancyHost = new Nancy.Hosting.Self.NancyHost(configuration, new System.Uri(url))
         nancyHost.Start()
-        printfn "WealthPulse server running at http://localhost:5050."
+        printfn "WealthPulse server running at %s" url
         printfn "Press <enter> to stop."
         System.Console.ReadLine() |> ignore
         nancyHost.Stop()

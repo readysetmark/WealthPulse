@@ -34,6 +34,9 @@ WealthPulse
 *	Nancy 0.21.1
 *	Nancy.Hosting.Self 0.21.1
 *	Nancy.ViewEngines.Nustache 0.21.1
+	- Well, actually, this was built against Nustache 1.0.0.0, so either need to use that version of the DLL
+	or build a new one from source -- built new version from source for now. This should be fixed in the next
+	release of Nancy.
 *	Nustache 1.13.8.22
 
 
