@@ -128,11 +128,11 @@ Dynamic Website:
 - [] Convert all existing reports to render dynamically instead of a static page
 	- [x] Get barebones nancy working
 	- [x] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
-	- [] Update rendering:
-		- [] Convert to use bootstrap css
-		- [] fix html/css (use proper elements ie h1, ul, etc...)
-		- [] Convert to use d3.js for charts
-	- [] turn into "one page" app that takes GET parameters for what to show (with command bar)
+	- [] Switch to client-side framework (likely AngularJS)
+		- [] Setup JSON services
+		- [] Setup static file services
+		- [] Create client-side app
+	- [] Setup command bar
 	- [] watch ledger file and reload on change
 		- [] handle situation where file cannot be parsed
 
