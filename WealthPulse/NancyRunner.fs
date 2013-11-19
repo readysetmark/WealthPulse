@@ -158,6 +158,71 @@ module NancyRunner =
                 }
                 this.View.["balance", previousMonthIncomeStatementData] |> box
 
+        // Below server JSON data. Copy & pasted from above so I have something to work with.
+        // Above will go away eventually...
+
+        do this.Get.["/nav-data"] <-
+            fun parameters ->
+                let balance = { LinkTitle = "Balance Sheet"; LinkURL = "/balance"; }
+                let networth = { LinkTitle = "Net Worth Chart"; LinkURL = "/networth"; }
+                let currentIncomeStatement = { LinkTitle = "Income Statement - Current Month"; LinkURL = "/currentincomestatement"; }
+                let previousIncomeStatement = { LinkTitle = "Income Statement - Previous Month"; LinkURL = "/previousincomestatement"; }
+                let data = { IndexLinks = [balance; networth; currentIncomeStatement; previousIncomeStatement]; }
+                data |> box
+
+        do this.Get.["/balance-data"] <-
+            fun parameters ->
+                let balanceSheetParameters = {
+                    AccountsWith = Some ["assets"; "liabilities"]; 
+                    ExcludeAccountsWith = Some ["units"]; 
+                    PeriodStart = None; 
+                    PeriodEnd = None;
+                }
+                let balanceSheetData = {
+                    Title = "Balance Sheet";
+                    Subtitle = "As of " + System.DateTime.Now.ToString("MMMM %d, yyyy");
+                    AccountBalances = layoutBalanceData <| Query.balance balanceSheetParameters journalService.Journal;
+                }
+                balanceSheetData |> box
+
+        do this.Get.["/networth-data"] <-
+            fun parameters ->
+                let netWorthData = {
+                    Title = "Net Worth";
+                    Data = generateNetWorthData journalService.Journal;
+                }
+                netWorthData |> box
+
+        do this.Get.["/currentincomestatement-data"] <-
+            fun parameters ->
+                let currentMonthIncomeStatementParameters = {
+                    AccountsWith = Some ["income"; "expenses"]; 
+                    ExcludeAccountsWith = None; 
+                    PeriodStart = Some (DateUtils.getFirstOfMonth System.DateTime.Today); 
+                    PeriodEnd = Some (DateUtils.getLastOfMonth System.DateTime.Today);
+                }
+                let currentMonthIncomeStatementData = {
+                    Title = "Income Statement";
+                    Subtitle = "For period of " + currentMonthIncomeStatementParameters.PeriodStart.Value.ToString("MMMM %d, yyyy") + " to " + currentMonthIncomeStatementParameters.PeriodEnd.Value.ToString("MMMM %d, yyyy");
+                    AccountBalances = layoutBalanceData <| Query.balance currentMonthIncomeStatementParameters journalService.Journal;
+                }
+                currentMonthIncomeStatementData |> box
+
+        do this.Get.["/previousincomestatement-data"] <-
+            fun parameters ->
+                let previousMonthIncomeStatementParameters = {
+                    AccountsWith = Some ["income"; "expenses"]; 
+                    ExcludeAccountsWith = None; 
+                    PeriodStart = Some (DateUtils.getFirstOfMonth (System.DateTime.Today.AddMonths(-1))); 
+                    PeriodEnd = Some (DateUtils.getLastOfMonth (System.DateTime.Today.AddMonths(-1)));
+                }
+                let previousMonthIncomeStatementData = {
+                    Title = "Income Statement";
+                    Subtitle = "For period of " + previousMonthIncomeStatementParameters.PeriodStart.Value.ToString("MMMM %d, yyyy") + " to " + previousMonthIncomeStatementParameters.PeriodEnd.Value.ToString("MMMM %d, yyyy");
+                    AccountBalances = layoutBalanceData <| Query.balance previousMonthIncomeStatementParameters journalService.Journal;
+                }
+                previousMonthIncomeStatementData |> box
+
 
     let run =
         let url = "http://localhost:5050"

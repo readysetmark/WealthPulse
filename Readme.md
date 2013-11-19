@@ -129,7 +129,7 @@ Dynamic Website:
 	- [x] Get barebones nancy working
 	- [x] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
 	- [] Switch to client-side framework (likely AngularJS)
-		- [] Setup JSON services
+		- [x] Setup JSON services
 		- [] Setup static file services
 		- [] Create client-side app
 	- [] Setup command bar
