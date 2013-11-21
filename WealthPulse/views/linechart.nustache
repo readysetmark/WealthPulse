@@ -3,7 +3,7 @@
 	<title>{{Title}}</title>
 	<link rel="stylesheet" type="text/css" href="content/report.css" />
     <link rel="stylesheet" type="text/css" href="content/linechart.css" />
-    <script language="javascript" type="text/javascript" src="content/lib/d3.v3.min.js"></script>
+    <script language="javascript" type="text/javascript" src="content/d3/d3.v3.min.js"></script>
 </head>
 <body>
 <div class="back"><a href="/">Back to index</a></div>
