@@ -1,0 +1,39 @@
+
+body {
+	padding-top: 60px;
+}
+
+.table th {
+	text-align: center !important;
+}
+
+.table .currency {
+	text-align: right;
+}
+
+.table td.no-border-top {
+	border-top: 0px;
+}
+
+td.assets, td.income {
+	color: #1a1;
+	background: white;
+}
+
+td.liabilities, td.expenses {
+	color: #f44;
+	background: white;
+}
+
+tr.grand_total {
+    border-top: 1px solid black;
+	font-weight: bold;
+}
+
+.positive {
+	color: #1a1;
+}
+
+.negative {
+	color: #f44;
+}

@@ -1,0 +1,21 @@
+<section>
+	<header class="page-header">
+		<h1>
+			{{balance.Title}}<br>
+			<small>{{balance.Subtitle}}</small>
+		</h1>
+	</header>
+	<section class="span4">
+		<table class="table table-hover table-condensed">
+			<thead>
+				<tr><th>Balance</th><th>Account</th></tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="row in balance.AccountBalances" class="{{row.RowClass}}">
+					<td class="currency {{row.BalanceClass}}">{{row.Balance}}</td>
+					<td style="{{row.AccountStyle}}"><a href="/TODO_register_link">{{row.Account}}</a></td>
+				</tr>
+			</tbody>
+		</table>
+	</section>
+</section>
