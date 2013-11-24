@@ -37,8 +37,7 @@ module NancyRunner =
 
     type LineChartReportData = {
         Title: string;
-        Data: LineChartPoint list; // This SHOULD be the way I do it, but Nustache does render it properly
-        //Data: string;
+        Data: LineChartPoint list;
     }
 
     let layoutBalanceData (accountBalances, totalBalance) =
@@ -87,8 +86,6 @@ module NancyRunner =
             |> Seq.map generatePeriodBalance
             |> Seq.toList
 
-        //let jsonSerializer = new System.Web.Script.Serialization.JavaScriptSerializer()
-        //jsonSerializer.Serialize(netWorthData)
         netWorthData
 
     
