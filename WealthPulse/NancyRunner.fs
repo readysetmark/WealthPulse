@@ -6,13 +6,9 @@ open WealthPulse.JournalService
 
 module NancyRunner =
 
-    type IndexLink = {
-        LinkTitle: string;
-        LinkURL: string;
-    }
-
-    type IndexData = {
-        IndexLinks: IndexLink list;
+    type NavLink = {
+        Title: string;
+        URL: string;
     }
 
     type BalanceSheetRow = {
@@ -100,12 +96,11 @@ module NancyRunner =
 
         do this.Get.["/api/nav"] <-
             fun parameters ->
-                let balance = { LinkTitle = "Balance Sheet"; LinkURL = "/balance"; }
-                let networth = { LinkTitle = "Net Worth Chart"; LinkURL = "/networth"; }
-                let currentIncomeStatement = { LinkTitle = "Income Statement - Current Month"; LinkURL = "/currentincomestatement"; }
-                let previousIncomeStatement = { LinkTitle = "Income Statement - Previous Month"; LinkURL = "/previousincomestatement"; }
-                let data = { IndexLinks = [balance; networth; currentIncomeStatement; previousIncomeStatement]; }
-                data |> box
+                let balance = { Title = "Balance Sheet"; URL = "#/balance"; }
+                let networth = { Title = "Net Worth Chart"; URL = "#/networth"; }
+                let currentIncomeStatement = { Title = "Income Statement - Current Month"; URL = "#/currentincomestatement"; }
+                let previousIncomeStatement = { Title = "Income Statement - Previous Month"; URL = "#/previousincomestatement"; }
+                [balance; networth; currentIncomeStatement; previousIncomeStatement] |> box
 
         do this.Get.["/api/balance"] <-
             fun parameters ->

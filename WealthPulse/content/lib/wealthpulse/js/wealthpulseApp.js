@@ -208,11 +208,8 @@ NetWorthCtrl.resolve = {
 };
 
 
-function NavCtrl($scope) {
-	$scope.reports = [
-		{url: "#/balance", title: "Balance Sheet"},
-		{url: "#/networth", title: "Net Worth"},
-		{url: "#/currentincomestatement", title: "Current Income Statement"},
-		{url: "#/previousincomestatement", title: "Previous Income Statement"}
-	];
+function NavCtrl($scope, $http) {
+	$http.get('/api/nav.json').success(function(data) {
+		$scope.reports = data;	
+	});
 }
