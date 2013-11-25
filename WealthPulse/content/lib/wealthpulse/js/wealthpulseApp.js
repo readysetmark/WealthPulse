@@ -3,22 +3,22 @@ angular.module('wealthpulseApp', ['ngRoute'])
 		$routeProvider
 			.when('/balance', {
 				controller: BalanceCtrl,
-				templateUrl: '/content/balance.html',
+				templateUrl: '/content/partials/balance.html',
 				resolve: BalanceCtrl.resolve
 			})
 			.when('/networth', {
 				controller: NetWorthCtrl,
-				templateUrl: '/content/linechart.html',
+				templateUrl: '/content/partials/linechart.html',
 				resolve: NetWorthCtrl.resolve
 			})
 			.when('/currentincomestatement', {
 				controller: CurrentIncomeStatementCtrl,
-				templateUrl: '/content/balance.html',
+				templateUrl: '/content/partials/balance.html',
 				resolve: CurrentIncomeStatementCtrl.resolve
 			})
 			.when('/previousincomestatement', {
 				controller: PreviousIncomeStatementCtrl,
-				templateUrl: '/content/balance.html',
+				templateUrl: '/content/partials/balance.html',
 				resolve: PreviousIncomeStatementCtrl.resolve
 			})
 			.otherwise({redirectTo: '/balance'});
