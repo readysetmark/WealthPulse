@@ -9,7 +9,7 @@ module JournalService =
     type IJournalService =
         abstract member Journal: JournalData
 
-
+    /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
         let journal = 
             let ledgerFilePath = System.Environment.GetEnvironmentVariable("LEDGER_FILE")
