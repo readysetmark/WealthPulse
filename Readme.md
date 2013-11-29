@@ -130,7 +130,6 @@ Dynamic Website:
 	- [] Highlight active page on navlist
 	- [] watch ledger file and reload on change
 		- [] handle situation where file cannot be parsed
-- [] Clean up Nancy server side code
 - [x] Clean up directive/controller code
 
 
