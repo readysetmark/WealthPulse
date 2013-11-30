@@ -84,8 +84,12 @@ module NancyRunner =
 
         netWorthData
 
+    /// Access values out of the Nancy.DynamicDictionary
+    /// see http://stackoverflow.com/questions/17640218/accessing-dynamic-property-in-f/
+    let (?) (parameters:obj) param =
+        (parameters :?> Nancy.DynamicDictionary).[param]
     
-        
+
     type WealthPulseModule(journalService : IJournalService) as this =
         inherit Nancy.NancyModule()
         let journalService = journalService
@@ -104,6 +108,7 @@ module NancyRunner =
 
         do this.Get.["/api/balance"] <-
             fun parameters ->
+                do printfn "%A" this.Request.Query?parameters
                 let balanceSheetParameters = {
                     AccountsWith = Some ["assets"; "liabilities"]; 
                     ExcludeAccountsWith = Some ["units"]; 

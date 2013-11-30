@@ -26,14 +26,21 @@ angular.module('wealthpulseApp', ['ngRoute', 'wpLineChart'])
 
 
 function BalanceCtrl($scope, $location, response) {
-	console.log($location.search().parameters)
+	console.log($location.search().parameters);
 	$scope.balance = response.data;
 }
 
 BalanceCtrl.resolve = {
 	response: function($q, $http, $location) {
-		console.log($location.search().parameters)
-		return $http.get('/api/balance.json');
+		var query_params = $location.search();
+		var options = null
+
+		if (query_params.hasOwnProperty('parameters')) {
+			console.log(query_params);
+			options = {params: query_params};
+		}
+
+		return $http.get('/api/balance.json', options);
 	}
 }
 
@@ -95,9 +102,7 @@ function CommandCtrl($scope, $location) {
 	};
 
 	$scope.submit = function() {
-		console.log($scope.cmd);
 		var cmd = parseCommand($scope.cmd);
-		console.log(cmd);
 
 		if (cmd.command === "bal") {
 			$location.path('/balance');
