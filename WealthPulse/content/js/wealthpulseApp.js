@@ -25,12 +25,14 @@ angular.module('wealthpulseApp', ['ngRoute', 'wpLineChart'])
 	});
 
 
-function BalanceCtrl($scope, response) {
+function BalanceCtrl($scope, $location, response) {
+	console.log($location.search().parameters)
 	$scope.balance = response.data;
 }
 
 BalanceCtrl.resolve = {
-	response: function($q, $http) {
+	response: function($q, $http, $location) {
+		console.log($location.search().parameters)
 		return $http.get('/api/balance.json');
 	}
 }
@@ -83,10 +85,28 @@ function NavCtrl($scope, $http) {
 
 
 function CommandCtrl($scope, $location) {
-	console.log($scope.cmd);
+	var parseCommand = function(str) {
+		var words = str.split(" ");
+		var words_tail = words.slice(1,words.length);
+		return {
+			command: words[0],
+			parameters: words_tail.join(" ")
+		};
+	};
 
 	$scope.submit = function() {
 		console.log($scope.cmd);
+		var cmd = parseCommand($scope.cmd);
+		console.log(cmd);
+
+		if (cmd.command === "bal") {
+			$location.path('/balance');
+			$location.search('parameters', cmd.parameters);
+		}
+		if (cmd.command === "currincome") {
+			$location.path('/currentincomestatement');
+			$location.search('parameters', cmd.parameters);
+		}
 		$scope.cmd = null;
 	}
 }
