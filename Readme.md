@@ -106,6 +106,7 @@ Initial Static Balance Reports:
 Parsing Ledger File
 - [] Review / revise parsing & post-processing:
 	- [] Ensure transactions balance (if not autobalanced)
+	- [] Maybe I can do the processing inline during parsing?
 	- [] Can I remove mutable fields?
 	- [] Add unit tests
 
