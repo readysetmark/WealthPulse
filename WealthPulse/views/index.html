@@ -19,8 +19,8 @@
 			<div class="container-fluid">
 				<a class="brand" href="/">Wealth Pulse</a>
 
-				<form class="navbar-form pull-right" name="command" action="#" method="get">
-					<input type="text" name="cmd" class="span8" placeholder="Command">
+				<form ng-controller="CommandCtrl" ng-submit="submit()" class="navbar-form pull-right" name="command">
+					<input type="text" name="cmd" class="span8" placeholder="Command" ng-model="cmd">
 					<button type="submit" class="btn btn-primary">Submit</button>
 				</form>
 			</div>

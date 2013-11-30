@@ -80,3 +80,13 @@ function NavCtrl($scope, $http) {
 		$scope.reports = data;	
 	});
 }
+
+
+function CommandCtrl($scope, $location) {
+	console.log($scope.cmd);
+
+	$scope.submit = function() {
+		console.log($scope.cmd);
+		$scope.cmd = null;
+	}
+}
