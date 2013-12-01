@@ -45,7 +45,6 @@ How to Run
 
 Command Bar Supported Commands
 ------------------------------
-[NOTE: Not implemented yet]
 
 Commands:
 
@@ -127,7 +126,7 @@ Dynamic Website:
 		- [x] Setup JSON services
 		- [x] Setup static file services
 		- [x] Create client-side app
-	- [] Setup command bar
+	- [x] Setup command bar
 	- [] Highlight active page on navlist
 	- [] watch ledger file and reload on change
 		- [] handle situation where file cannot be parsed

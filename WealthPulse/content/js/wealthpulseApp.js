@@ -11,16 +11,6 @@ angular.module('wealthpulseApp', ['ngRoute', 'wpLineChart'])
 				templateUrl: '/content/partials/linechart.html',
 				resolve: NetWorthCtrl.resolve
 			})
-			.when('/currentincomestatement', {
-				controller: CurrentIncomeStatementCtrl,
-				templateUrl: '/content/partials/balance.html',
-				resolve: CurrentIncomeStatementCtrl.resolve
-			})
-			.when('/previousincomestatement', {
-				controller: PreviousIncomeStatementCtrl,
-				templateUrl: '/content/partials/balance.html',
-				resolve: PreviousIncomeStatementCtrl.resolve
-			})
 			.otherwise({
 				// TODO: This kind of sucks (hard-coded, wth is with the url encoding?)
 				redirectTo: function(routeParams, path, search) {
@@ -46,28 +36,6 @@ BalanceCtrl.resolve = {
 		return $http.get('/api/balance.json', options);
 	}
 }
-
-
-function CurrentIncomeStatementCtrl($scope, response) {
-	$scope.balance = response.data;
-}
-
-CurrentIncomeStatementCtrl.resolve = {
-	response: function($q, $http) {
-		return $http.get('/api/currentincomestatement.json');
-	}
-};
-
-
-function PreviousIncomeStatementCtrl($scope, response) {
-	$scope.balance = response.data;
-}
-
-PreviousIncomeStatementCtrl.resolve = {
-	response: function($q, $http) {
-		return $http.get('/api/previousincomestatement.json');
-	}
-};
 
 
 function NetWorthCtrl($scope, response) {

@@ -182,10 +182,10 @@ module NancyRunner =
 
         do this.Get.["/api/nav"] <-
             fun parameters ->
-                let balance = { Title = "Balance Sheet"; URL = "#/balance"; }
-                let networth = { Title = "Net Worth Chart"; URL = "#/networth"; }
-                let currentIncomeStatement = { Title = "Income Statement - Current Month"; URL = "#/currentincomestatement"; }
-                let previousIncomeStatement = { Title = "Income Statement - Previous Month"; URL = "#/previousincomestatement"; }
+                let balance = { Title = "Balance Sheet"; URL = "#/balance?parameters=assets liabilities :exclude units :title Balance Sheet"; }
+                let networth = { Title = "Net Worth"; URL = "#/networth"; }
+                let currentIncomeStatement = { Title = "Income Statement - Current Month"; URL = "#/balance?parameters=income expenses :period this month :title Income Statement"; }
+                let previousIncomeStatement = { Title = "Income Statement - Previous Month"; URL = "#/balance?parameters=income expenses :period last month :title Income Statement"; }
                 [balance; networth; currentIncomeStatement; previousIncomeStatement] |> box
 
         do this.Get.["/api/balance"] <-
@@ -197,14 +197,10 @@ module NancyRunner =
                     | true -> Some <| parseQueryParameters (queryParameterValue.ToString())
                     | otherwise -> None
 
-                do printfn "queryParameters = %A" queryParameters
-
                 let balanceSheetParameters = 
                     match queryParameters with
                     | Some (parameters, _) -> parameters
                     | None -> {AccountsWith = None; ExcludeAccountsWith = None; PeriodStart = None; PeriodEnd = None;}
-
-                do printfn "balanceSheetParameters = %A" balanceSheetParameters
 
                 let title =
                     match queryParameters with
@@ -212,6 +208,7 @@ module NancyRunner =
                     | _ -> "Balance"
 
                 let dateFormat = "MMMM %d, yyyy"
+
                 let subtitle =
                     match balanceSheetParameters.PeriodStart, balanceSheetParameters.PeriodEnd with
                     | Some periodStart, Some periodEnd -> "For the period of " + periodStart.ToString(dateFormat) + " to " + periodEnd.ToString(dateFormat)
@@ -234,35 +231,6 @@ module NancyRunner =
                 }
                 netWorthData |> box
 
-        do this.Get.["/api/currentincomestatement"] <-
-            fun parameters ->
-                let currentMonthIncomeStatementParameters = {
-                    AccountsWith = Some ["income"; "expenses"]; 
-                    ExcludeAccountsWith = None; 
-                    PeriodStart = Some (DateUtils.getFirstOfMonth System.DateTime.Today); 
-                    PeriodEnd = Some (DateUtils.getLastOfMonth System.DateTime.Today);
-                }
-                let currentMonthIncomeStatementData = {
-                    Title = "Income Statement";
-                    Subtitle = "For period of " + currentMonthIncomeStatementParameters.PeriodStart.Value.ToString("MMMM %d, yyyy") + " to " + currentMonthIncomeStatementParameters.PeriodEnd.Value.ToString("MMMM %d, yyyy");
-                    AccountBalances = layoutBalanceData <| Query.balance currentMonthIncomeStatementParameters journalService.Journal;
-                }
-                currentMonthIncomeStatementData |> box
-
-        do this.Get.["/api/previousincomestatement"] <-
-            fun parameters ->
-                let previousMonthIncomeStatementParameters = {
-                    AccountsWith = Some ["income"; "expenses"]; 
-                    ExcludeAccountsWith = None; 
-                    PeriodStart = Some (DateUtils.getFirstOfMonth (System.DateTime.Today.AddMonths(-1))); 
-                    PeriodEnd = Some (DateUtils.getLastOfMonth (System.DateTime.Today.AddMonths(-1)));
-                }
-                let previousMonthIncomeStatementData = {
-                    Title = "Income Statement";
-                    Subtitle = "For period of " + previousMonthIncomeStatementParameters.PeriodStart.Value.ToString("MMMM %d, yyyy") + " to " + previousMonthIncomeStatementParameters.PeriodEnd.Value.ToString("MMMM %d, yyyy");
-                    AccountBalances = layoutBalanceData <| Query.balance previousMonthIncomeStatementParameters journalService.Journal;
-                }
-                previousMonthIncomeStatementData |> box
 
 
     let run =
