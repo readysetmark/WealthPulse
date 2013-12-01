@@ -114,7 +114,7 @@ module NancyRunner =
                 | Some _, _ -> upto
                 | _, Some _ -> periodEnd
                 | _, _ -> None;
-        }, title
+        }, if System.String.Empty = title then None else Some title
 
 
 
@@ -190,16 +190,38 @@ module NancyRunner =
 
         do this.Get.["/api/balance"] <-
             fun parameters ->
-                do printfn "%A" this.Request.Query?parameters
-                let balanceSheetParameters = {
-                    AccountsWith = Some ["assets"; "liabilities"]; 
-                    ExcludeAccountsWith = Some ["units"]; 
-                    PeriodStart = None; 
-                    PeriodEnd = None;
-                }
+                let queryParameterValue = this.Request.Query?parameters :?> Nancy.DynamicDictionaryValue
+
+                let queryParameters = 
+                    match queryParameterValue.HasValue with
+                    | true -> Some <| parseQueryParameters (queryParameterValue.ToString())
+                    | otherwise -> None
+
+                do printfn "queryParameters = %A" queryParameters
+
+                let balanceSheetParameters = 
+                    match queryParameters with
+                    | Some (parameters, _) -> parameters
+                    | None -> {AccountsWith = None; ExcludeAccountsWith = None; PeriodStart = None; PeriodEnd = None;}
+
+                do printfn "balanceSheetParameters = %A" balanceSheetParameters
+
+                let title =
+                    match queryParameters with
+                    | Some (_, Some title) -> title
+                    | _ -> "Balance"
+
+                let dateFormat = "MMMM %d, yyyy"
+                let subtitle =
+                    match balanceSheetParameters.PeriodStart, balanceSheetParameters.PeriodEnd with
+                    | Some periodStart, Some periodEnd -> "For the period of " + periodStart.ToString(dateFormat) + " to " + periodEnd.ToString(dateFormat)
+                    | Some periodStart, None -> "Since " + periodStart.ToString(dateFormat)
+                    | _, Some periodEnd -> "Up to " + periodEnd.ToString(dateFormat)
+                    | _, _ -> "As of " + System.DateTime.Now.ToString(dateFormat)
+
                 let balanceSheetData = {
-                    Title = "Balance Sheet";
-                    Subtitle = "As of " + System.DateTime.Now.ToString("MMMM %d, yyyy");
+                    Title = title;
+                    Subtitle = subtitle;
                     AccountBalances = layoutBalanceData <| Query.balance balanceSheetParameters journalService.Journal;
                 }
                 balanceSheetData |> box

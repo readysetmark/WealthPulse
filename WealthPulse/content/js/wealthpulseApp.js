@@ -21,7 +21,12 @@ angular.module('wealthpulseApp', ['ngRoute', 'wpLineChart'])
 				templateUrl: '/content/partials/balance.html',
 				resolve: PreviousIncomeStatementCtrl.resolve
 			})
-			.otherwise({redirectTo: '/balance'});
+			.otherwise({
+				// TODO: This kind of sucks (hard-coded, wth is with the url encoding?)
+				redirectTo: function(routeParams, path, search) {
+					return '/balance?parameters=assets liabilities :exclude units :title Balance Sheet'
+				}
+			});
 	});
 
 

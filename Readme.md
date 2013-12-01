@@ -157,6 +157,7 @@ All Reports
 
 Command Bar Enhancements
 - [] Add fault tolerance to parameter parsing
+- [] Angular / route is hard-coded... erg!
 - [] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
 - [] Generate "networth" chart from the command bar
