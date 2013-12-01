@@ -26,7 +26,6 @@ angular.module('wealthpulseApp', ['ngRoute', 'wpLineChart'])
 
 
 function BalanceCtrl($scope, $location, response) {
-	console.log($location.search().parameters);
 	$scope.balance = response.data;
 }
 
@@ -36,7 +35,6 @@ BalanceCtrl.resolve = {
 		var options = null
 
 		if (query_params.hasOwnProperty('parameters')) {
-			console.log(query_params);
 			options = {params: query_params};
 		}
 
@@ -108,8 +106,8 @@ function CommandCtrl($scope, $location) {
 			$location.path('/balance');
 			$location.search('parameters', cmd.parameters);
 		}
-		if (cmd.command === "currincome") {
-			$location.path('/currentincomestatement');
+		if (cmd.command === "networth") {
+			$location.path('/networth');
 			$location.search('parameters', cmd.parameters);
 		}
 		$scope.cmd = null;

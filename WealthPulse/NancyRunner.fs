@@ -36,6 +36,88 @@ module NancyRunner =
         Data: LineChartPoint list;
     }
 
+    type QueryParametersParserState =
+        | Accounts
+        | ExcludeAccounts
+        | Period
+        | Since
+        | Upto
+        | Title
+
+    type QueryParametersParseState = {
+        State: QueryParametersParserState;
+        Accounts: string list;
+        ExcludeAccounts: string list;
+        Period: string list;
+        Since: string list;
+        Upto: string list;
+        Title: string list;
+    }
+
+    /// Parse "parameters" query value
+    /// TODO: this is "rosy path"
+    let parseQueryParameters (parameters :string) =
+        let parseDate = 
+            function
+            | "" -> None
+            | s -> Some <| System.DateTime.Parse(s)
+
+        let parseDatePipeline = List.rev >> String.concat " " >> parseDate
+
+        let getNextState (term :string) =
+            match term.ToLower() with
+            | ":exclude" -> ExcludeAccounts
+            | ":period" -> Period
+            | ":since" -> Since
+            | ":upto" -> Upto
+            | ":title" -> Title
+            | otherwise -> failwith ("Unsupported parameter: " + term)
+
+        let accumulateParameters state (term :string) = 
+            match state.State, term with
+            | Accounts, t when t.StartsWith(":") -> {state with State = getNextState <| t}
+            | Accounts, t -> {state with Accounts = t :: state.Accounts}
+            | ExcludeAccounts, t when t.StartsWith(":") -> {state with State = getNextState <| t}
+            | ExcludeAccounts, t -> {state with ExcludeAccounts = t :: state.ExcludeAccounts}
+            | Period, t when t.StartsWith(":") -> {state with State = getNextState <| t}
+            | Period, t -> {state with Period = t :: state.Period}
+            | Since, t when t.StartsWith(":") -> {state with State = getNextState <| t}
+            | Since, t -> {state with Since = t :: state.Since}
+            | Upto, t when t.StartsWith(":") -> {state with State = getNextState <| t}
+            | Upto, t -> {state with Upto = t :: state.Upto}
+            | Title, t when t.StartsWith(":") -> {state with State = getNextState <| t}
+            | Title, t -> {state with Title = t :: state.Title}
+
+        let words = List.ofArray <| parameters.Split([|' '|])
+        let starting_state = {State = Accounts; Accounts = []; ExcludeAccounts = []; Period = []; Since = []; Upto = []; Title = [];}
+        let state = List.fold accumulateParameters starting_state words
+        let title = state.Title |> List.rev |> String.concat " "
+        let since = parseDatePipeline state.Since
+        let upto = parseDatePipeline state.Upto
+        let period = state.Period |> List.rev |> String.concat " " 
+        let periodStart, periodEnd =
+            match period.ToLower() with
+            | "this month" -> (Some <| DateUtils.getFirstOfMonth System.DateTime.Today, Some <| DateUtils.getLastOfMonth System.DateTime.Today)
+            | "last month" -> (Some <| DateUtils.getFirstOfMonth (System.DateTime.Today.AddMonths(-1)), Some <| DateUtils.getLastOfMonth (System.DateTime.Today.AddMonths(-1)))
+            | "" -> None, None
+            | otherwise -> failwith ("Invalid period parameter: " + period)
+        {
+            AccountsWith = if List.isEmpty state.Accounts then None else Some <| List.rev state.Accounts;
+            ExcludeAccountsWith = if List.isEmpty state.ExcludeAccounts then None else Some <| List.rev state.ExcludeAccounts;
+            PeriodStart =
+                match since, periodStart with
+                | Some _, _ -> since
+                | _, Some _ -> periodStart
+                | _, _ -> None;
+            PeriodEnd =
+                match upto, periodEnd with
+                | Some _, _ -> upto
+                | _, Some _ -> periodEnd
+                | _, _ -> None;
+        }, title
+
+
+
     let layoutBalanceData (accountBalances, totalBalance) =
         let paddingLeftBase = 8
         let indentPadding = 20

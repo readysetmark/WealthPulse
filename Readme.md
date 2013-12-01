@@ -49,13 +49,13 @@ Command Bar Supported Commands
 
 Commands:
 
-	balance [accounts-to-include] [parameters]
+	bal [accounts-to-include] [parameters]
 
-	register [accounts-to-include] [parameters]
+	reg [accounts-to-include] [parameters]
 
 Parameters:
 
-	:excluding [accounts-to-exclude]
+	:exclude [accounts-to-exclude]
 
 	:period [this month|last month]
 
@@ -156,6 +156,7 @@ All Reports
 ### Fourth Milestone
 
 Command Bar Enhancements
+- [] Add fault tolerance to parameter parsing
 - [] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
 - [] Generate "networth" chart from the command bar
