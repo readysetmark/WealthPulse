@@ -16,6 +16,7 @@ module JournalService =
             do printfn "Parsing ledger file: %s" ledgerFilePath
             let (j, parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
             do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
+            do printfn "Transactions parsed: %d" (List.length j.Transactions)
             j
 
         interface IJournalService with
