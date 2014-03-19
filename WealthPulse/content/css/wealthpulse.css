@@ -38,6 +38,10 @@ tr.grand_total {
 	color: #f44;
 }
 
+#command {
+  margin-right: 5px;
+}
+
 
 /* line chart */
 

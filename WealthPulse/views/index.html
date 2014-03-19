@@ -1,56 +1,19 @@
 <!DOCTYPE html>
-<html ng-app="wealthpulseApp">
+<html>
 <head>
 	<title>Wealth Pulse</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="content/css/wealthpulse.css">
 	<link rel="stylesheet" href="content/lib/bootstrap/css/bootstrap.min.css" media="screen">
-	<script src="content/lib/angular-1.2.1/angular.js"></script>
-	<script src="content/lib/angular-1.2.1/angular-route.js"></script>
+    <script src="content/lib/jquery-2.1.0/jquery.js"></script>
+    <script src="content/lib/jquery-2.1.0/jquery.hotkeys.js"></script>
+    <script src="content/lib/react-0.9.0-rc1/react.js"></script>
+    <script src="content/lib/underscore-1.6.0/underscore.js"></script>
+    <script src="content/lib/backbone-1.1.1/backbone.js"></script>
 	<script src="content/lib/bootstrap/js/bootstrap.min.js"></script>
 	<script src="content/lib/d3/d3.v3.min.js"></script>
-	<script src="content/js/wealthpulseApp.js"></script>
-	<script src="content/js/wpLineChart.js"></script>
 </head>
 <body>
-	<!-- Navbar -->
-	<div class="navbar navbar-inverse navbar-fixed-top">
-		<div class="navbar-inner">
-			<div class="container-fluid">
-				<a class="brand" href="/">Wealth Pulse</a>
-
-				<form ng-controller="CommandCtrl" ng-submit="submit()" class="navbar-form pull-right" name="command">
-					<input type="text" name="cmd" class="span8" placeholder="Command" ng-model="cmd">
-					<button type="submit" class="btn btn-primary">Submit</button>
-				</form>
-			</div>
-		</div>
-	</div>
-
-	
-	<div class="container-fluid">
-		<div class="row-fluid">
-			<!-- Sidebar Navigation -->
-			<nav class="span2">
-				<div class="well" style="padding: 8px 0;">
-					<ul ng-controller="NavCtrl" class="nav nav-list">
-						<li class="nav-header">Reports</li>
-						<li ng-repeat="report in reports" class="{{report.class}}">
-							<a href="{{report.URL}}">{{report.Title}}</a>
-						</li>
-						<li class="nav-header">Payables / Receivables</li>
-						<li ng-repeat="payee in payables_receivables" class="{{payee.class}}">
-							<a href="{{payee.url}}">{{payee.name}}<span class="pull-right {{payee.amount_class}}">{{payee.amount}}</span></a>
-						</li>
-					</ul>
-				</div>
-			</nav>
-
-			<!-- Report -->
-			<div class="span10">
-				<section ng-view></section>
-			</div>
-		</div>
-	</div>
+    <script src="content/js/wealthpulse.js"></script>
 </body>
 </html>

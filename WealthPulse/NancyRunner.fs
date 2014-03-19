@@ -6,9 +6,15 @@ open WealthPulse.JournalService
 
 module NancyRunner =
 
-    type NavLink = {
-        Title: string;
-        URL: string;
+    type navReport = {
+        key: string;
+        title: string;
+        report: string;
+        query: string;
+    }
+
+    type navBar = {
+        reports: navReport list;
     }
 
     type BalanceSheetRow = {
@@ -182,11 +188,25 @@ module NancyRunner =
 
         do this.Get.["/api/nav"] <-
             fun parameters ->
-                let balance = { Title = "Balance Sheet"; URL = "#/balance?parameters=assets liabilities :exclude units :title Balance Sheet"; }
-                let networth = { Title = "Net Worth"; URL = "#/networth"; }
-                let currentIncomeStatement = { Title = "Income Statement - Current Month"; URL = "#/balance?parameters=income expenses :period this month :title Income Statement"; }
-                let previousIncomeStatement = { Title = "Income Statement - Previous Month"; URL = "#/balance?parameters=income expenses :period last month :title Income Statement"; }
-                [balance; networth; currentIncomeStatement; previousIncomeStatement] |> box
+                let nav = {
+                    reports = [{ key = "Balance Sheet";
+                                 title = "Balance Sheet";
+                                 report = "balance";
+                                 query = "accountsWith=assets+liabilities&excludeAccountsWith=units"; };
+                               { key = "Net Worth";
+                                 title = "Net Worth";
+                                 report= "networth";
+                                 query = ""; };
+                               { key = "Income Statement - Current Month";
+                                 title = "Income Statement - Current Month";
+                                 report = "balance";
+                                 query = "accountsWith=income+expenses&period=this+month&title=Income+Statement"; };
+                               { key = "Income Statement - Previous Month";
+                                 title = "Income Statement - Previous Month";
+                                 report = "balance";
+                                 query = "accountsWith=income+expenses&period=last+month&title=Income+Statement"; }];
+                }
+                nav |> box
 
         do this.Get.["/api/balance"] <-
             fun parameters ->
