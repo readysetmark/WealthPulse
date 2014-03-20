@@ -6,15 +6,15 @@ open WealthPulse.JournalService
 
 module NancyRunner =
 
-    type navReport = {
+    type NavReport = {
         key: string;
         title: string;
         report: string;
         query: string;
     }
 
-    type navBar = {
-        reports: navReport list;
+    type NavBar = {
+        reports: NavReport list;
     }
 
     type BalanceSheetRow = {
@@ -26,9 +26,9 @@ module NancyRunner =
     }
 
     type BalanceSheetReportData = {
-        Title: string;
-        Subtitle: string;
-        AccountBalances: BalanceSheetRow list;
+        title: string;
+        subtitle: string;
+        balances: BalanceSheetRow list;
     }
 
     type LineChartPoint = {
@@ -42,74 +42,40 @@ module NancyRunner =
         Data: LineChartPoint list;
     }
 
-    type QueryParametersParserState =
-        | Accounts
-        | ExcludeAccounts
-        | Period
-        | Since
-        | Upto
-        | Title
+    
+    /// Access values out of the Nancy.DynamicDictionary
+    /// see http://stackoverflow.com/questions/17640218/accessing-dynamic-property-in-f/
+    let (?) (parameters:obj) param =
+        (parameters :?> Nancy.DynamicDictionary).[param] :?> Nancy.DynamicDictionaryValue
 
-    type QueryParametersParseState = {
-        State: QueryParametersParserState;
-        Accounts: string list;
-        ExcludeAccounts: string list;
-        Period: string list;
-        Since: string list;
-        Upto: string list;
-        Title: string list;
-    }
 
-    /// Parse "parameters" query value
-    /// TODO: this is "rosy path"
-    let parseQueryParameters (parameters :string) =
-        let parseDate = 
-            function
-            | "" -> None
-            | s -> Some <| System.DateTime.Parse(s)
+    /// Parse request query values
+    let parseQueryParameters (query :obj) defaultTitle =
+        let parseArrayVal (arrayVal : Nancy.DynamicDictionaryValue) =
+            match arrayVal.HasValue with
+            | true -> Some <| List.ofArray (arrayVal.ToString().Split([|' '|]))
+            | otherwise -> None
 
-        let parseDatePipeline = List.rev >> String.concat " " >> parseDate
+        let parseDateVal (dateVal : Nancy.DynamicDictionaryValue) = 
+            match dateVal.HasValue with
+            | true -> Some <| System.DateTime.Parse(dateVal.ToString())
+            | otherwise -> None
 
-        let getNextState (term :string) =
-            match term.ToLower() with
-            | ":exclude" -> ExcludeAccounts
-            | ":period" -> Period
-            | ":since" -> Since
-            | ":upto" -> Upto
-            | ":title" -> Title
-            | otherwise -> failwith ("Unsupported parameter: " + term)
-
-        let accumulateParameters state (term :string) = 
-            match state.State, term with
-            | Accounts, t when t.StartsWith(":") -> {state with State = getNextState <| t}
-            | Accounts, t -> {state with Accounts = t :: state.Accounts}
-            | ExcludeAccounts, t when t.StartsWith(":") -> {state with State = getNextState <| t}
-            | ExcludeAccounts, t -> {state with ExcludeAccounts = t :: state.ExcludeAccounts}
-            | Period, t when t.StartsWith(":") -> {state with State = getNextState <| t}
-            | Period, t -> {state with Period = t :: state.Period}
-            | Since, t when t.StartsWith(":") -> {state with State = getNextState <| t}
-            | Since, t -> {state with Since = t :: state.Since}
-            | Upto, t when t.StartsWith(":") -> {state with State = getNextState <| t}
-            | Upto, t -> {state with Upto = t :: state.Upto}
-            | Title, t when t.StartsWith(":") -> {state with State = getNextState <| t}
-            | Title, t -> {state with Title = t :: state.Title}
-
-        let words = List.ofArray <| parameters.Split([|' '|])
-        let starting_state = {State = Accounts; Accounts = []; ExcludeAccounts = []; Period = []; Since = []; Upto = []; Title = [];}
-        let state = List.fold accumulateParameters starting_state words
-        let title = state.Title |> List.rev |> String.concat " "
-        let since = parseDatePipeline state.Since
-        let upto = parseDatePipeline state.Upto
-        let period = state.Period |> List.rev |> String.concat " " 
+        let titleVal = query?title
+        let since = parseDateVal query?since
+        let upto = parseDateVal query?upto
+        let period = query?period
         let periodStart, periodEnd =
-            match period.ToLower() with
-            | "this month" -> (Some <| DateUtils.getFirstOfMonth System.DateTime.Today, Some <| DateUtils.getLastOfMonth System.DateTime.Today)
-            | "last month" -> (Some <| DateUtils.getFirstOfMonth (System.DateTime.Today.AddMonths(-1)), Some <| DateUtils.getLastOfMonth (System.DateTime.Today.AddMonths(-1)))
-            | "" -> None, None
-            | otherwise -> failwith ("Invalid period parameter: " + period)
+            match period.HasValue with
+            | true when period.ToString() = "this month" -> 
+                (Some <| DateUtils.getFirstOfMonth System.DateTime.Today, Some <| DateUtils.getLastOfMonth System.DateTime.Today)
+            | true when period.ToString() = "last month" -> 
+                (Some <| DateUtils.getFirstOfMonth (System.DateTime.Today.AddMonths(-1)), Some <| DateUtils.getLastOfMonth (System.DateTime.Today.AddMonths(-1)))
+            | false -> None, None
+            | otherwise -> failwith ("Invalid period parameter: " + period.ToString())
         {
-            AccountsWith = if List.isEmpty state.Accounts then None else Some <| List.rev state.Accounts;
-            ExcludeAccountsWith = if List.isEmpty state.ExcludeAccounts then None else Some <| List.rev state.ExcludeAccounts;
+            AccountsWith = parseArrayVal query?accountsWith;
+            ExcludeAccountsWith = parseArrayVal query?excludeAccountsWith;
             PeriodStart =
                 match since, periodStart with
                 | Some _, _ -> since
@@ -120,7 +86,11 @@ module NancyRunner =
                 | Some _, _ -> upto
                 | _, Some _ -> periodEnd
                 | _, _ -> None;
-        }, if System.String.Empty = title then None else Some title
+        },
+        match titleVal.HasValue with
+        | true -> titleVal.ToString()
+        | otherwise -> defaultTitle
+           
 
 
 
@@ -172,11 +142,6 @@ module NancyRunner =
 
         netWorthData
 
-    /// Access values out of the Nancy.DynamicDictionary
-    /// see http://stackoverflow.com/questions/17640218/accessing-dynamic-property-in-f/
-    let (?) (parameters:obj) param =
-        (parameters :?> Nancy.DynamicDictionary).[param]
-    
 
     type WealthPulseModule(journalService : IJournalService) as this =
         inherit Nancy.NancyModule()
@@ -186,6 +151,7 @@ module NancyRunner =
             fun parameters ->
                 this.View.["index.html"] |> box
 
+        
         do this.Get.["/api/nav"] <-
             fun parameters ->
                 let nav = {
@@ -208,40 +174,26 @@ module NancyRunner =
                 }
                 nav |> box
 
+        
         do this.Get.["/api/balance"] <-
             fun parameters ->
-                let queryParameterValue = this.Request.Query?parameters :?> Nancy.DynamicDictionaryValue
-
-                let queryParameters = 
-                    match queryParameterValue.HasValue with
-                    | true -> Some <| parseQueryParameters (queryParameterValue.ToString())
-                    | otherwise -> None
-
-                let balanceSheetParameters = 
-                    match queryParameters with
-                    | Some (parameters, _) -> parameters
-                    | None -> {AccountsWith = None; ExcludeAccountsWith = None; PeriodStart = None; PeriodEnd = None;}
-
-                let title =
-                    match queryParameters with
-                    | Some (_, Some title) -> title
-                    | _ -> "Balance"
-
                 let dateFormat = "MMMM %d, yyyy"
+                let balanceParameters, title = parseQueryParameters this.Request.Query "Balance"
 
                 let subtitle =
-                    match balanceSheetParameters.PeriodStart, balanceSheetParameters.PeriodEnd with
+                    match balanceParameters.PeriodStart, balanceParameters.PeriodEnd with
                     | Some periodStart, Some periodEnd -> "For the period of " + periodStart.ToString(dateFormat) + " to " + periodEnd.ToString(dateFormat)
                     | Some periodStart, None -> "Since " + periodStart.ToString(dateFormat)
                     | _, Some periodEnd -> "Up to " + periodEnd.ToString(dateFormat)
                     | _, _ -> "As of " + System.DateTime.Now.ToString(dateFormat)
 
                 let balanceSheetData = {
-                    Title = title;
-                    Subtitle = subtitle;
-                    AccountBalances = layoutBalanceData <| Query.balance balanceSheetParameters journalService.Journal;
+                    title = title;
+                    subtitle = subtitle;
+                    balances = layoutBalanceData <| Query.balance balanceParameters journalService.Journal;
                 }
                 balanceSheetData |> box
+
 
         do this.Get.["/api/networth"] <-
             fun parameters ->
