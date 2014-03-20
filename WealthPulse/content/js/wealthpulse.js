@@ -587,8 +587,8 @@ var WealthPulseApp = React.createClass({
   render: function() {
     var self = this;
     var report = null;
-    console.log("this.state.navData:");
-    console.log(this.state.navData);
+    console.log("this.state:");
+    console.log(this.state);
     var navBox = NavBox({
       reports: this.state.navData.reports,
       payees: this.state.navData.payees,

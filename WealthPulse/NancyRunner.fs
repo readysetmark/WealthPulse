@@ -18,11 +18,12 @@ module NancyRunner =
     }
 
     type BalanceSheetRow = {
-        Account: string;
-        Balance: string;
-        RowClass: string;
-        BalanceClass: string;
-        AccountStyle: string;
+        key: string;
+        account: string;
+        accountStyle: Map<string,string>;
+        balance: string;
+        balanceClass: string;
+        rowClass: string;
     }
 
     type BalanceSheetReportData = {
@@ -110,11 +111,20 @@ module NancyRunner =
         (accountBalances @ [("", totalBalance)])
         |> List.map (fun (account, (amount : decimal)) -> 
             let accountDisplay, indent = getAccountDisplay account
-            { Account = accountDisplay; 
-                Balance = amount.ToString("C"); 
-                RowClass = (if account = "" then "grand_total" else ""); 
-                BalanceClass = (if account = "" then "" elif amount >= 0M then "positive" else "negative"); 
-                AccountStyle = (sprintf "padding-left: %dpx;" (paddingLeftBase+(indent*indentPadding))) })
+            { key = account;
+              account = accountDisplay; 
+              accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
+              balance = amount.ToString("C");
+              balanceClass =
+                match account, amount with
+                | "", _ -> ""
+                | _, amount when amount >= 0M -> "positive"
+                | otherwise -> "negative"; 
+              rowClass = 
+                match account with
+                | "" -> "grand_total"
+                | otherwise -> ""; })
+              
     
 
     let generateNetWorthData journalData =
