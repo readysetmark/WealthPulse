@@ -9,15 +9,9 @@ accounting for personal finance tracking.
 Objective
 ---------
 
-Short-term, the focus is on what ledger cannot do right now: tables and charts.
+Short-term: provide better looking reports and charts via a web frontend.
 
-Medium-term, I may deviate from the ledger file format to my own file format,
-so that I can handle investments better.
-
-Long-term, the idea is to replace the command line ledger with my own tool that
-does all reporting via a web interface. Editing will still be done by text file,
-though in the long-long term, perhaps a front end for adding/editing 
-transactions would be a possibility.
+Long-term: provide better reporting on investments.
 
 
 Dependencies
@@ -34,23 +28,36 @@ WealthPulse
 *	Nancy 0.21.1
 *	Nancy.Hosting.Self 0.21.1
 
+Frontend
+*	React 0.9.0-rc1
+*	Underscore 1.6.0
+*	Backbone 1.1.1 (routing only)
+*	D3 3.0.0
+*	jQuery 2.1.0
+*	jQuery Hotkeys
+*	Bootstrap 2.3.1
+
 
 
 How to Run
 ----------
 
-*	Setup LEDGER_FILE environment variable to point to your ledger file
+Setup a ``LEDGER_FILE`` environment variable to point to your ledger file.
 
 
 
 Command Bar Supported Commands
 ------------------------------
 
+You can use the '/' hotkey to reach the command bar.
+
 Commands:
 
-	bal [accounts-to-include] [parameters]
+	Balance:   bal [accounts-to-include] [parameters]
 
-	reg [accounts-to-include] [parameters]
+	Register:  reg [accounts-to-include] [parameters]
+
+	Net Worth: nw
 
 Parameters:
 
@@ -63,7 +70,6 @@ Parameters:
 	:upto [yyyy/mm/dd]
 
 	:title [report title]
-
 
 
 
