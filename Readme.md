@@ -203,4 +203,4 @@ Nav
 - [] Default report?
 
 
-[1]: http://www.ledger-cli.org/			"Ledger command-line accounting system"
+[1]: http://www.ledger-cli.org/

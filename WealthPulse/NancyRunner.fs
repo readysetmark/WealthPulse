@@ -115,11 +115,7 @@ module NancyRunner =
               account = accountDisplay; 
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
               balance = amount.ToString("C");
-              balanceClass =
-                match account, amount with
-                | "", _ -> ""
-                | _, amount when amount >= 0M -> "positive"
-                | otherwise -> "negative"; 
+              balanceClass = account.Split([|':'|]).[0].ToLower();
               rowClass = 
                 match account with
                 | "" -> "grand_total"
