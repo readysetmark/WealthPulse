@@ -109,104 +109,118 @@ Initial Static Balance Reports:
 ### Second Milestone
 
 Parsing Ledger File
-- [] Review / revise parsing & post-processing:
-	- [] Ensure transactions balance (if not autobalanced)
-	- [] Maybe I can do the processing inline during parsing?
-	- [] Can I remove mutable fields?
-	- [] Add unit tests
+- [ ] Ensure transactions balance (if not autobalanced)
 
 Balance Report
 - [x] Combine balance sheet & income report into single balance report with parameters
-- [] Can I improve the account filtering code?
-- [] Can I get rid of the list comprehension?
-- [] Can I clean it up so the main function is just sub-function calls?
 
 Net Worth Chart
 - [x] Make it a separate page/report
+- [x] Generate "networth" chart from the command bar
 
 Dynamic Website:
-- [] Convert all existing reports to render dynamically instead of a static page
+- [x] Convert all existing reports to render dynamically instead of a static page
 	- [x] Get barebones nancy working
 	- [x] map /, /balancesheet, /currentincomestatement, /previousincomestatement to current pages
-	- [x] Switch to client-side framework (likely AngularJS)
+	- [x] Switch to client-side framework
 		- [x] Setup JSON services
 		- [x] Setup static file services
 		- [x] Create client-side app
 	- [x] Setup command bar
-	- [] Highlight active page on navlist
-	- [] watch ledger file and reload on change
-		- [] handle situation where file cannot be parsed
-- [x] Clean up directive/controller code
-
+	- [x] Highlight active page on navlist
 
 
 ### Third Milestone
 
 Register Report
-- [] Register report with parameters (ie accounts, date range)
-	- [] build register report generator function
-	- [] create register report template
-	- [] link up to command bar
-	- [] link to from balance reports
-- [] Sorting:
-	- [] Preserve file order for transactions and entries within transactions but output in reverse so most recent is on top
+- [ ] Register report with parameters (ie accounts, date range)
+	- [ ] build register report generator function
+	- [ ] create register report template
+	- [ ] link up to command bar
+	- [ ] link to from balance reports
+- [ ] Sorting:
+	- [ ] Preserve file order for transactions and entries within transactions but output in reverse so most recent is on top
 		- Need to do sorting at the end so that running total makes sense
-- [] Accounts Payable vs Accounts Receivable
+- [ ] Accounts Payable vs Accounts Receivable
 	- Dynamically list non-zero accounts with balance in navlist. Link to register report
-
-All Reports
-- [] Refactoring/clean up of all reports
 
 
 ### Fourth Milestone
 
-Command Bar Enhancements
-- [] Add fault tolerance to parameter parsing
-- [] Angular / route is hard-coded... erg!
-- [] Clean up and improve date/period parsing
-	Additions for period: yyyy, last year, this year
-- [] Generate "networth" chart from the command bar
-- [] Autocomplete hints (bootstrap typeahead)
+Watch File
+- [ ] Watch ledger file and reload on change
+- [ ] Handle situation where file cannot be parsed
 
 Documentation
-- [] github wiki
-	- [] how to use / setup
+- [ ] How to use / setup
+
+Tooling
+- [ ] Research how to handle references cross-platform (sln on mac is different from windows??)
+- [ ] Write a FAKE script for building / running?
 
 
 Phase 2 Implementation (Commodities)
 ----------------------
 
 Commodity Prices
-- [] Update to handle commodities
-- [] (While continuing to use ledger file format) Detect investment transactions and merge transaction lines
-- [] Identify commodities from ledger file
-- [] Fetch prices from internet and add to cache
-	- [] Store commodity prices in a local cache
-	- [] Prices should go from first date in ledger file to today
+- [ ] Update to handle commodities
+- [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format) 
+- [ ] Identify commodities from ledger file
+- [ ] Fetch prices from internet and add to cache
+	- [ ] Store commodity prices in a local cache
+	- [ ] Prices should go from first date in ledger file to today
 
 Net Worth
-- [] Update chart with book value line and actual line
+- [ ] Update chart with book value line and actual line
 
 Balance Sheet
-- [] Update Net Worth sheet with actual vs book value columns
+- [ ] Update Net Worth sheet with actual vs book value columns
 
 Portfolio
-- [] Overall portfolio return and per investment
-- [] Expected T3s/T5s to receive for last year (ie had distribution)
-- [] Rebalancing calculator - for rebalancing investments to proper allocation
+- [ ] Overall portfolio return and per investment
+- [ ] Expected T3s/T5s to receive for last year (ie had distribution)
+- [ ] Rebalancing calculator - for rebalancing investments to proper allocation
 
 Expenses
-- [] Average in last 3 months, in last year
-- [] Burn rate - using last 3 months expenses average, how long until savings is gone?
-- [] Top Expenses over last period
+- [ ] Average in last 3 months, in last year
+- [ ] Burn rate - using last 3 months expenses average, how long until savings is gone?
+- [ ] Top Expenses over last period
 
 Charts
-- [] Income Statement chart (monthly, over time)
+- [ ] Income Statement chart (monthly, over time)
 
 Nav
-- [] Configurable nav list
-- [] Combine reports and payables / receivables into one dict?
-- [] Default report?
+- [ ] Configurable nav list
+- [ ] Combine reports and payables / receivables into one dict?
+- [ ] Default report?
+
+
+Someday/Maybe/Improvements
+--------------------------
+
+Other
+- [ ] Display indicator when ajax call is happening
+- [ ] Add unit tests
+
+Parsing Ledger File
+- [ ] Review / revise parsing & post-processing:
+	- [ ] Maybe I can do the processing inline during parsing?
+	- [ ] Can I remove mutable fields?
+
+Balance Report
+- [ ] Can I improve the account filtering code?
+- [ ] Can I get rid of the list comprehension?
+- [ ] Can I clean it up so the main function is just sub-function calls?
+
+All Reports
+- [ ] Refactoring/clean up of all reports
+
+Command Bar Enhancements
+- [ ] Add fault tolerance to parameter parsing
+- [ ] Clean up and improve date/period parsing
+	Additions for period: yyyy, last year, this year
+- [ ] Autocomplete hints (bootstrap typeahead)
+
 
 
 [1]: http://www.ledger-cli.org/
