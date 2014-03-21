@@ -33,14 +33,14 @@ module NancyRunner =
     }
 
     type LineChartPoint = {
-        X: string;
-        Y: string;
-        Hover: string;
+        date: string;
+        amount: string;
+        hover: string;
     }
 
     type LineChartReportData = {
-        Title: string;
-        Data: LineChartPoint list;
+        title: string;
+        data: LineChartPoint list;
     }
 
     
@@ -133,9 +133,9 @@ module NancyRunner =
             }
             let _, totalBalance = Query.balance parameters journalData
             {
-                X = month.ToString("dd-MMM-yyyy"); 
-                Y = totalBalance.ToString(); 
-                Hover = month.ToString("MMM yyyy") + ": " + totalBalance.ToString("C");
+                date = month.ToString("dd-MMM-yyyy"); 
+                amount = totalBalance.ToString(); 
+                hover = month.ToString("MMM yyyy") + ": " + totalBalance.ToString("C");
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
@@ -204,8 +204,8 @@ module NancyRunner =
         do this.Get.["/api/networth"] <-
             fun parameters ->
                 let netWorthData = {
-                    Title = "Net Worth";
-                    Data = generateNetWorthData journalService.Journal;
+                    title = "Net Worth";
+                    data = generateNetWorthData journalService.Journal;
                 }
                 netWorthData |> box
 
