@@ -24,9 +24,9 @@ module Parser =
         }
 
         type TransactionEntry = {
-            mutable Account: string;
+            Account: string;
             EntryType: EntryType;
-            mutable Amount: Amount option;
+            Amount: Amount option;
             Value: ValueSpecification option;
             Comment: string option
         }
@@ -204,28 +204,58 @@ module Parser =
 
         /// Verifies that transactions balance for all entry types and autobalances
         /// transactions if one amount is missing.
+        /// TODO: The possibility of different commodities is completely ignored right now.
         let balanceTransactions transactions =
-            /// Auto-balances all transaction entries per transaction header
-            /// This method is still not correct as it does not take into account:
-            ///     entry type: normal/virtual balanced/virtual unbalanced
-            ///     if different commodities are used
-            let autobalanceTransaction (h, es) =
-                let mutable balance = 0M
-                let mutable commodity : Commodity option = None
-                let mutable entryMissingAmount : TransactionEntry ref option = None
-                for entry in es do
-                    balance <- if entry.Amount.IsSome then balance + (fst entry.Amount.Value) else balance
-                    commodity <- if commodity.IsNone && entry.Amount.IsSome && (snd entry.Amount.Value).IsSome then (snd entry.Amount.Value) else commodity
-                    entryMissingAmount <- if entryMissingAmount.IsNone && entry.Amount.IsNone then Some (ref entry) else entryMissingAmount
-                if entryMissingAmount.IsSome then (!entryMissingAmount.Value).Amount <- Some (-1M * balance, commodity)
-                (h, es)
+            // Virtual Unbalanced transactions must have an amount (since they are unbalanced)
+            let verifyVirtualUnbalanced entries =
+                let virtualUnbalancedMissingAmount =
+                    List.filter (fun entry -> entry.EntryType = VirtualUnbalanced && entry.Amount.IsNone) entries
+                match List.length virtualUnbalancedMissingAmount with
+                | 0 -> entries
+                | otherwise -> failwith "Encountered virtual unbalanced entry missing an amount."
 
-            let endPipeline (_, _) = ()
-            let transformPipeline =
-               autobalanceTransaction >> endPipeline
-            List.iter transformPipeline transactions
+            // Generic balance checker for balanced entry types. Balanced entries should sum 0 or have only 1
+            // amount missing (which can be auto-balanced).
+            let verifyBalanced entryType entries =
+                let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
+                let commodity =
+                    balancedEntries
+                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && (snd entry.Amount.Value).IsSome 
+                                                  then (snd entry.Amount.Value)
+                                                  else None)
+                let sum =
+                    balancedEntries
+                    |> List.fold (fun sum entry -> if entry.Amount.IsSome
+                                                   then sum + (fst entry.Amount.Value)
+                                                   else sum)
+                                 0M
+                let numMissing =
+                    balancedEntries
+                    |> List.filter (fun entry -> entry.Amount.IsNone)
+                    |> List.length
+                (sum, commodity, numMissing)
+
+            // Balanced entry types can be autobalanced as long as there is only 1 amount missing.
+            let autobalance entryType entries =
+                match verifyBalanced entryType entries with
+                | _, _, numMissing when numMissing > 1 -> failwith "Encountered balanced transaction with more than one amount missing."
+                | sum, commodity, numMissing when numMissing = 1 ->
+                    entries
+                    |> List.map (fun entry -> if entry.Amount.IsNone
+                                              then { entry with Amount = Some (-sum, commodity) }
+                                              else entry)
+                | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
+                | otherwise -> entries
+
+            // Transform pipeline to balance transaction entries
+            let balanceEntries =
+               verifyVirtualUnbalanced
+               >> autobalance VirtualBalanced
+               >> autobalance Balanced
+
             transactions
-
+            |> List.map (fun (header, entries) -> (header, balanceEntries entries))
+            
 
         /// Convert to a list of journal entries (transaction entries)
         let toJournal ts =

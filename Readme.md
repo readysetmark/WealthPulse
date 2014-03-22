@@ -109,7 +109,7 @@ Initial Static Balance Reports:
 ### Second Milestone
 
 Parsing Ledger File
-- [ ] Ensure transactions balance (if not autobalanced)
+- [x] Ensure transactions balance (if not autobalanced)
 
 Balance Report
 - [x] Combine balance sheet & income report into single balance report with parameters
@@ -204,9 +204,12 @@ Other
 
 Parsing Ledger File
 - [ ] Review / revise parsing & post-processing:
+	- [x] Remove mutable fields
+	- [ ] Make Amount a record type instead of a tuple
 	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
-	- [ ] Maybe I can do the processing inline during parsing?
-	- [ ] Can I remove mutable fields?
+	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
+	- [ ] Improve error reporting
+
 
 Balance Report
 - [ ] Can I improve the account filtering code?
