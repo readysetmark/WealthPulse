@@ -25,7 +25,7 @@ module Parser =
 
         type TransactionEntry = {
             mutable Account: string;
-            mutable EntryType: EntryType option;
+            EntryType: EntryType;
             mutable Amount: Amount option;
             Value: ValueSpecification option;
             Comment: string option
@@ -80,6 +80,14 @@ module Parser =
 
         /// Parse an account
         let parseAccount =
+            let extractAccountAndEntryType (account :string) =
+                let entryType = 
+                    match account.[0] with
+                        | '(' -> VirtualUnbalanced
+                        | '[' -> VirtualBalanced
+                        | _ -> Balanced
+                let account = (account.TrimStart [| '('; '[' |]).TrimEnd [| ')'; ']' |]
+                (account, entryType)
             let accountChar = noneOf " ;\t\r\n" 
             let stringsSepEndBy p sep =
                 Inline.SepBy(elementParser = p,
@@ -91,7 +99,7 @@ module Parser =
                              foldState = (fun sb sep str -> sb.Append(sep : string)
                                                               .Append(str : string)),
                              resultFromState = (fun sb -> sb.ToString()))
-            stringsSepEndBy (many1Chars accountChar) (pstring " ") .>> skipWS
+            stringsSepEndBy (many1Chars accountChar) (pstring " ") .>> skipWS |>> extractAccountAndEntryType
 
         /// Parse the numeric portion of an amount
         let parseAmountNumber =
@@ -133,8 +141,8 @@ module Parser =
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
-            let createEntry account amount value comment =
-                {Account=account; EntryType=None; Amount=amount; Value=value; Comment=comment}
+            let createEntry (account, entryType) amount value comment =
+                {Account=account; EntryType=entryType; Amount=amount; Value=value; Comment=comment}
             pipe4 parseAccount (opt parseAmount) (opt parseValue) (opt parseComment) createEntry |>> Entry
 
         /// Parse a journal comment line
@@ -194,23 +202,9 @@ module Parser =
             |> List.map getTransactionEntries
 
 
-        /// Perform multiple mutations on the transaction entries
-        let processTransactions ts =
-            /// Determines and sets the EntryType for each transaction and updates the account
-            let determineEntryType (h, es) =
-                let getEntryType (account: string) =
-                        match account.[0] with
-                        | '(' -> VirtualUnbalanced
-                        | '[' -> VirtualBalanced
-                        | _ -> Balanced
-
-                for entry in es do
-                    let entryType = getEntryType entry.Account
-                    let account = (entry.Account.TrimStart [| '('; '[' |]).TrimEnd [| ')'; ']' |]
-                    entry.Account <- account
-                    entry.EntryType <- Some entryType
-                (h, es)
-
+        /// Verifies that transactions balance for all entry types and autobalances
+        /// transactions if one amount is missing.
+        let balanceTransactions transactions =
             /// Auto-balances all transaction entries per transaction header
             /// This method is still not correct as it does not take into account:
             ///     entry type: normal/virtual balanced/virtual unbalanced
@@ -228,9 +222,9 @@ module Parser =
 
             let endPipeline (_, _) = ()
             let transformPipeline =
-                determineEntryType >> autobalanceTransaction >> endPipeline
-            List.iter transformPipeline ts
-            ts
+               autobalanceTransaction >> endPipeline
+            List.iter transformPipeline transactions
+            transactions
 
 
         /// Convert to a list of journal entries (transaction entries)
@@ -251,12 +245,13 @@ module Parser =
                         | Some(TotalCost(v)) -> Some v
                         | Some(UnitCost((a, commodity))) -> Some (a * amount, commodity)
                         | None -> None
-                    ({ Header=header; Account=e.Account; AccountLineage=getAccountLineage e.Account; EntryType=e.EntryType.Value; Amount=e.Amount.Value; Value=getValue e.Value e.Amount.Value; Comment=e.Comment } : Entry)
+                    ({ Header=header; Account=e.Account; AccountLineage=getAccountLineage e.Account; EntryType=e.EntryType; Amount=e.Amount.Value; Value=getValue e.Value e.Amount.Value; Comment=e.Comment } : Entry)
                 List.map toEntry es
             List.collect transactionToJournal ts
 
 
-        /// Returns journal data containing all transactions, a list of main accounts and a list of all accounts that includes parent accounts
+        /// Returns journal data containing all transactions, a list of main accounts
+        /// and a list of all accounts that includes parent accounts
         let getJournalData (entries : Entry list) =
             let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
             let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
@@ -265,7 +260,7 @@ module Parser =
         
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let transform = 
-            transformASTToTransactions >> processTransactions >> toJournal >> getJournalData
+            transformASTToTransactions >> balanceTransactions >> toJournal >> getJournalData
 
 
     

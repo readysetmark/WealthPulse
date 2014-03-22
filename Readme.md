@@ -204,6 +204,7 @@ Other
 
 Parsing Ledger File
 - [ ] Review / revise parsing & post-processing:
+	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
 	- [ ] Maybe I can do the processing inline during parsing?
 	- [ ] Can I remove mutable fields?
 
