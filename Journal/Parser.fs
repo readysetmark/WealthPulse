@@ -15,15 +15,7 @@ module Parser =
             | TotalCost of Amount
             | UnitCost of Amount
 
-        type TransactionHeader = {
-            Date: System.DateTime;
-            Status: Status;
-            Code: string option;
-            Description: string;
-            Comment: string option
-        }
-
-        type TransactionEntry = {
+        type ASTEntry = {
             Account: string;
             EntryType: EntryType;
             Amount: Amount option;
@@ -33,8 +25,8 @@ module Parser =
 
         type ASTNode =
             | Comment of string
-            | Transaction of TransactionHeader * ASTNode list
-            | Entry of TransactionEntry
+            | Transaction of Header * ASTNode list
+            | Entry of ASTEntry
 
 
     
@@ -166,7 +158,7 @@ module Parser =
     module private PostProcess =
         open AST
 
-        /// Transforms the AST data structure into a list of (TransactionHeader, TransactionEntry list) tuples
+        /// Transforms the AST data structure into a list of (Header, ASTEntry list) tuples
         /// Basically, we're dropping all the comment nodes
         let transformASTToTransactions ast =
             let transactionFilter (node: ASTNode) =
