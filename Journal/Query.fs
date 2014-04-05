@@ -4,7 +4,7 @@ open System
 
 module Query =
 
-    type BalanceParameters = {
+    type QueryFilters = {
         AccountsWith: string list option;
         ExcludeAccountsWith: string list option;
         PeriodStart: DateTime option;
@@ -27,12 +27,15 @@ module Query =
             | None, Some periodEnd -> date <= periodEnd
             | _, _ -> true
 
+        /// Apply filters to retrieve journal entries
+        //let filterEntries
+
 
     open Support
 
     /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
     /// where accountBalances is a list of (account, amount) tuples.
-    let balance (parameters : BalanceParameters) (journal : JournalData) =
+    let balance (parameters : QueryFilters) (journal : JournalData) =
         // TODO: Not fond of the call to "oneOfIn" needing the default parameter, there must be a better way...
         // filter all accounts to selected accounts
         let accounts = 
@@ -43,7 +46,7 @@ module Query =
         // TODO: Can I get rid of the list comprehension?
         // filter entries based on selected accounts
         let entries = 
-            [ for entry in journal.Transactions do 
+            [ for entry in journal.Entries do 
                 for account in entry.AccountLineage do 
                     if (Set.contains entry.Account accounts) && (withinPeriod entry.Header.Date parameters.PeriodStart parameters.PeriodEnd) then 
                         yield(account, fst entry.Amount) 

@@ -34,7 +34,7 @@ type Entry = {
 }
 
 type JournalData = {
-    Transactions: Entry list;
+    Entries: Entry list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
 }

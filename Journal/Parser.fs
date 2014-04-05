@@ -277,7 +277,7 @@ module Parser =
         let getJournalData (entries : Entry list) =
             let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
             let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
-            { Transactions=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts }
+            { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts }
 
         
         /// Pipelined functions applied to the AST to produce the final journal data structure
