@@ -14,8 +14,8 @@ module Query =
 
     module private Support =
         
-        // one of "terms" is in account
-        let oneOfIn defaultValue termsOption (account :string) =
+        // account contains one of "terms" if "terms" provided, otherwise defaultValue
+        let containsOneOf defaultValue termsOption (account :string) =
             match termsOption with
             | Some terms -> List.exists (fun (token :string) -> (account.ToLower().Contains(token.ToLower()))) terms
             | None       -> defaultValue
@@ -28,28 +28,35 @@ module Query =
             | _, _ -> true
 
         /// Apply filters to retrieve journal entries
-        //let filterEntries
+        let filterEntries filters journal =
+            // apply account filters to construct a set of accounts
+            // TODO: Not fond of the call to "containsOneOf" needing the default parameter, there must be a better way...
+            let accounts = 
+                journal.AllAccounts
+                |> Set.filter (containsOneOf true filters.AccountsWith)
+                |> Set.filter (containsOneOf false filters.ExcludeAccountsWith >> not)
+
+            // filter entries based on selected accounts and period filters
+            // TODO: Can I separate account filter and period filter and pipeline them within the List.filter?
+            journal.Entries
+            |> List.filter (fun entry -> (Set.contains entry.Account accounts) 
+                                         && (withinPeriod entry.Header.Date filters.PeriodStart filters.PeriodEnd))
 
 
     open Support
 
+
     /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
     /// where accountBalances is a list of (account, amount) tuples.
-    let balance (parameters : QueryFilters) (journal : JournalData) =
-        // TODO: Not fond of the call to "oneOfIn" needing the default parameter, there must be a better way...
-        // filter all accounts to selected accounts
-        let accounts = 
-            journal.AllAccounts
-            |> Set.filter (oneOfIn true parameters.AccountsWith)
-            |> Set.filter (oneOfIn false parameters.ExcludeAccountsWith >> not)
+    let balance (filters : QueryFilters) (journal : Journal) =
+        let filteredEntries = filterEntries filters journal
 
         // TODO: Can I get rid of the list comprehension?
         // filter entries based on selected accounts
         let entries = 
-            [ for entry in journal.Entries do 
+            [ for entry in filteredEntries do 
                 for account in entry.AccountLineage do 
-                    if (Set.contains entry.Account accounts) && (withinPeriod entry.Header.Date parameters.PeriodStart parameters.PeriodEnd) then 
-                        yield(account, fst entry.Amount) 
+                    yield(account, fst entry.Amount) 
             ]
 
         // sum to get account balances, discard accounts with 0 balance

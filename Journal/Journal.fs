@@ -33,7 +33,7 @@ type Entry = {
     Comment: string option;
 }
 
-type JournalData = {
+type Journal = {
     Entries: Entry list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;

@@ -7,7 +7,7 @@ module JournalService =
 
     /// Interface for Nancy Dependency Injection
     type IJournalService =
-        abstract member Journal: JournalData
+        abstract member Journal : Journal
 
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =

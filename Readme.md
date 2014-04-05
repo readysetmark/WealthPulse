@@ -212,9 +212,8 @@ Parsing Ledger File
 
 
 Balance Report
-- [ ] Can I improve the account filtering code?
-- [ ] Can I get rid of the list comprehension?
-- [ ] Can I clean it up so the main function is just sub-function calls?
+- [ ] Can I improve the entry filtering code?
+- [ ] Can I clean it up so the balance query function is just sub-function calls?
 
 All Reports
 - [ ] Refactoring/clean up of all reports
