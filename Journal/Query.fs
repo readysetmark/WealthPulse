@@ -48,8 +48,8 @@ module Query =
             let addAmountForAccounts entry = 
                 fun account -> 
                     match accountBalanceMap.ContainsKey(account) with
-                    | true -> accountBalanceMap.[account] <- accountBalanceMap.[account] + fst entry.Amount
-                    | false -> accountBalanceMap.[account] <- fst entry.Amount
+                    | true -> accountBalanceMap.[account] <- accountBalanceMap.[account] + entry.Amount.Amount
+                    | false -> accountBalanceMap.[account] <- entry.Amount.Amount
             let forEachAccountInLineageAddAmount entry =
                 List.iter (addAmountForAccounts entry) entry.AccountLineage
             do List.iter forEachAccountInLineageAddAmount entries

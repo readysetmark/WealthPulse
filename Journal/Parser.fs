@@ -113,11 +113,12 @@ module Parser =
         /// The commodity can come before or after the amount. If the commodity contains
         /// numbers or a space, it must be quoted.
         let parseAmount =
+            let createAmount (amount, commodity) = {Amount = amount; Commodity = commodity}
             let amountTuple amount = (amount, None)
             let reverse (a,b) = (b,a)
-            attempt (parseAmountNumber .>>. (parseCommodity |>> Some))
-            <|> attempt (parseAmountNumber |>> amountTuple)
-            <|> ((parseCommodity |>> Some) .>>. parseAmountNumber |>> reverse)
+            attempt (parseAmountNumber .>>. (parseCommodity |>> Some) |>> createAmount)
+            <|> attempt (parseAmountNumber |>> amountTuple |>> createAmount)
+            <|> ((parseCommodity |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
 
         /// Parse a value amount in terms of UnitCost or TotalCost
         let parseValue =
@@ -212,13 +213,13 @@ module Parser =
                 let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
                 let commodity =
                     balancedEntries
-                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && (snd entry.Amount.Value).IsSome 
-                                                  then (snd entry.Amount.Value)
+                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && entry.Amount.Value.Commodity.IsSome 
+                                                  then entry.Amount.Value.Commodity
                                                   else None)
                 let sum =
                     balancedEntries
                     |> List.fold (fun sum entry -> if entry.Amount.IsSome
-                                                   then sum + (fst entry.Amount.Value)
+                                                   then sum + entry.Amount.Value.Amount
                                                    else sum)
                                  0M
                 let numMissing =
@@ -234,7 +235,7 @@ module Parser =
                 | sum, commodity, numMissing when numMissing = 1 ->
                     entries
                     |> List.map (fun entry -> if entry.Amount.IsNone
-                                              then { entry with Amount = Some (-sum, commodity) }
+                                              then { entry with Amount = Some {Amount = -sum; Commodity = commodity} }
                                               else entry)
                 | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
                 | otherwise -> entries
@@ -262,10 +263,10 @@ module Parser =
                         account.Split ':'
                         |> Array.fold combinator []
                         |> List.rev
-                    let getValue (value: ValueSpecification option) (amount, c) =
+                    let getValue (value: ValueSpecification option) (amount : Amount) =
                         match value with
                         | Some(TotalCost(v)) -> Some v
-                        | Some(UnitCost((a, commodity))) -> Some (a * amount, commodity)
+                        | Some(UnitCost(v)) -> Some {Amount = v.Amount * amount.Amount; Commodity = v.Commodity}
                         | None -> None
                     ({ Header=header; Account=e.Account; AccountLineage=getAccountLineage e.Account; EntryType=e.EntryType; Amount=e.Amount.Value; Value=getValue e.Value e.Amount.Value; Comment=e.Comment } : Entry)
                 List.map toEntry es

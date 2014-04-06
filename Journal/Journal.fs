@@ -4,7 +4,10 @@
 
 type Commodity = string
 
-type Amount = decimal * Commodity option
+type Amount = {
+    Amount: decimal;
+    Commodity: Commodity option;
+}
 
 type Status =
     | Cleared
