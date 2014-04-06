@@ -42,6 +42,21 @@ module Query =
             |> List.filter (fun entry -> (Set.contains entry.Account accounts) 
                                          && (withinPeriod entry.Header.Date filters.PeriodStart filters.PeriodEnd))
 
+        /// Returns a list of (account, balance) tuples summed for all accounts in the account lineage for each entry in entries
+        let calculateAccountbalances entries =
+            let accountBalanceMap = new System.Collections.Generic.Dictionary<String,Decimal>()
+            let addAmountForAccounts entry = 
+                fun account -> 
+                    match accountBalanceMap.ContainsKey(account) with
+                    | true -> accountBalanceMap.[account] <- accountBalanceMap.[account] + fst entry.Amount
+                    | false -> accountBalanceMap.[account] <- fst entry.Amount
+            let forEachAccountInLineageAddAmount entry =
+                List.iter (addAmountForAccounts entry) entry.AccountLineage
+            do List.iter forEachAccountInLineageAddAmount entries
+            accountBalanceMap.Keys
+            |> Seq.map (fun key -> key, accountBalanceMap.[key])
+            |> Seq.toList
+
 
     open Support
 
@@ -51,25 +66,10 @@ module Query =
     let balance (filters : QueryFilters) (journal : Journal) =
         let filteredEntries = filterEntries filters journal
 
-        // TODO: Can I get rid of the list comprehension?
-        // filter entries based on selected accounts
-        let entries = 
-            [ for entry in filteredEntries do 
-                for account in entry.AccountLineage do 
-                    yield(account, fst entry.Amount) 
-            ]
-
         // sum to get account balances, discard accounts with 0 balance
         let accountBalances =
-            entries
-            |> Seq.ofList
-            |> Seq.groupBy fst
-            |> Seq.map (fun (account, amounts) ->
-                let balance = 
-                    amounts
-                    |> Seq.map snd
-                    |> Seq.sum
-                (account, balance))
+            filteredEntries
+            |> calculateAccountbalances
             |> Seq.filter (fun (account, balance) -> balance <> 0M)
             |> Seq.toList
         
@@ -79,7 +79,6 @@ module Query =
                 allBalances
                 |> List.exists (fun ((otherAccount : String), otherAmount) -> otherAccount.StartsWith(account) && otherAccount.Length > account.Length && otherAmount = amount)
                 |> not
-
             accountBalances
             |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
