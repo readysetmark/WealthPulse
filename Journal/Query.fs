@@ -28,7 +28,7 @@ module Query =
             | _, _ -> true
 
         /// Apply filters to retrieve journal entries
-        let filterEntries filters journal =
+        let filterEntries (filters : QueryFilters) (journal : Journal) =
             // apply account filters to construct a set of accounts
             // TODO: Not fond of the call to "containsOneOf" needing the default parameter, there must be a better way...
             let accounts = 
@@ -90,3 +90,10 @@ module Query =
             |> List.sum
 
         (accountBalances, totalBalance)
+
+
+    /// Returns a list of (date, description, lines) tuples that match the filters,
+    /// where lines is a list of (account, amount, total) tuples.
+    let register (filters : QueryFilters) (journal : Journal) =
+        let filteredEntries = filterEntries filters journal
+        Seq.groupBy (fun entry -> entry.Header) filteredEntries
