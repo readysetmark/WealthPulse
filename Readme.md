@@ -205,7 +205,7 @@ Other
 Parsing Ledger File
 - [ ] Review / revise parsing & post-processing:
 	- [x] Remove mutable fields
-	- [ ] Make Amount a record type instead of a tuple
+	- [x] Make Amount a record type instead of a tuple
 	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
 	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
 	- [ ] Improve error reporting
@@ -213,6 +213,7 @@ Parsing Ledger File
 
 Balance Report
 - [ ] Can I improve the entry filtering code?
+- [x] Can I get rid of the list comprehension?
 - [ ] Can I clean it up so the balance query function is just sub-function calls?
 
 All Reports
