@@ -43,7 +43,7 @@ module Query =
                                          && (withinPeriod entry.Header.Date filters.PeriodStart filters.PeriodEnd))
 
         /// Returns a list of (account, balance) tuples summed for all accounts in the account lineage for each entry in entries
-        let calculateAccountbalances entries =
+        let calculateAccountBalances entries =
             let accountBalanceMap = new System.Collections.Generic.Dictionary<String,Decimal>()
             let addAmountForAccounts entry = 
                 fun account -> 
@@ -57,6 +57,19 @@ module Query =
             |> Seq.map (fun key -> key, accountBalanceMap.[key])
             |> Seq.toList
 
+        /// Groups entries by header and returns (date, payee, entries) tuples
+        let calculateRegisterLines entries =
+            let runningTotal = ref 0M
+            // return (account, amount, total) for an entry
+            // using localized side-effects here to simplify computation of running total
+            let calculateEntryLine (entry : Entry) =
+                runningTotal := !runningTotal + entry.Amount.Amount
+                (entry.Account, entry.Amount.Amount, !runningTotal)
+            entries
+            |> Seq.groupBy (fun entry -> entry.Header)
+            |> Seq.map (fun (header, entries) -> header.Date, header.Description, Seq.map calculateEntryLine entries |> Seq.toList |> List.rev)
+
+            
 
     open Support
 
@@ -69,7 +82,7 @@ module Query =
         // sum to get account balances, discard accounts with 0 balance
         let accountBalances =
             filteredEntries
-            |> calculateAccountbalances
+            |> calculateAccountBalances
             |> Seq.filter (fun (account, balance) -> balance <> 0M)
             |> Seq.toList
         
@@ -92,8 +105,11 @@ module Query =
         (accountBalances, totalBalance)
 
 
-    /// Returns a list of (date, description, lines) tuples that match the filters,
+    /// Returns a list of (date, payee, entries) tuples that match the filters,
     /// where lines is a list of (account, amount, total) tuples.
     let register (filters : QueryFilters) (journal : Journal) =
         let filteredEntries = filterEntries filters journal
-        Seq.groupBy (fun entry -> entry.Header) filteredEntries
+        filteredEntries
+        |> calculateRegisterLines
+        |> Seq.toList
+        |> List.rev

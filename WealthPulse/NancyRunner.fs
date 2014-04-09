@@ -32,6 +32,24 @@ module NancyRunner =
         balances: BalanceSheetRow list;
     }
 
+    type RegisterEntry = {
+        account: string;
+        amount: string;
+        total: string;
+    }
+
+    type RegisterTransaction = {
+        date: string;
+        payee: string;
+        //entries: RegisterEntry list;
+    }
+
+    type RegisterReportData = {
+        title: string;
+        subtitle: string;
+        register: RegisterTransaction list;
+    }
+
     type LineChartPoint = {
         date: string;
         amount: string;
@@ -93,9 +111,18 @@ module NancyRunner =
         | otherwise -> defaultTitle
            
 
+    /// Generate a subtitle based on query parameter period
+    let generateSubtitle queryParameters =
+        let dateFormat = "MMMM %d, yyyy"
+        match queryParameters.PeriodStart, queryParameters.PeriodEnd with
+        | Some periodStart, Some periodEnd -> "For the period of " + periodStart.ToString(dateFormat) + " to " + periodEnd.ToString(dateFormat)
+        | Some periodStart, None -> "Since " + periodStart.ToString(dateFormat)
+        | _, Some periodEnd -> "Up to " + periodEnd.ToString(dateFormat)
+        | _, _ -> "As of " + System.DateTime.Now.ToString(dateFormat)
 
 
-    let layoutBalanceData (accountBalances, totalBalance) =
+    /// Transform balance report data for presentation
+    let presentBalanceData (accountBalances, totalBalance) =
         let paddingLeftBase = 8
         let indentPadding = 20
         let getAccountDisplay account =
@@ -120,7 +147,16 @@ module NancyRunner =
                 match account with
                 | "" -> "grand_total"
                 | otherwise -> ""; })
-              
+    
+    
+    /// Transform register report data for presentation
+    let presentRegisterData transactions =
+        let presentEntry (account, amount :decimal, total :decimal) = 
+            {account = account; amount = amount.ToString("C"); total = total.ToString("C")}
+        let presentTransaction (date :System.DateTime, payee, entries) = 
+            {date = date.ToString("yyyy-MM-dd"); payee = payee}//; entries = List.map presentEntry entries}
+        transactions
+        |> List.map presentTransaction
     
 
     let generateNetWorthData journalData =
@@ -183,22 +219,25 @@ module NancyRunner =
         
         do this.Get.["/api/balance"] <-
             fun parameters ->
-                let dateFormat = "MMMM %d, yyyy"
-                let balanceParameters, title = parseQueryParameters this.Request.Query "Balance"
-
-                let subtitle =
-                    match balanceParameters.PeriodStart, balanceParameters.PeriodEnd with
-                    | Some periodStart, Some periodEnd -> "For the period of " + periodStart.ToString(dateFormat) + " to " + periodEnd.ToString(dateFormat)
-                    | Some periodStart, None -> "Since " + periodStart.ToString(dateFormat)
-                    | _, Some periodEnd -> "Up to " + periodEnd.ToString(dateFormat)
-                    | _, _ -> "As of " + System.DateTime.Now.ToString(dateFormat)
-
+                let queryParameters, title = parseQueryParameters this.Request.Query "Balance"
                 let balanceSheetData = {
                     title = title;
-                    subtitle = subtitle;
-                    balances = layoutBalanceData <| Query.balance balanceParameters journalService.Journal;
+                    subtitle = generateSubtitle queryParameters;
+                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal;
                 }
                 balanceSheetData |> box
+
+        
+        do this.Get.["/api/register"] <-
+            fun parameters ->
+                let queryParameters, title = parseQueryParameters this.Request.Query "Register"
+                let registerData = {
+                    title = title;
+                    subtitle = generateSubtitle queryParameters;
+                    register = presentRegisterData <| Query.register queryParameters journalService.Journal;
+                }
+                do printfn "got data: %A" registerData
+                registerData |> box
 
 
         do this.Get.["/api/networth"] <-
