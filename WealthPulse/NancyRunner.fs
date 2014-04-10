@@ -41,7 +41,7 @@ module NancyRunner =
     type RegisterTransaction = {
         date: string;
         payee: string;
-        //entries: RegisterEntry list;
+        entries: RegisterEntry list;
     }
 
     type RegisterReportData = {
@@ -154,7 +154,7 @@ module NancyRunner =
         let presentEntry (account, amount :decimal, total :decimal) = 
             {account = account; amount = amount.ToString("C"); total = total.ToString("C")}
         let presentTransaction (date :System.DateTime, payee, entries) = 
-            {date = date.ToString("yyyy-MM-dd"); payee = payee}//; entries = List.map presentEntry entries}
+            {date = date.ToString("yyyy-MM-dd"); payee = payee; entries = List.map presentEntry entries}
         transactions
         |> List.map presentTransaction
     
@@ -236,7 +236,6 @@ module NancyRunner =
                     subtitle = generateSubtitle queryParameters;
                     register = presentRegisterData <| Query.register queryParameters journalService.Journal;
                 }
-                do printfn "got data: %A" registerData
                 registerData |> box
 
 
@@ -252,6 +251,7 @@ module NancyRunner =
 
     let run =
         let url = "http://localhost:5050"
+        Nancy.Json.JsonSettings.MaxJsonLength <- System.Int32.MaxValue  // increase max JSON response length (default is 100 kb)
         let configuration = new Nancy.Hosting.Self.HostConfiguration()
         configuration.UrlReservations.CreateAutomatically <- true
         let nancyHost = new Nancy.Hosting.Self.NancyHost(configuration, new System.Uri(url))

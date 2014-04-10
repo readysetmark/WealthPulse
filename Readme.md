@@ -133,13 +133,13 @@ Dynamic Website:
 ### Third Milestone
 
 Register Report
-- [ ] Register report with parameters (ie accounts, date range)
-	- [ ] build register report generator function
-	- [ ] create register report template
-	- [ ] link up to command bar
-	- [ ] link to from balance reports
-- [ ] Sorting:
-	- [ ] Preserve file order for transactions and entries within transactions but output in reverse so most recent is on top
+- [x] Register report with parameters (ie accounts, date range)
+	- [x] build register report generator function
+	- [x] create register report template
+	- [x] link up to command bar
+	- [x] link to from balance reports
+- [x] Sorting:
+	- [x] Preserve file order for transactions and entries within transactions but output in reverse so most recent is on top
 		- Need to do sorting at the end so that running total makes sense
 - [ ] Accounts Payable vs Accounts Receivable
 	- Dynamically list non-zero accounts with balance in navlist. Link to register report
