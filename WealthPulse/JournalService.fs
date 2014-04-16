@@ -8,6 +8,7 @@ module JournalService =
     /// Interface for Nancy Dependency Injection
     type IJournalService =
         abstract member Journal : Journal
+        abstract member OutstandingPayees : (string * decimal) list
 
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
@@ -19,5 +20,9 @@ module JournalService =
             do printfn "Transactions parsed: %d" (List.length j.Entries)
             j
 
+        let outstandingPayees =
+            Query.outstandingPayees journal
+
         interface IJournalService with
             member this.Journal = journal
+            member this.OutstandingPayees = outstandingPayees

@@ -113,3 +113,17 @@ module Query =
         |> calculateRegisterLines
         |> Seq.toList
         |> List.rev
+
+
+    /// Returns a sorted list of (payee, amount) tuples
+    let outstandingPayees (journal : Journal) =
+        let calculatePayeeAmounts (payees : Map<string,decimal>) entry =
+            if entry.Account.StartsWith("Assets:Receivables:") || entry.Account.StartsWith("Liabilities:Payables:") then 
+                let payee = entry.Account.Replace("Assets:Receivables:", "").Replace("Liabilities:Payables:", "")
+                let currentAmount = if payees.ContainsKey(payee) then payees.[payee] else 0M
+                Map.add payee (currentAmount + entry.Amount.Amount) payees
+            else payees
+        journal.Entries
+        |> List.fold calculatePayeeAmounts Map.empty
+        |> Map.filter (fun _ amount -> amount <> 0M)
+        |> Map.toList
