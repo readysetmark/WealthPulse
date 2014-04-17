@@ -6,6 +6,18 @@ open WealthPulse.JournalService
 
 module NancyRunner =
 
+    type NavCommand = {
+        report: string;
+        query: string;
+    }
+
+    type NavPayee = {
+        payee: string;
+        command: NavCommand;
+        amount: string;
+        amountClass: string;
+    }
+
     type NavReport = {
         key: string;
         title: string;
@@ -15,6 +27,7 @@ module NancyRunner =
 
     type NavBar = {
         reports: NavReport list;
+        payees: NavPayee list;
     }
 
     type BalanceSheetRow = {
@@ -185,6 +198,7 @@ module NancyRunner =
         netWorthData
 
 
+    
     type WealthPulseModule(journalService : IJournalService) as this =
         inherit Nancy.NancyModule()
         let journalService = journalService
@@ -196,6 +210,9 @@ module NancyRunner =
         
         do this.Get.["/api/nav"] <-
             fun parameters ->
+                let presentPayee (payee : string, amount : decimal) =
+                    let command = {report = "register"; query = "accountsWith=assets%3Areceivables%3A" + payee.ToLower() + "+liabilities%3Apayables%3A" + payee.ToLower();} : NavCommand
+                    {payee = payee; command = command; amount = amount.ToString("C"); amountClass = if amount >= 0M then "positive" else "negative";}
                 let nav = {
                     reports = [{ key = "Balance Sheet";
                                  title = "Balance Sheet";
@@ -213,6 +230,7 @@ module NancyRunner =
                                  title = "Income Statement - Previous Month";
                                  report = "balance";
                                  query = "accountsWith=income+expenses&period=last+month&title=Income+Statement"; }];
+                    payees = List.map presentPayee journalService.OutstandingPayees
                 }
                 nav |> box
 
