@@ -29,6 +29,7 @@ module NancyRunner =
         reports: NavReport list;
         payees: NavPayee list;
         journalLastModified: string;
+        exceptionMessage: string;
     }
 
     type BalanceSheetRow = {
@@ -232,7 +233,11 @@ module NancyRunner =
                                  report = "balance";
                                  query = "accountsWith=income+expenses&period=last+month&title=Income+Statement"; }];
                     payees = List.map presentPayee journalService.OutstandingPayees;
-                    journalLastModified = journalService.Journal.LastModified.ToString();
+                    journalLastModified = journalService.LastModified.ToString();
+                    exceptionMessage = 
+                        match journalService.GetAndClearException with
+                        | Some msg -> msg
+                        | None -> null;
                 }
                 nav |> box
 

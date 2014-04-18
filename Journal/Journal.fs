@@ -44,12 +44,11 @@ module Journal =
         Entries: Entry list;
         MainAccounts: Set<string>;
         AllAccounts: Set<string>;
-        LastModified: DateTime;
     }
 
 
-    /// Given a list of journal entries and last modified time, returns a Journal record
-    let createJournal entries lastModified =
+    /// Given a list of journal entries, returns a Journal record
+    let createJournal entries =
         let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
         let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
-        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; LastModified=lastModified; }
+        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; }

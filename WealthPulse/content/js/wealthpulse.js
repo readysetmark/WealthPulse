@@ -395,17 +395,17 @@ var NetworthReport = React.createClass({
 
 // ExceptionBox
 //   @dismiss - function
-//   @exception
+//   @exceptionMessage
 var ExceptionBox = React.createClass({
   render: function () {
-    var display = this.props.exception ? "block" : "none";
+    var display = this.props.exceptionMessage ? "block" : "none";
     var div = React.DOM.div({className: "alert alert-error",
                              style: {display: display}},
                             React.DOM.button({type: "button",
                                               className: "close",
                                               onClick: this.props.dismiss},
                                              "\u00D7"),
-                            this.props.exception);
+                            this.props.exceptionMessage);
 
     return div;
   }
@@ -434,7 +434,7 @@ var WealthPulseRouter = Backbone.Router.extend({
 
 var WealthPulseApp = React.createClass({
   getInitialState: function() {
-    return {navData: {}, report: "", query: "", reportData: {}, exception: null};
+    return {navData: {}, report: "", query: "", reportData: {}, exceptionMessage: null};
   },
   componentWillMount: function () {
     var that = this;
@@ -494,13 +494,13 @@ var WealthPulseApp = React.createClass({
     $.when(this.loadNav(), this.loadReport(report, query))
       .done(function (navArgs, reportArgs) {
         //console.log("ajax done.");
-        var newException = navArgs[0].exception;
+        var newException = navArgs[0].exceptionMessage;
         self.setState({
           navData: navArgs[0],
           report: report,
           query: query ? query : "",
           reportData: reportArgs[0],
-          exception: newException ? newException : self.state.exception
+          exceptionMessage: newException ? newException : self.state.exceptionMessage
         });
       });
   },
@@ -603,12 +603,12 @@ var WealthPulseApp = React.createClass({
           report: self.state.report,
           query: self.state.query,
           reportData: self.state.reportData,
-          exception: null
+          exceptionMessage: null
         }
         self.setState(newState);
         //console.log("dismissed!");
       },
-      exception: this.state.exception
+      exceptionMessage: this.state.exceptionMessage
     });
 
     //console.log("will render: "+ this.state.report);
