@@ -8,7 +8,7 @@
     <ProjectGuid>d394ee0a-e293-49d0-9982-4ef6a3007f41</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>webledger</RootNamespace>
-    <AssemblyName>webledger</AssemblyName>
+    <AssemblyName>wealthpulse</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>WealthPulse</Name>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
@@ -21,7 +21,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\webledger.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\wealthpulse.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

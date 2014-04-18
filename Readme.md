@@ -42,7 +42,9 @@ Frontend
 How to Run
 ----------
 
-Setup a ``LEDGER_FILE`` environment variable to point to your ledger file.
+Setup a ``LEDGER_FILE`` environment variable that points to your ledger file.
+
+Then run ``wealthpulse.exe``.
 
 
 
@@ -148,15 +150,11 @@ Register Report
 ### Fourth Milestone
 
 Watch File
-- [ ] Watch ledger file and reload on change
-- [ ] Handle situation where file cannot be parsed
+- [x] Watch ledger file and reload on change
+- [x] Handle situation where file cannot be parsed
 
 Documentation
-- [ ] How to use / setup
-
-Tooling
-- [ ] Research how to handle references cross-platform (sln on mac is different from windows??)
-- [ ] Write a FAKE script for building / running?
+- [x] How to use / setup
 
 
 Phase 2 Implementation (Commodities)
@@ -201,6 +199,10 @@ Someday/Maybe/Improvements
 Other
 - [ ] Display indicator when ajax call is happening
 - [ ] Add unit tests
+
+Tooling
+- [ ] Research how to handle references cross-platform (sln on mac is different from windows??)
+- [ ] Write a FAKE script for building / running?
 
 Parsing Ledger File
 - [ ] Review / revise parsing & post-processing:
