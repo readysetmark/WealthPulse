@@ -28,6 +28,7 @@ module NancyRunner =
     type NavBar = {
         reports: NavReport list;
         payees: NavPayee list;
+        journalLastModified: string;
     }
 
     type BalanceSheetRow = {
@@ -230,7 +231,8 @@ module NancyRunner =
                                  title = "Income Statement - Previous Month";
                                  report = "balance";
                                  query = "accountsWith=income+expenses&period=last+month&title=Income+Statement"; }];
-                    payees = List.map presentPayee journalService.OutstandingPayees
+                    payees = List.map presentPayee journalService.OutstandingPayees;
+                    journalLastModified = journalService.Journal.LastModified.ToString();
                 }
                 nav |> box
 
