@@ -277,6 +277,3 @@ module NancyRunner =
         let nancyHost = new Nancy.Hosting.Self.NancyHost(configuration, new System.Uri(url))
         nancyHost.Start()
         printfn "WealthPulse server running at %s" url
-        printfn "Press <enter> to stop."
-        System.Console.ReadLine() |> ignore
-        nancyHost.Stop()
