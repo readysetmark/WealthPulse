@@ -1,6 +1,7 @@
-﻿namespace WealthPulse.Journal
+﻿namespace WealthPulse
 
 open FParsec
+open Journal
 
 // Parser module contains functions for parsing the Ledger journal file
 
@@ -251,7 +252,7 @@ module Parser =
             
 
         /// Convert to a list of journal entries (transaction entries)
-        let toJournal ts =
+        let toEntryList ts =
             let transactionToJournal (h, es) =
                 let header = ({ Date=h.Date; Status=h.Status; Code=h.Code; Description=h.Description; Comment=h.Comment; } : Header)
                 let toEntry e =
@@ -273,17 +274,9 @@ module Parser =
             List.collect transactionToJournal ts
 
 
-        /// Returns journal data containing all transactions, a list of main accounts
-        /// and a list of all accounts that includes parent accounts
-        let getJournalData (entries : Entry list) =
-            let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
-            let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
-            { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts }
-
-        
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let transform = 
-            transformASTToTransactions >> balanceTransactions >> toJournal >> getJournalData
+            transformASTToTransactions >> balanceTransactions >> toEntryList
 
 
     

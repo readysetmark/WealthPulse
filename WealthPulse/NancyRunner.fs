@@ -1,7 +1,7 @@
 ﻿namespace WealthPulse
 
 open WealthPulse.Journal
-open WealthPulse.Journal.Query
+open WealthPulse.Query
 open WealthPulse.JournalService
 
 module NancyRunner =

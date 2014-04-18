@@ -1,43 +1,55 @@
-﻿namespace WealthPulse.Journal
+﻿namespace WealthPulse
 
-// Contains all the type definitions in the Journal
+open System
 
-type Commodity = string
+module Journal =
 
-type Amount = {
-    Amount: decimal;
-    Commodity: Commodity option;
-}
+    // Contains all the type definitions in the Journal
 
-type Status =
-    | Cleared
-    | Uncleared
+    type Commodity = string
 
-type EntryType =
-    | Balanced
-    | VirtualBalanced
-    | VirtualUnbalanced
+    type Amount = {
+        Amount: decimal;
+        Commodity: Commodity option;
+    }
 
-type Header = {
-    Date: System.DateTime;
-    Status: Status;
-    Code: string option;
-    Description: string;
-    Comment: string option
-}
+    type Status =
+        | Cleared
+        | Uncleared
 
-type Entry = {
-    Header: Header;
-    Account: string;
-    AccountLineage: string list;
-    EntryType: EntryType;
-    Amount: Amount;
-    Value: Amount option;
-    Comment: string option;
-}
+    type EntryType =
+        | Balanced
+        | VirtualBalanced
+        | VirtualUnbalanced
 
-type Journal = {
-    Entries: Entry list;
-    MainAccounts: Set<string>;
-    AllAccounts: Set<string>;
-}
+    type Header = {
+        Date: System.DateTime;
+        Status: Status;
+        Code: string option;
+        Description: string;
+        Comment: string option
+    }
+
+    type Entry = {
+        Header: Header;
+        Account: string;
+        AccountLineage: string list;
+        EntryType: EntryType;
+        Amount: Amount;
+        Value: Amount option;
+        Comment: string option;
+    }
+
+    type Journal = {
+        Entries: Entry list;
+        MainAccounts: Set<string>;
+        AllAccounts: Set<string>;
+        LastModified: DateTime;
+    }
+
+
+    /// Given a list of journal entries and last modified time, returns a Journal record
+    let createJournal entries lastModified =
+        let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
+        let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
+        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; LastModified=lastModified; }

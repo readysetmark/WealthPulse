@@ -1,6 +1,7 @@
-﻿namespace WealthPulse.Journal
+﻿namespace WealthPulse
 
 open System
+open Journal
 
 module Query =
 

@@ -1,4 +1,4 @@
-﻿namespace WealthPulse.Journal
+﻿namespace WealthPulse
 
 module DateUtils =
 

@@ -14,11 +14,14 @@ module JournalService =
     type JournalService() =
         let journal = 
             let ledgerFilePath = System.Environment.GetEnvironmentVariable("LEDGER_FILE")
+            let ledgerLastModified = System.IO.File.GetLastWriteTime(ledgerFilePath)
             do printfn "Parsing ledger file: %s" ledgerFilePath
-            let (j, parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
+            let (entries, parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
             do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
-            do printfn "Transactions parsed: %d" (List.length j.Entries)
-            j
+            do printfn "Transactions parsed: %d" <| List.length entries
+            do printfn "Ledger last modified: %s" <| ledgerLastModified.ToString()
+            createJournal entries ledgerLastModified
+            
 
         let outstandingPayees =
             Query.outstandingPayees journal
