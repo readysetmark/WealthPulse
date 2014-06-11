@@ -161,7 +161,14 @@ Phase 2 Implementation (Commodities)
 ----------------------
 
 Commodity Prices
-- [ ] Update to handle commodities
+- [ ] Update functions to consider amount commodities
+	- [ ] Parser.balanceTransactions
+	- [ ] Query.balance
+	- [ ] Query.register
+	- [ ] Query.outstandingPayees
+	- [ ] NancyRunner.presentBalanceData
+	- [ ] NancyRunner.presentRegisterData
+	- [ ] NancyRunner.generateNetWorthData
 - [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format) 
 - [ ] Identify commodities from ledger file
 - [ ] Fetch prices from internet and add to cache
