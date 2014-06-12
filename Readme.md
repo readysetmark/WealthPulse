@@ -160,15 +160,31 @@ Documentation
 Phase 2 Implementation (Commodities)
 ----------------------
 
+2014/06/11
+I've prototyped it out enough now that I think what I want to do is make sure I can get current prices for commodities
+and then for the balance sheet, it would look something like:
+	Assets:Investments		$bookvalue	$realvalue
+		Investment1			$bookvalue	$realvalue	(for)	num_units	(at)	price	(as of)	price_date
+		Investment2			$bookvalue	$realvalue			num_units			price	(as of)	price_date
+		Investment3			$bookvalue	$realvalue			num_units			price	(as of)	price_date
+	TOTAL					$bookvalue	$realvalue
+That would be the eventual goal. That assumes that I'm either going to merge units/book value entries in the program
+or update the ledger file. In the mean time, I'll have to keep the "units" excluded from the main balance report.
+This way I can avoid having to propogate up the account hierarchy all the different commodities.
+
 Commodity Prices
 - [ ] Update functions to consider amount commodities
-	- [ ] Parser.balanceTransactions
-	- [ ] Query.balance
-	- [ ] Query.register
-	- [ ] Query.outstandingPayees
-	- [ ] NancyRunner.presentBalanceData
-	- [ ] NancyRunner.presentRegisterData
+	- [p] Query.balance
+	- [p] NancyRunner.presentBalanceData
+	- [p] Balance Report JS
 	- [ ] NancyRunner.generateNetWorthData
+	- [ ] Net Worth JS
+	- [ ] Query.register
+	- [ ] NancyRunner.presentRegisterData
+	- [ ] Register Reprot JS
+	- [ ] Query.outstandingPayees
+	- [ ] Oustanding Payees JS
+	- [ ] Parser.balanceTransactions	
 - [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format) 
 - [ ] Identify commodities from ledger file
 - [ ] Fetch prices from internet and add to cache
@@ -216,6 +232,7 @@ Parsing Ledger File
 	- [x] Remove mutable fields
 	- [x] Make Amount a record type instead of a tuple
 	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
+	- [ ] Make specifying a commodity mandatory? Cleans up some code and I always do it...
 	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
 	- [ ] Improve error reporting
 

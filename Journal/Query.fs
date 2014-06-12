@@ -5,6 +5,8 @@ open Journal
 
 module Query =
 
+    type CommodityAmountMap = System.Collections.Generic.Dictionary<Commodity option,Amount>
+
     type QueryFilters = {
         AccountsWith: string list option;
         ExcludeAccountsWith: string list option;
@@ -12,6 +14,10 @@ module Query =
         PeriodEnd: DateTime option;
     }
 
+    type AccountBalance = {
+        Account: string;
+        Balance: Amount list
+    }
 
     module private Support =
         
@@ -21,12 +27,22 @@ module Query =
             | Some terms -> List.exists (fun (token :string) -> (account.ToLower().Contains(token.ToLower()))) terms
             | None       -> defaultValue
 
+        
         let withinPeriod date periodStartOption periodEndOption =
             match periodStartOption, periodEndOption with
             | Some periodStart, Some periodEnd -> periodStart <= date && date <= periodEnd
             | Some periodStart, None -> periodStart <= date
             | None, Some periodEnd -> date <= periodEnd
             | _, _ -> true
+
+
+        /// Add an amount to a CommodityAmountMap
+        let addAmountForCommodity (caMap : CommodityAmountMap) (amount : Amount) =
+            match caMap.ContainsKey(amount.Commodity) with
+            | true -> caMap.[amount.Commodity] <- {Amount = caMap.[amount.Commodity].Amount + amount.Amount;
+                                                    Commodity = amount.Commodity}
+            | false -> caMap.[amount.Commodity] <- amount
+        
 
         /// Apply filters to retrieve journal entries
         let filterEntries (filters : QueryFilters) (journal : Journal) =
@@ -43,20 +59,23 @@ module Query =
             |> List.filter (fun entry -> (Set.contains entry.Account accounts) 
                                          && (withinPeriod entry.Header.Date filters.PeriodStart filters.PeriodEnd))
 
-        /// Returns a list of (account, balance) tuples summed for all accounts in the account lineage for each entry in entries
+        
+        /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries
         let calculateAccountBalances entries =
-            let accountBalanceMap = new System.Collections.Generic.Dictionary<String,Decimal>()
+            let accountBalanceMap = new System.Collections.Generic.Dictionary<String,CommodityAmountMap>()
             let addAmountForAccounts entry = 
                 fun account -> 
                     match accountBalanceMap.ContainsKey(account) with
-                    | true -> accountBalanceMap.[account] <- accountBalanceMap.[account] + entry.Amount.Amount
-                    | false -> accountBalanceMap.[account] <- entry.Amount.Amount
+                    | true -> addAmountForCommodity accountBalanceMap.[account] entry.Amount
+                    | false -> accountBalanceMap.[account] <- new CommodityAmountMap()
+                               addAmountForCommodity accountBalanceMap.[account] entry.Amount
             let forEachAccountInLineageAddAmount entry =
                 List.iter (addAmountForAccounts entry) entry.AccountLineage
             do List.iter forEachAccountInLineageAddAmount entries
             accountBalanceMap.Keys
-            |> Seq.map (fun key -> key, accountBalanceMap.[key])
+            |> Seq.map (fun key -> {Account = key; Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values})
             |> Seq.toList
+
 
         /// Groups entries by header and returns (date, payee, entries) tuples
         let calculateRegisterLines entries =
@@ -84,24 +103,34 @@ module Query =
         let accountBalances =
             filteredEntries
             |> calculateAccountBalances
-            |> Seq.filter (fun (account, balance) -> balance <> 0M)
-            |> Seq.toList
+            |> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Amount <> 0M) accountBalance.Balance})
+            |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
         
         // filter parent accounts where amount is the same as the (assumed) single child
         let accountBalances =
-            let existsChildAccountWithSameAmount allBalances (account, amount) =
+            let amountsEqual a b =
+                (List.sort a) = (List.sort b)
+            let existsChildAccountWithSameAmount allBalances accountBalance =
                 allBalances
-                |> List.exists (fun ((otherAccount : String), otherAmount) -> otherAccount.StartsWith(account) && otherAccount.Length > account.Length && otherAmount = amount)
+                |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
+                                                           && otherAccountBalance.Account.Length > accountBalance.Account.Length 
+                                                           && (amountsEqual otherAccountBalance.Balance accountBalance.Balance))
                 |> not
             accountBalances
             |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
         // calculate total balance
         let totalBalance = 
+            let sumBalances balances =
+                let caMap = new CommodityAmountMap()
+                List.iter (addAmountForCommodity caMap) balances
+                caMap.Values
+                |> Seq.toList
+                |> List.sort
             accountBalances
-            |> List.filter (fun (account, _) -> Set.contains account journal.MainAccounts)
-            |> List.map (fun (_, amount) -> amount)
-            |> List.sum
+            |> List.filter (fun accountBalance -> Set.contains accountBalance.Account journal.MainAccounts)
+            |> List.collect (fun accountBalance -> accountBalance.Balance)
+            |> sumBalances
 
         (accountBalances, totalBalance)
 
@@ -118,7 +147,7 @@ module Query =
 
     /// Returns a sorted list of (payee, amount) tuples
     let outstandingPayees (journal : Journal) =
-        let calculatePayeeAmounts (payees : Map<string,decimal>) entry =
+        let calculatePayeeAmounts (payees : Map<string,decimal>) (entry : Entry) =
             if entry.Account.StartsWith("Assets:Receivables:") || entry.Account.StartsWith("Liabilities:Payables:") then 
                 let payee = entry.Account.Replace("Assets:Receivables:", "").Replace("Liabilities:Payables:", "")
                 let currentAmount = if payees.ContainsKey(payee) then payees.[payee] else 0M

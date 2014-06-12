@@ -36,7 +36,7 @@ module NancyRunner =
         key: string;
         account: string;
         accountStyle: Map<string,string>;
-        balance: string;
+        balance: string list;
         balanceClass: string;
         rowClass: string;
     }
@@ -144,22 +144,31 @@ module NancyRunner =
             let rec accountDisplay list (account: string) (parentage: string) indent =
                 match list with
                 | [] -> ((if parentage.Length > 0 then account.Remove(0, parentage.Length+1) else account), indent)
-                | (acc, _) :: t when account.StartsWith(acc) && account <> acc && account.[acc.Length] = ':' -> accountDisplay t account acc (indent+1)
-                | (acc, _) :: t -> accountDisplay t account parentage indent
+                | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
+                | _ :: t -> accountDisplay t account parentage indent
             accountDisplay accountBalances account "" 0
+        let formatAmount amount =
+            let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
+            match amount.Commodity with
+            | Some c when c <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
+                                      numberFormat.CurrencyNegativePattern <- 15 // (n $)
+                                      numberFormat.CurrencySymbol <- c
+                                      numberFormat.CurrencyDecimalDigits <- 3
+            | otherwise -> ()
+            amount.Amount.ToString("C", numberFormat)
         let accountBalances =
-            List.sortBy fst accountBalances
+            List.sortBy (fun a -> a.Account) accountBalances
 
-        (accountBalances @ [("", totalBalance)])
-        |> List.map (fun (account, (amount : decimal)) -> 
-            let accountDisplay, indent = getAccountDisplay account
-            { key = account;
+        (accountBalances @ [{Account=""; Balance=totalBalance}])
+        |> List.map (fun accountBalance -> 
+            let accountDisplay, indent = getAccountDisplay accountBalance.Account
+            { key = accountBalance.Account;
               account = accountDisplay; 
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
-              balance = amount.ToString("C");
-              balanceClass = account.Split([|':'|]).[0].ToLower();
+              balance = List.map formatAmount accountBalance.Balance
+              balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
               rowClass = 
-                match account with
+                match accountBalance.Account with
                 | "" -> "grand_total"
                 | otherwise -> ""; })
     
@@ -183,10 +192,11 @@ module NancyRunner =
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
             let _, totalBalance = Query.balance parameters journalData
+            let dollarAmount = (List.find (fun a -> a.Commodity = Some "$") totalBalance).Amount
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = totalBalance.ToString(); 
-                hover = month.ToString("MMM yyyy") + ": " + totalBalance.ToString("C");
+                amount = dollarAmount.ToString(); 
+                hover = month.ToString("MMM yyyy") + ": " + dollarAmount.ToString("C");
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
@@ -275,7 +285,7 @@ module NancyRunner =
 
 
     let run =
-        let url = "http://localhost:5050"
+        let url = "http://localhost:5055"
         Nancy.Json.JsonSettings.MaxJsonLength <- System.Int32.MaxValue  // increase max JSON response length (default is 100 kb)
         let configuration = new Nancy.Hosting.Self.HostConfiguration()
         configuration.UrlReservations.CreateAutomatically <- true
