@@ -160,6 +160,13 @@ Documentation
 Phase 2 Implementation (Commodities)
 ----------------------
 
+### Objective
+
+*	Add support for investments (ie, multiple commodities) on balance and register reports
+*	Provide "real" and "book value" lines on the Net Worth chart
+*	Additional investment reports such as overall portfolio return and return by investment
+*	Additional expenses reports such as burn rate
+
 2014/06/11
 I've prototyped it out enough now that I think what I want to do is make sure I can get current prices for commodities
 and then for the balance sheet, it would look something like:
@@ -171,6 +178,7 @@ and then for the balance sheet, it would look something like:
 That would be the eventual goal. That assumes that I'm either going to merge units/book value entries in the program
 or update the ledger file. In the mean time, I'll have to keep the "units" excluded from the main balance report.
 This way I can avoid having to propogate up the account hierarchy all the different commodities.
+
 
 Commodity Prices
 - [ ] Update functions to consider amount commodities
@@ -185,22 +193,50 @@ Commodity Prices
 	- [ ] Query.outstandingPayees
 	- [ ] Oustanding Payees JS
 	- [ ] Parser.balanceTransactions	
-- [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format) 
-- [ ] Identify commodities from ledger file
-- [ ] Fetch prices from internet and add to cache
-	- [ ] Store commodity prices in a local cache
-	- [ ] Prices should go from first date in ledger file to today
 
-Net Worth
-- [ ] Update chart with book value line and actual line
 
-Balance Sheet
-- [ ] Update Net Worth sheet with actual vs book value columns
+### First Milestone
+
+Prototype
+- [x] What do I want the balance report to look like with investments?
+	- [x] Update backend functions to handle multiple commodities
+	- [x] Update frontend to display all commodities for balance
+
+Prices
+- [ ] Identify commodities in ledger file
+- [ ] Fetch prices from internet, cache and store
+	- [ ] Need prices from first date commodity appears in ledger file until 0 balance
+	- [ ] Store prices in a local cache (and in memory while app is running)
+	- [ ] Calculate prices from ledger information if prices cannot be fetched
+
+Journal Parsing
+- [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format)
+	- May need to update some transactions to accommodate this
+OR
+- [ ] Update ledger file to use @@ or @ spec for commodity transactions (not sure if I want to do this yet)
+
+Balance Report
+- [ ] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
+- [ ] For parent accounts & total, calculate/provide book value and real value
+- [ ] Update front end
+- [ ] Show only 1 value column if "real value" and "book value" columns are the same for the whole report (based on query parameters)
+
+
+### Second Milestone
+
+Net Worth Report
+- [ ] Provide "real value" and "book value" lines
+
+Register Report
+- [ ] Prototype... what should it look like?
+
+
+### Third Milestone & beyond... 
 
 Portfolio
 - [ ] Overall portfolio return and per investment
 - [ ] Expected T3s/T5s to receive for last year (ie had distribution)
-- [ ] Rebalancing calculator - for rebalancing investments to proper allocation
+	- I should be able to get this with a register report query
 
 Expenses
 - [ ] Average in last 3 months, in last year
@@ -210,22 +246,21 @@ Expenses
 Charts
 - [ ] Income Statement chart (monthly, over time)
 
-Nav
-- [ ] Configurable nav list
-- [ ] Combine reports and payables / receivables into one dict?
-- [ ] Default report?
 
 
 Someday/Maybe/Improvements
 --------------------------
 
-Other
+Nav
+- [ ] Configurable nav list
+- [ ] Combine reports and payables / receivables into one dict?
+- [ ] Default report?
 - [ ] Display indicator when ajax call is happening
-- [ ] Add unit tests
 
 Tooling
 - [ ] Research how to handle references cross-platform (sln on mac is different from windows??)
 - [ ] Write a FAKE script for building / running?
+- [ ] Add unit tests
 
 Parsing Ledger File
 - [ ] Review / revise parsing & post-processing:
@@ -236,21 +271,16 @@ Parsing Ledger File
 	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
 	- [ ] Improve error reporting
 
-
 Balance Report
 - [ ] Can I improve the entry filtering code?
 - [x] Can I get rid of the list comprehension?
 - [ ] Can I clean it up so the balance query function is just sub-function calls?
-
-All Reports
-- [ ] Refactoring/clean up of all reports
 
 Command Bar Enhancements
 - [ ] Add fault tolerance to parameter parsing
 - [ ] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
 - [ ] Autocomplete hints (bootstrap typeahead)
-
 
 
 [1]: http://www.ledger-cli.org/
