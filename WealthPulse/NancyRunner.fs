@@ -147,7 +147,7 @@ module NancyRunner =
                 | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
                 | _ :: t -> accountDisplay t account parentage indent
             accountDisplay accountBalances account "" 0
-        let formatAmount amount =
+        let formatAmount (amount :Amount) =
             let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
             match amount.Commodity with
             | Some c when c <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
@@ -192,7 +192,7 @@ module NancyRunner =
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
             let _, totalBalance = Query.balance parameters journalData
-            let dollarAmount = (List.find (fun a -> a.Commodity = Some "$") totalBalance).Amount
+            let dollarAmount = (List.find (fun (a :Amount) -> a.Commodity = Some "$") totalBalance).Amount
             {
                 date = month.ToString("dd-MMM-yyyy"); 
                 amount = dollarAmount.ToString(); 

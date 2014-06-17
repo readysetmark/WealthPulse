@@ -5,9 +5,10 @@
 #r "FParsecCS.dll"
 #r "Journal.dll"
 
-open WealthPulse.Journal
+open WealthPulse
 
 let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"
 
-let journal = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
+let entries = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
+let journal = Journal.createJournal entries
 

@@ -19,6 +19,12 @@ module Query =
         Balance: Amount list
     }
 
+    type CommodityUsage = {
+        Commodity: Commodity;
+        FirstAppeared: System.DateTime;
+        ZeroBalanceDate: System.DateTime option;
+    } 
+
     module private Support =
         
         // account contains one of "terms" if "terms" provided, otherwise defaultValue
@@ -157,3 +163,21 @@ module Query =
         |> List.fold calculatePayeeAmounts Map.empty
         |> Map.filter (fun _ amount -> amount <> 0M)
         |> Map.toList
+
+
+    /// Returns a list of commodities used in the journal
+    let identifyCommodities (journal : Journal) =
+        let buildCommodityMap map entry =
+            match entry.Amount.Commodity with
+            | Some c -> match Map.tryFind c map with
+                        | Some cu -> match cu.FirstAppeared > entry.Header.Date with
+                                     | true -> Map.add c {cu with FirstAppeared = entry.Header.Date} map
+                                     | false -> map 
+                        | otherwise -> Map.add c {Commodity = c; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
+            | otherwise -> map
+        let determineZeroBalanceDate entries c (cu : CommodityUsage) =
+            // need to fill this part in
+            cu
+        journal.Entries
+        |> List.fold buildCommodityMap Map.empty
+        |> Map.map (determineZeroBalanceDate journal.Entries)
