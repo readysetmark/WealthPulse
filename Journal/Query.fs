@@ -175,9 +175,17 @@ module Query =
                                      | false -> map 
                         | otherwise -> Map.add c {Commodity = c; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
             | otherwise -> map
-        let determineZeroBalanceDate entries c (cu : CommodityUsage) =
+        let determineZeroBalanceDate entries commodity (cu : CommodityUsage) =
             // need to fill this part in
-            cu
+            let entriesWithCommodity = entries
+                                       |> List.filter (fun (e : Entry) -> match e.Amount.Commodity with
+                                                                          | Some c when c = commodity -> true
+                                                                          | otherwise -> false)
+            let balance = entriesWithCommodity |> List.fold (fun balance entry -> balance + entry.Amount.Amount) 0M
+            let lastDate = entriesWithCommodity |> List.fold (fun date entry -> if entry.Header.Date > date then entry.Header.Date else date) (List.head entriesWithCommodity).Header.Date
+            match balance with
+            | 0M -> {cu with ZeroBalanceDate = Some lastDate}
+            | otherwise -> cu
         journal.Entries
         |> List.fold buildCommodityMap Map.empty
         |> Map.map (determineZeroBalanceDate journal.Entries)
