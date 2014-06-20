@@ -203,8 +203,8 @@ Prototype
 	- [x] Update frontend to display all commodities for balance
 
 Prices
-- [ ] Identify commodities in ledger file
-	- [ ] Commodity, date of first use, date when balance becomes 0
+- [x] Identify commodities in ledger file
+	- [x] Commodity, date of first use, date when balance becomes 0
 - [ ] Fetch prices from internet, cache and store
 	- [ ] Need prices from first date commodity appears in ledger file until 0 balance
 	- [ ] Store prices in a local cache (and in memory while app is running)
