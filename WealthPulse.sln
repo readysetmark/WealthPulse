@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{457E12
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WealthPulse", "WealthPulse\WealthPulse.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FetchPrices", "FetchPrices\FetchPrices.fsproj", "{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +32,10 @@ Global
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
