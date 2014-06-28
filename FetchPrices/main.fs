@@ -71,6 +71,15 @@ module Main =
         |> Seq.map toCommodityPrice
         |> Seq.toList
 
+    let serializePrices (path : string) (prices : list<CommodityPrice>) =
+        let toPriceString (price : CommodityPrice) =
+            // format is "P DATE SYMBOL PRICE"
+            sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Commodity (price.Price.ToString())
+        use sw = new StreamWriter(path, false)
+        prices
+        |> List.iter (fun price -> sw.WriteLine(toPriceString price))
+        sw.Close()
+
     let printPrices (prices : list<CommodityPrice>) =
         let printMatch (price : CommodityPrice) =
             do printfn "%s - %s - %s" price.Commodity (price.Date.ToString("yyyy-MM-dd")) (price.Price.ToString())
@@ -94,6 +103,7 @@ module Main =
 
 
     let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
+    let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
     let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"
     
@@ -101,7 +111,7 @@ module Main =
 
     html
     |> scrapePrices "TDB900"
-    |> printPrices
+    |> serializePrices prices_path
     
     html
     |> scrapePagination
