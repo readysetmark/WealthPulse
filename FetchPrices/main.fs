@@ -80,6 +80,21 @@ module Main =
         |> List.iter (fun price -> sw.WriteLine(toPriceString price))
         sw.Close()
 
+    let deserializePrices (path : string) =
+        let toCommodityPrice (regexMatch : Match) =
+            let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
+            let commodity = regexMatch.Groups.[2].Value
+            let price = System.Decimal.Parse(regexMatch.Groups.[3].Value)
+            {Date = date; Commodity = commodity; Price = price}
+        use sr = new StreamReader(path)
+        let contents = sr.ReadToEnd()
+        sr.Close()
+        let regex = new Regex("P (\d{4}-\d{2}-\d{2}) (\w+) (\d+.\d+)")
+        regex.Matches(contents)
+        |> Seq.cast<Match>
+        |> Seq.map toCommodityPrice
+        |> Seq.toList
+
     let printPrices (prices : list<CommodityPrice>) =
         let printMatch (price : CommodityPrice) =
             do printfn "%s - %s - %s" price.Commodity (price.Date.ToString("yyyy-MM-dd")) (price.Price.ToString())
@@ -109,13 +124,15 @@ module Main =
     
     let html = readFile path
 
-    html
-    |> scrapePrices "TDB900"
-    |> serializePrices prices_path
+    deserializePrices prices_path
+    |> printPrices
+//    html
+//    |> scrapePrices "TDB900"
+//    |> serializePrices prices_path
     
-    html
-    |> scrapePagination
-    |> printPagination
+//    html
+//    |> scrapePagination
+//    |> printPagination
     
     do printfn "Press any key to quit..."
     ignore <| System.Console.ReadLine()
