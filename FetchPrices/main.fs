@@ -17,12 +17,46 @@ open System.Text.RegularExpressions
             - generate next page url
         - Store retrieved prices
         - Use prices from ledger file to fill in gaps that cannot be retrieved
+
+    Inputs:
+        - From pricedb file, startup: Commodity, first price, last price, list of all prices
+        - From Journal, ongoing (when changed): Commodity, first appeared, zero balance date
+        - From config file, ongoing (when changed): Commodity, google finance key from config file
+    
+    Outputs:
+        - In-memory price db
+        - pricedb file
+
+    Boot process:
+        - Load pricedb file, group by commodity and sort by date. determine first and last prices per commodity.
+        - Get journal info & add watch
+        - Get config info & add watch
+        - Get new prices & add timer (24 hours)
+
+    Get new prices process:
+        -
+
+        
+
+
+    
 *)
 
 module Main =
     
     type Commodity = string
     type Price = decimal
+
+    type CommodityUsage = {
+        Commodity: Commodity;
+        FirstAppeared: System.DateTime;
+        ZeroBalanceDate: System.DateTime option;
+    }
+
+    type CommodityConfig = {
+        Commodity: Commodity;
+        GoogleFinanceKey: string;
+    }
 
     type CommodityPrice = {
         Date: System.DateTime;
@@ -116,6 +150,13 @@ module Main =
         do printfn "%d start, %d records per page, %d total records" page.Start page.RecordsPerPage page.TotalRecords
 
 
+
+    (*********************************************************************
+        SCRATCH
+    *********************************************************************)
+
+    let usage = {Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}
+    let key   = {Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}
 
     let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
