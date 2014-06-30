@@ -64,6 +64,15 @@ module Main =
         Price: Price
     }
 
+    type CommodityPriceDB = {
+        Commodity: Commodity;
+        FirstDate: System.DateTime;
+        LastDate:  System.DateTime;
+        Prices:    list<CommodityPrice>;
+    }
+
+    type PriceDB = Map<Commodity,CommodityPriceDB>
+
     type Pagination = {
         Start: int;
         RecordsPerPage: int;
@@ -105,6 +114,13 @@ module Main =
         |> Seq.map toCommodityPrice
         |> Seq.toList
 
+    let printPrices (prices : list<CommodityPrice>) =
+        let printMatch (price : CommodityPrice) =
+            do printfn "%s - %s - %s" price.Commodity (price.Date.ToString("yyyy-MM-dd")) (price.Price.ToString())
+        do printfn "Found %d prices:" <| List.length prices
+        prices
+        |> List.iter printMatch
+
     let serializePrices (path : string) (prices : list<CommodityPrice>) =
         let toPriceString (price : CommodityPrice) =
             // format is "P DATE SYMBOL PRICE"
@@ -129,12 +145,35 @@ module Main =
         |> Seq.map toCommodityPrice
         |> Seq.toList
 
-    let printPrices (prices : list<CommodityPrice>) =
-        let printMatch (price : CommodityPrice) =
-            do printfn "%s - %s - %s" price.Commodity (price.Date.ToString("yyyy-MM-dd")) (price.Price.ToString())
-        do printfn "Found %d prices:" <| List.length prices
-        prices
-        |> List.iter printMatch
+    let loadPriceDB (path : string) : PriceDB =
+        let createCommodityPriceDB (c : Commodity, prices : seq<CommodityPrice>) =
+            let sortedPrices = 
+                prices
+                |> Seq.toList
+                |> List.sortBy (fun cp -> cp.Date)
+            let firstDate = (List.head sortedPrices).Date
+            let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
+            (c, {Commodity = c; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
+        deserializePrices path
+        |> Seq.ofList
+        |> Seq.groupBy (fun cp -> cp.Commodity)
+        |> Seq.map createCommodityPriceDB
+        |> Map.ofSeq
+
+    let printPriceDB (priceDB : PriceDB) =
+        let dateFormat = "yyyy-MM-dd"
+        let printCommodityPrices _ (db : CommodityPriceDB) =
+            let printPrice (price : CommodityPrice) =
+                do printfn "%s - %s" (price.Date.ToString(dateFormat)) (price.Price.ToString())
+            do printfn "----"
+            do printfn "Commodity:  %s" db.Commodity
+            do printfn "First Date: %s" (db.FirstDate.ToString(dateFormat))
+            do printfn "Last Date:  %s" (db.LastDate.ToString(dateFormat))
+            do printfn "Price History:"
+            List.iter printPrice db.Prices
+        priceDB
+        |> Map.iter printCommodityPrices
+    
         
 
     let scrapePagination (html : string) =
@@ -165,8 +204,8 @@ module Main =
     
     let html = readFile path
 
-    deserializePrices prices_path
-    |> printPrices
+    loadPriceDB prices_path
+    |> printPriceDB
 //    html
 //    |> scrapePrices "TDB900"
 //    |> serializePrices prices_path
