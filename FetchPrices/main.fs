@@ -34,7 +34,14 @@ open System.Text.RegularExpressions
         - Get new prices & add timer (24 hours)
 
     Get new prices process:
-        -
+        [ ] Compare usage dates to db dates. are end points convered?
+        [ ] If not covered:
+            [ ] If have no dates, query google for whole date range
+            [ ] If have dates, query google for dates missing at start, then end (two separate queries)
+        [ ] Get prices
+            [ ] Generate URL
+            [ ] Fetch page and extract prices
+            [ ] Generate next URL
 
         
 
@@ -150,15 +157,16 @@ module Main =
         |> Seq.map toCommodityPrice
         |> Seq.toList
 
+    let createCommodityPriceDB (c : Commodity, prices : seq<CommodityPrice>) =
+        let sortedPrices = 
+            prices
+            |> Seq.toList
+            |> List.sortBy (fun cp -> cp.Date)
+        let firstDate = (List.head sortedPrices).Date
+        let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
+        (c, {Commodity = c; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
+
     let loadPriceDB (path : string) : PriceDB =
-        let createCommodityPriceDB (c : Commodity, prices : seq<CommodityPrice>) =
-            let sortedPrices = 
-                prices
-                |> Seq.toList
-                |> List.sortBy (fun cp -> cp.Date)
-            let firstDate = (List.head sortedPrices).Date
-            let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
-            (c, {Commodity = c; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
         deserializePrices path
         |> Seq.ofList
         |> Seq.groupBy (fun cp -> cp.Commodity)
@@ -194,25 +202,73 @@ module Main =
         do printfn "%d start, %d records per page, %d total records" page.Start page.RecordsPerPage page.TotalRecords
 
 
+    let generateBaseURL (searchKey : string) (startDate : System.DateTime) (endDate : option<System.DateTime>) =
+        let dateFormat = "MMM d, yyyy"
+        let query = System.Net.WebUtility.UrlEncode(searchKey)
+        let startDate = System.Net.WebUtility.UrlEncode(startDate.ToString(dateFormat))
+        let endDate =
+            match endDate with
+            | Some d -> System.Net.WebUtility.UrlEncode(d.ToString(dateFormat))
+            | None   -> System.Net.WebUtility.UrlEncode(System.DateTime.Today.ToString(dateFormat))
+        sprintf "https://www.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
+
+    
+    let rec getPrices (baseURL : string) (startAtRecord : int) (commodity : Commodity) =
+        let url = sprintf "%s&start=%s" baseURL (startAtRecord.ToString())
+        printfn "Fetch URL: %s" url
+        let html = fetch url
+        let prices = scrapePrices commodity html
+        let pagination = scrapePagination html
+        match pagination.Start, pagination.TotalRecords with
+        | start, total when start <= total ->
+            let startAt = pagination.Start + pagination.RecordsPerPage
+            prices @ getPrices baseURL startAt commodity
+        | otherwise -> prices
+            
+
+    let getPricesForNewCommodity (usage: CommodityUsage) (config : CommodityConfig) =
+        let baseURL = generateBaseURL config.GoogleFinanceKey usage.FirstAppeared usage.ZeroBalanceDate
+        printfn "baseURL = %s" baseURL
+        let prices = getPrices baseURL 0 usage.Commodity
+        createCommodityPriceDB (usage.Commodity, prices)
+        
+//    let updatePricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) = 
+//        cpDB
+//
+//    let fetchPricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : option<CommodityPriceDB>) =
+//        match usage, cpDB with
+//        | usage, Some cpDB -> updatePricesForCommodity usage config cpDB
+//        | usage, None      -> getPricesForNewCommodity usage config
+        
+    
+    //let fetchPrices (usages : list<CommodityUsage>) (config : list<CommodityConfig>) (priceDB : PriceDB) =
+        
+
+
+
 
     (*********************************************************************
         SCRATCH
     *********************************************************************)
 
-    let usages = [{Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}]
-    let keys   = [{Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}]
+    let usage = {Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}
+    let config   = {Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}
 
     let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
     let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"
     
-    //let html = readFile path
-
-    let priceDB = loadPriceDB prices_path
+    let cpDB = getPricesForNewCommodity usage config
+    let priceDB : PriceDB = Map.ofSeq <| seq { yield cpDB }
     printPriceDB priceDB
-    savePriceDB prices_path priceDB
+
+//    let priceDB = loadPriceDB prices_path
+//    printPriceDB priceDB
+//    savePriceDB prices_path priceDB
     
+//    let html = readFile path
+
 //    html
 //    |> scrapePrices "TDB900"
 //    |> serializePrices prices_path
@@ -221,5 +277,5 @@ module Main =
 //    |> scrapePagination
 //    |> printPagination
     
-    do printfn "Press any key to quit..."
-    ignore <| System.Console.ReadLine()
+//    do printfn "Press any key to quit..."
+//    ignore <| System.Console.ReadLine()
