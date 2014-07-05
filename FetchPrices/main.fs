@@ -6,29 +6,29 @@ open System.Text.RegularExpressions
 
 (*
     There's actually quite a bit I need to handle
-        - Need commodity, first appeared, zero balance date, query string
+        [ ] Need commodity, first appeared, zero balance date, query string
             - Query string will have to come from a config file
-        - Need existing known prices loaded
-        - Determine if we need to attempt to retrieve new prices for a particular commodity
-        - Retrieve prices
-            - have price for first appeared?
-            - generate url
-            - fetch page and extract prices
-            - generate next page url
-        - Store retrieved prices
-        - Use prices from ledger file to fill in gaps that cannot be retrieved
+        [x] Need existing known prices loaded
+        [ ] Determine if we need to attempt to retrieve new prices for a particular commodity
+        [ ] Retrieve prices
+            [ ] have price for first appeared?
+            [ ] generate url
+            [ ] fetch page and extract prices
+            [ ] generate next page url
+            [ ] Use prices from ledger file to fill in gaps that cannot be retrieved
+        [x] Store retrieved prices
 
     Inputs:
-        - From pricedb file, startup: Commodity, first price, last price, list of all prices
+        [x] From pricedb file, startup: Commodity, first price, last price, list of all prices
         - From Journal, ongoing (when changed): Commodity, first appeared, zero balance date
         - From config file, ongoing (when changed): Commodity, google finance key from config file
     
     Outputs:
         - In-memory price db
-        - pricedb file
+        [x] pricedb file
 
     Boot process:
-        - Load pricedb file, group by commodity and sort by date. determine first and last prices per commodity.
+        [x] Load pricedb file, group by commodity and sort by date. determine first and last prices per commodity.
         - Get journal info & add watch
         - Get config info & add watch
         - Get new prices & add timer (24 hours)
@@ -121,15 +121,20 @@ module Main =
         prices
         |> List.iter printMatch
 
-    let serializePrices (path : string) (prices : list<CommodityPrice>) =
+    
+    let serializePriceList (sw : StreamWriter) (prices : list<CommodityPrice>) =
         let toPriceString (price : CommodityPrice) =
             // format is "P DATE SYMBOL PRICE"
             sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Commodity (price.Price.ToString())
-        use sw = new StreamWriter(path, false)
         prices
         |> List.iter (fun price -> sw.WriteLine(toPriceString price))
-        sw.Close()
 
+    let savePriceDB (path : string) (priceDB : PriceDB) =
+        use sw = new StreamWriter(path, false)
+        priceDB
+        |> Map.iter (fun _ commodityPriceDB -> serializePriceList sw commodityPriceDB.Prices)
+        sw.Close()
+        
     let deserializePrices (path : string) =
         let toCommodityPrice (regexMatch : Match) =
             let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
@@ -194,18 +199,20 @@ module Main =
         SCRATCH
     *********************************************************************)
 
-    let usage = {Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}
-    let key   = {Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}
+    let usages = [{Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}]
+    let keys   = [{Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}]
 
     let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
     let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"
     
-    let html = readFile path
+    //let html = readFile path
 
-    loadPriceDB prices_path
-    |> printPriceDB
+    let priceDB = loadPriceDB prices_path
+    printPriceDB priceDB
+    savePriceDB prices_path priceDB
+    
 //    html
 //    |> scrapePrices "TDB900"
 //    |> serializePrices prices_path
