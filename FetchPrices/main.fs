@@ -6,7 +6,7 @@ open System.Text.RegularExpressions
 
 (*
     There's actually quite a bit I need to handle
-        [ ] Need commodity, first appeared, zero balance date, query string
+        [x] Need commodity, first appeared, zero balance date, query string
             - Query string will have to come from a config file
         [x] Need existing known prices loaded
         [x] Determine if we need to attempt to retrieve new prices for a particular commodity
@@ -24,7 +24,7 @@ open System.Text.RegularExpressions
         - From config file, ongoing (when changed): Commodity, google finance key from config file
     
     Outputs:
-        - In-memory price db
+        [x] In-memory price db
         [x] pricedb file
 
     Boot process:
@@ -61,6 +61,8 @@ module Main =
         GoogleFinanceSearchSymbol: string;
     }
 
+    type CommodityConfigs = Map<Commodity, CommodityConfig>
+
     type CommodityPrice = {
         Date: System.DateTime;
         Commodity: Commodity;
@@ -74,7 +76,7 @@ module Main =
         Prices:    list<CommodityPrice>;
     }
 
-    type PriceDB = Map<Commodity,CommodityPriceDB>
+    type PriceDB = Map<Commodity, CommodityPriceDB>
 
     type Pagination = {
         Start: int;
@@ -231,7 +233,9 @@ module Main =
     let getPricesForNewCommodity (usage: CommodityUsage) (config : CommodityConfig) =
         let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared usage.ZeroBalanceDate
         let prices = getPrices baseURL 0 usage.Commodity
-        createCommodityPriceDB (usage.Commodity, prices)
+        match List.length prices with
+        | 0         -> None
+        | otherwise -> Some <| createCommodityPriceDB (usage.Commodity, prices)
         
     let updatePricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) = 
         let getEarlierMissingPrices (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) =
@@ -267,38 +271,38 @@ module Main =
 
     let fetchPricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : option<CommodityPriceDB>) =
         match usage, cpDB with
-        | usage, Some cpDB -> updatePricesForCommodity usage config cpDB
+        | usage, Some cpDB -> Some <| updatePricesForCommodity usage config cpDB
         | usage, None      -> getPricesForNewCommodity usage config
         
     
-    let updatePriceDB (usages : list<CommodityUsage>) (configs : list<CommodityConfig>) (priceDB : PriceDB) =
-        let getUpdatedCommodityPriceDB (config : CommodityConfig) =
-            let usage = List.tryFind (fun (u : CommodityUsage) -> u.Commodity = config.Commodity) usages
-            match usage with
-            | Some u ->
-                let cpDB = Map.tryFind config.Commodity priceDB
-                Some <| fetchPricesForCommodity u config cpDB
-            | None -> None
+    let updatePriceDB (usages : list<CommodityUsage>) (configs : CommodityConfigs) (priceDB : PriceDB) =
+        let commoditiesWithConfig (usage : CommodityUsage) =
+            Map.containsKey usage.Commodity configs
+        let getUpdatedCommodityPriceDB (usage : CommodityUsage) =
+            let config = Map.find usage.Commodity configs
+            let cpDB = Map.tryFind config.Commodity priceDB
+            fetchPricesForCommodity usage config cpDB
         let updateDB (priceDB : PriceDB) ((commodity : string), (cpDB : CommodityPriceDB)) =
             Map.add commodity cpDB priceDB
 
-        configs
+        usages
+        |> List.filter commoditiesWithConfig
         |> List.map getUpdatedCommodityPriceDB
         |> List.choose id
         |> List.fold updateDB priceDB
         
 
-    let deserializeCommodityConfig (path : string) =
+    let deserializeCommodityConfigs (path : string) =
         let toCommodityConfig (regexMatch : Match) =
             let commodity = regexMatch.Groups.[1].Value
             let searchSymbol = regexMatch.Groups.[2].Value
             {Commodity = commodity; GoogleFinanceSearchSymbol = searchSymbol}
-        match System.IO.File.Exists(path) with
+        match File.Exists(path) with
         | true ->
             use sr = new StreamReader(path)
             let contents = sr.ReadToEnd()
             sr.Close()
-            // CC Commdity GoogleFinanceSearchSymbol
+            // CC Commodity GoogleFinanceSearchSymbol
             let regex = new Regex("CC (\w+) ([\w:]+)")
             regex.Matches(contents)
             |> Seq.cast<Match>
@@ -307,37 +311,77 @@ module Main =
         | false -> 
             List.Empty
 
-    let printCommodityConfigs (configs : list<CommodityConfig>) =
-        let printCommodityConfig (config : CommodityConfig) =
+    let loadCommodityConfig (path : string) : CommodityConfigs =
+        deserializeCommodityConfigs path
+        |> List.map (fun c -> c.Commodity, c)
+        |> Map.ofList
+
+    let printCommodityConfigs (configs : CommodityConfigs) =
+        let printCommodityConfig (_commodity : string) (config : CommodityConfig) =
             printfn "%s %s" config.Commodity config.GoogleFinanceSearchSymbol
-        List.iter printCommodityConfig configs
+        Map.iter printCommodityConfig configs
+
+
+    let deserializeUsages (path : string) =
+        let toCommodityUsage (regexMatch : Match) =
+            let commodity = regexMatch.Groups.[1].Value
+            let firstAppeared = System.DateTime.Parse(regexMatch.Groups.[2].Value)
+            let zeroBalanceDate =
+                match regexMatch.Groups.[3].Success with
+                | true  -> Some <| System.DateTime.Parse(regexMatch.Groups.[3].Value)
+                | false -> None
+            { Commodity = commodity; FirstAppeared = firstAppeared; ZeroBalanceDate = zeroBalanceDate; }
+        match File.Exists(path) with
+        | true ->
+            use sr = new StreamReader(path)
+            let contents = sr.ReadToEnd()
+            sr.Close()
+            // U Commodity FirstAppeared [ZeroBalanceDate]
+            let regex = new Regex("U ([\w\$]+) (\d{4}-\d{2}-\d{2})[ ]?(\d{4}-\d{2}-\d{2})?")
+            regex.Matches(contents)
+            |> Seq.cast<Match>
+            |> Seq.map toCommodityUsage
+            |> Seq.toList
+        | false -> 
+            List.Empty
+
+    let printCommodityUsages (usages : list<CommodityUsage>) =
+        let dateFormat = "yyyy-MM-dd"
+        let printCommodityUsage (usage : CommodityUsage) =
+            let zeroBalanceDate =
+                match usage.ZeroBalanceDate with
+                | Some date -> date.ToString(dateFormat)
+                | None      -> ""
+            printfn "%s %s %s" usage.Commodity (usage.FirstAppeared.ToString(dateFormat)) zeroBalanceDate
+        List.iter printCommodityUsage usages
 
 
     (*********************************************************************
         SCRATCH
     *********************************************************************)
-
-    let usages = [{Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}]
-    //let configs = [{Commodity = "TDB900"; GoogleFinanceSearchSymbol = "MUTF_CA:TDB900"}]
-
-    let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
+    
+    //let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
-    let config_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.config"
-    let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
+    let config_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config"
+    let usage_path  = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.usage"
+    //let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"
     
-    let configs = deserializeCommodityConfig config_path
-    printCommodityConfigs configs
+    let usages = deserializeUsages usage_path
+    //printCommodityUsages usages
+    let configs = loadCommodityConfig config_path
+
+    //printCommodityConfigs configs
 //    let cpDB = fetchPricesForCommodity usage config None
 //    let priceDB : PriceDB = Map.ofSeq <| seq { yield cpDB }
 //    printPriceDB priceDB
 //    savePriceDB prices_path priceDB
 
-    //let priceDB = loadPriceDB prices_path
+    let priceDB = loadPriceDB prices_path
     //printPriceDB priceDB
     
-    //let newPriceDB = updatePriceDB usages configs priceDB
-    //savePriceDB prices_path newPriceDB
+    let newPriceDB = updatePriceDB usages configs priceDB
+    savePriceDB prices_path newPriceDB
 //    savePriceDB prices_path priceDB
     
 //    let html = readFile path
