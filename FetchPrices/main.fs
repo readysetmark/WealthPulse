@@ -43,10 +43,6 @@ open System.Text.RegularExpressions
             [x] Fetch page and extract prices
             [x] Generate next URL
 
-        
-
-
-    
 *)
 
 module Main =
@@ -62,7 +58,7 @@ module Main =
 
     type CommodityConfig = {
         Commodity: Commodity;
-        GoogleFinanceKey: string;
+        GoogleFinanceSearchSymbol: string;
     }
 
     type CommodityPrice = {
@@ -149,14 +145,18 @@ module Main =
             let commodity = regexMatch.Groups.[2].Value
             let price = System.Decimal.Parse(regexMatch.Groups.[3].Value)
             {Date = date; Commodity = commodity; Price = price}
-        use sr = new StreamReader(path)
-        let contents = sr.ReadToEnd()
-        sr.Close()
-        let regex = new Regex("P (\d{4}-\d{2}-\d{2}) (\w+) (\d+.\d+)")
-        regex.Matches(contents)
-        |> Seq.cast<Match>
-        |> Seq.map toCommodityPrice
-        |> Seq.toList
+        match File.Exists(path) with
+        | true ->
+            use sr = new StreamReader(path)
+            let contents = sr.ReadToEnd()
+            sr.Close()
+            let regex = new Regex("P (\d{4}-\d{2}-\d{2}) (\w+) (\d+.\d+)")
+            regex.Matches(contents)
+            |> Seq.cast<Match>
+            |> Seq.map toCommodityPrice
+            |> Seq.toList
+        | false ->
+            List.Empty
 
     let createCommodityPriceDB (c : Commodity, prices : seq<CommodityPrice>) =
         let sortedPrices = 
@@ -229,7 +229,7 @@ module Main =
             
 
     let getPricesForNewCommodity (usage: CommodityUsage) (config : CommodityConfig) =
-        let baseURL = generateBaseURL config.GoogleFinanceKey usage.FirstAppeared usage.ZeroBalanceDate
+        let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared usage.ZeroBalanceDate
         let prices = getPrices baseURL 0 usage.Commodity
         createCommodityPriceDB (usage.Commodity, prices)
         
@@ -238,7 +238,7 @@ module Main =
             match usage.FirstAppeared, cpDB.FirstDate with
             | firstAppeared, firstDate when firstAppeared < firstDate ->
                 let endDate = firstDate.AddDays(-1.0)
-                let baseURL = generateBaseURL config.GoogleFinanceKey usage.FirstAppeared (Some endDate)
+                let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared (Some endDate)
                 getPrices baseURL 0 usage.Commodity
             | otherwise -> List.Empty
         
@@ -246,11 +246,11 @@ module Main =
             match usage.ZeroBalanceDate, cpDB.LastDate with
             | None, lastDate when lastDate < System.DateTime.Today ->
                 let startDate = lastDate.AddDays(1.0)
-                let baseURL = generateBaseURL config.GoogleFinanceKey startDate (Some System.DateTime.Today)
+                let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol startDate (Some System.DateTime.Today)
                 getPrices baseURL 0 usage.Commodity
             | Some zeroBalanceDate, lastDate when lastDate < zeroBalanceDate ->
                 let startDate = lastDate.AddDays(1.0)
-                let baseURL = generateBaseURL config.GoogleFinanceKey startDate (Some zeroBalanceDate)
+                let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol startDate (Some zeroBalanceDate)
                 getPrices baseURL 0 usage.Commodity
             | otherwise -> List.Empty
 
@@ -288,7 +288,29 @@ module Main =
         |> List.fold updateDB priceDB
         
 
+    let deserializeCommodityConfig (path : string) =
+        let toCommodityConfig (regexMatch : Match) =
+            let commodity = regexMatch.Groups.[1].Value
+            let searchSymbol = regexMatch.Groups.[2].Value
+            {Commodity = commodity; GoogleFinanceSearchSymbol = searchSymbol}
+        match System.IO.File.Exists(path) with
+        | true ->
+            use sr = new StreamReader(path)
+            let contents = sr.ReadToEnd()
+            sr.Close()
+            // CC Commdity GoogleFinanceSearchSymbol
+            let regex = new Regex("CC (\w+) ([\w:]+)")
+            regex.Matches(contents)
+            |> Seq.cast<Match>
+            |> Seq.map toCommodityConfig
+            |> Seq.toList
+        | false -> 
+            List.Empty
 
+    let printCommodityConfigs (configs : list<CommodityConfig>) =
+        let printCommodityConfig (config : CommodityConfig) =
+            printfn "%s %s" config.Commodity config.GoogleFinanceSearchSymbol
+        List.iter printCommodityConfig configs
 
 
     (*********************************************************************
@@ -296,23 +318,26 @@ module Main =
     *********************************************************************)
 
     let usages = [{Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}]
-    let configs = [{Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}]
+    //let configs = [{Commodity = "TDB900"; GoogleFinanceSearchSymbol = "MUTF_CA:TDB900"}]
 
     let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
+    let config_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.config"
     let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"
     
+    let configs = deserializeCommodityConfig config_path
+    printCommodityConfigs configs
 //    let cpDB = fetchPricesForCommodity usage config None
 //    let priceDB : PriceDB = Map.ofSeq <| seq { yield cpDB }
 //    printPriceDB priceDB
 //    savePriceDB prices_path priceDB
 
-    let priceDB = loadPriceDB prices_path
+    //let priceDB = loadPriceDB prices_path
     //printPriceDB priceDB
     
-    let newPriceDB = updatePriceDB usages configs priceDB
-    savePriceDB prices_path newPriceDB
+    //let newPriceDB = updatePriceDB usages configs priceDB
+    //savePriceDB prices_path newPriceDB
 //    savePriceDB prices_path priceDB
     
 //    let html = readFile path
