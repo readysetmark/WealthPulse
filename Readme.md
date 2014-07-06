@@ -206,8 +206,8 @@ Prices
 - [x] Identify commodities in ledger file
 	- [x] Commodity, date of first use, date when balance becomes 0
 - [ ] Fetch prices from internet, cache and store
-	- [ ] Need prices from first date commodity appears in ledger file until 0 balance
-	- [ ] Store prices in a local cache (and in memory while app is running)
+	- [x] Need prices from first date commodity appears in ledger file until 0 balance
+	- [x] Store prices in a local cache (and in memory while app is running)
 	- [ ] Calculate prices from ledger information if prices cannot be fetched
 
 Journal Parsing

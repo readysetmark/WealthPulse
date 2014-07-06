@@ -9,12 +9,12 @@ open System.Text.RegularExpressions
         [ ] Need commodity, first appeared, zero balance date, query string
             - Query string will have to come from a config file
         [x] Need existing known prices loaded
-        [ ] Determine if we need to attempt to retrieve new prices for a particular commodity
+        [x] Determine if we need to attempt to retrieve new prices for a particular commodity
         [ ] Retrieve prices
-            [ ] have price for first appeared?
-            [ ] generate url
-            [ ] fetch page and extract prices
-            [ ] generate next page url
+            [x] have price for first appeared?
+            [x] generate url
+            [x] fetch page and extract prices
+            [x] generate next page url
             [ ] Use prices from ledger file to fill in gaps that cannot be retrieved
         [x] Store retrieved prices
 
@@ -34,14 +34,14 @@ open System.Text.RegularExpressions
         - Get new prices & add timer (24 hours)
 
     Get new prices process:
-        [ ] Compare usage dates to db dates. are end points convered?
-        [ ] If not covered:
-            [ ] If have no dates, query google for whole date range
-            [ ] If have dates, query google for dates missing at start, then end (two separate queries)
-        [ ] Get prices
-            [ ] Generate URL
-            [ ] Fetch page and extract prices
-            [ ] Generate next URL
+        [x] Compare usage dates to db dates. are end points convered?
+        [x] If not covered:
+            [x] If have no dates, query google for whole date range
+            [x] If have dates, query google for dates missing at start, then end (two separate queries)
+        [x] Get prices
+            [x] Generate URL
+            [x] Fetch page and extract prices
+            [x] Generate next URL
 
         
 
@@ -87,6 +87,7 @@ module Main =
     }
 
     let fetch (url : string) =
+        printfn "Fetching URL: %s" url
         let req = WebRequest.Create(url) :?> HttpWebRequest
         req.Method <- "GET"
         req.UserAgent <- "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36"
@@ -210,17 +211,18 @@ module Main =
             match endDate with
             | Some d -> System.Net.WebUtility.UrlEncode(d.ToString(dateFormat))
             | None   -> System.Net.WebUtility.UrlEncode(System.DateTime.Today.ToString(dateFormat))
-        sprintf "https://www.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
+        let baseURL = sprintf "https://www.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
+        printfn "baseURL = %s" baseURL
+        baseURL
 
     
     let rec getPrices (baseURL : string) (startAtRecord : int) (commodity : Commodity) =
         let url = sprintf "%s&start=%s" baseURL (startAtRecord.ToString())
-        printfn "Fetch URL: %s" url
         let html = fetch url
         let prices = scrapePrices commodity html
         let pagination = scrapePagination html
         match pagination.Start, pagination.TotalRecords with
-        | start, total when start <= total ->
+        | start, total when start < total ->
             let startAt = pagination.Start + pagination.RecordsPerPage
             prices @ getPrices baseURL startAt commodity
         | otherwise -> prices
@@ -228,20 +230,62 @@ module Main =
 
     let getPricesForNewCommodity (usage: CommodityUsage) (config : CommodityConfig) =
         let baseURL = generateBaseURL config.GoogleFinanceKey usage.FirstAppeared usage.ZeroBalanceDate
-        printfn "baseURL = %s" baseURL
         let prices = getPrices baseURL 0 usage.Commodity
         createCommodityPriceDB (usage.Commodity, prices)
         
-//    let updatePricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) = 
-//        cpDB
-//
-//    let fetchPricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : option<CommodityPriceDB>) =
-//        match usage, cpDB with
-//        | usage, Some cpDB -> updatePricesForCommodity usage config cpDB
-//        | usage, None      -> getPricesForNewCommodity usage config
+    let updatePricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) = 
+        let getEarlierMissingPrices (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) =
+            match usage.FirstAppeared, cpDB.FirstDate with
+            | firstAppeared, firstDate when firstAppeared < firstDate ->
+                let endDate = firstDate.AddDays(-1.0)
+                let baseURL = generateBaseURL config.GoogleFinanceKey usage.FirstAppeared (Some endDate)
+                getPrices baseURL 0 usage.Commodity
+            | otherwise -> List.Empty
+        
+        let getLaterMissingPrices (usage: CommodityUsage) (config : CommodityConfig) (cpDB : CommodityPriceDB) =
+            match usage.ZeroBalanceDate, cpDB.LastDate with
+            | None, lastDate when lastDate < System.DateTime.Today ->
+                let startDate = lastDate.AddDays(1.0)
+                let baseURL = generateBaseURL config.GoogleFinanceKey startDate (Some System.DateTime.Today)
+                getPrices baseURL 0 usage.Commodity
+            | Some zeroBalanceDate, lastDate when lastDate < zeroBalanceDate ->
+                let startDate = lastDate.AddDays(1.0)
+                let baseURL = generateBaseURL config.GoogleFinanceKey startDate (Some zeroBalanceDate)
+                getPrices baseURL 0 usage.Commodity
+            | otherwise -> List.Empty
+
+        let earlierPrices = getEarlierMissingPrices usage config cpDB
+        printfn "New earlier prices for %s:" usage.Commodity
+        printPrices earlierPrices
+        let laterPrices = getLaterMissingPrices usage config cpDB
+        printfn "New later prices for %s:" usage.Commodity
+        printPrices laterPrices
+        let allPrices = 
+            earlierPrices @ cpDB.Prices @ laterPrices
+            |> List.sortBy (fun p -> p.Date)
+        cpDB.Commodity, {cpDB with Prices = allPrices}
+
+    let fetchPricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : option<CommodityPriceDB>) =
+        match usage, cpDB with
+        | usage, Some cpDB -> updatePricesForCommodity usage config cpDB
+        | usage, None      -> getPricesForNewCommodity usage config
         
     
-    //let fetchPrices (usages : list<CommodityUsage>) (config : list<CommodityConfig>) (priceDB : PriceDB) =
+    let updatePriceDB (usages : list<CommodityUsage>) (configs : list<CommodityConfig>) (priceDB : PriceDB) =
+        let getUpdatedCommodityPriceDB (config : CommodityConfig) =
+            let usage = List.tryFind (fun (u : CommodityUsage) -> u.Commodity = config.Commodity) usages
+            match usage with
+            | Some u ->
+                let cpDB = Map.tryFind config.Commodity priceDB
+                Some <| fetchPricesForCommodity u config cpDB
+            | None -> None
+        let updateDB (priceDB : PriceDB) ((commodity : string), (cpDB : CommodityPriceDB)) =
+            Map.add commodity cpDB priceDB
+
+        configs
+        |> List.map getUpdatedCommodityPriceDB
+        |> List.choose id
+        |> List.fold updateDB priceDB
         
 
 
@@ -251,20 +295,24 @@ module Main =
         SCRATCH
     *********************************************************************)
 
-    let usage = {Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}
-    let config   = {Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}
+    let usages = [{Commodity = "TDB900"; FirstAppeared = new System.DateTime(2008, 3, 28); ZeroBalanceDate = None}]
+    let configs = [{Commodity = "TDB900"; GoogleFinanceKey = "MUTF_CA:TDB900"}]
 
     let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
     let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"
     
-    let cpDB = getPricesForNewCommodity usage config
-    let priceDB : PriceDB = Map.ofSeq <| seq { yield cpDB }
-    printPriceDB priceDB
-
-//    let priceDB = loadPriceDB prices_path
+//    let cpDB = fetchPricesForCommodity usage config None
+//    let priceDB : PriceDB = Map.ofSeq <| seq { yield cpDB }
 //    printPriceDB priceDB
+//    savePriceDB prices_path priceDB
+
+    let priceDB = loadPriceDB prices_path
+    //printPriceDB priceDB
+    
+    let newPriceDB = updatePriceDB usages configs priceDB
+    savePriceDB prices_path newPriceDB
 //    savePriceDB prices_path priceDB
     
 //    let html = readFile path
