@@ -134,6 +134,7 @@ module Parser =
             pipe5 parseDate parseTransactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
 
         /// Parse a complete transaction entry
+        /// If the entry has an amount and commodity value, the commodity is before the @@/@, and the amount is after
         let parseTransactionEntry =
             let determineAmountAndCommodity (amount : Amount option) (value: CommodityValue option) =
                 match amount, value with
