@@ -278,6 +278,9 @@ Balance Report
 - [ ] Can I clean it up so the balance query function is just sub-function calls?
 
 Command Bar Enhancements
+- [ ] Add paramters:
+	:payee
+	:excludepayee
 - [ ] Add fault tolerance to parameter parsing
 - [ ] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
