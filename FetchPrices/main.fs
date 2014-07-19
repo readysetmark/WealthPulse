@@ -85,7 +85,7 @@ module Main =
     }
 
     let fetch (url : string) =
-        printfn "Fetching URL: %s" url
+        //printfn "Fetching URL: %s" url
         let req = WebRequest.Create(url) :?> HttpWebRequest
         req.Method <- "GET"
         req.UserAgent <- "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36"
@@ -214,7 +214,7 @@ module Main =
             | Some d -> System.Net.WebUtility.UrlEncode(d.ToString(dateFormat))
             | None   -> System.Net.WebUtility.UrlEncode(System.DateTime.Today.ToString(dateFormat))
         let baseURL = sprintf "https://www.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
-        printfn "baseURL = %s" baseURL
+        //printfn "baseURL = %s" baseURL
         baseURL
 
     
@@ -270,6 +270,7 @@ module Main =
         cpDB.Commodity, {cpDB with Prices = allPrices}
 
     let fetchPricesForCommodity (usage: CommodityUsage) (config : CommodityConfig) (cpDB : option<CommodityPriceDB>) =
+        printfn "Fetching prices for: %s" usage.Commodity
         match usage, cpDB with
         | usage, Some cpDB -> Some <| updatePricesForCommodity usage config cpDB
         | usage, None      -> getPricesForNewCommodity usage config
