@@ -20,7 +20,7 @@ module Parser =
             Account: string;
             EntryType: EntryType;
             Amount: Amount option;
-            CommodityValue: CommodityValue option;
+            Commodity: Amount option;
             Comment: string option
         }
 
@@ -135,8 +135,16 @@ module Parser =
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
+            let determineAmountAndCommodity (amount : Amount option) (value: CommodityValue option) =
+                match amount, value with
+                | Some commodity, Some(TotalCost(v)) -> Some v, Some commodity
+                | Some commodity, Some(UnitCost(v))  -> Some {Amount = v.Amount * commodity.Amount; Symbol = v.Symbol}, Some commodity
+                | Some amount, None                  -> Some amount, None
+                | None, None                         -> None, None
+                | otherwise                          -> failwith "Unexpected amount and commodity specification"
             let createEntry (account, entryType) amount value comment =
-                {Account=account; EntryType=entryType; Amount=amount; CommodityValue=value; Comment=comment}
+                let amount, commodity = determineAmountAndCommodity amount value
+                {Account=account; EntryType=entryType; Amount=amount; Commodity=commodity; Comment=comment}
             pipe4 parseAccount (opt parseAmount) (opt parseCommodityValue) (opt parseComment) createEntry |>> Entry
 
         /// Parse a journal comment line
@@ -264,18 +272,13 @@ module Parser =
                         account.Split ':'
                         |> Array.fold combinator []
                         |> List.rev
-                    let getValue (value: CommodityValue option) (amount : Amount) =
-                        match value with
-                        | Some(TotalCost(v)) -> Some v
-                        | Some(UnitCost(v)) -> Some {Amount = v.Amount * amount.Amount; Symbol = v.Symbol}
-                        | None -> None
                     ({
                         Header=header; 
                         Account=e.Account;
                         AccountLineage=getAccountLineage e.Account;
                         EntryType=e.EntryType;
                         Amount=e.Amount.Value;
-                        Commodity=getValue e.CommodityValue e.Amount.Value;
+                        Commodity=e.Commodity;
                         Comment=e.Comment 
                     } : Entry)
                 List.map toEntry es
