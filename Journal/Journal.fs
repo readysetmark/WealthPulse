@@ -6,11 +6,11 @@ module Journal =
 
     // Contains all the type definitions in the Journal
 
-    type Commodity = string
+    type Symbol = string
 
     type Amount = {
         Amount: decimal;
-        Commodity: Commodity option;
+        Symbol: Symbol option;
     }
 
     type Status =
@@ -36,7 +36,7 @@ module Journal =
         AccountLineage: string list;
         EntryType: EntryType;
         Amount: Amount;
-        Value: Amount option;
+        Commodity: Amount option;
         Comment: string option;
     }
 

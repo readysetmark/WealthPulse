@@ -12,7 +12,7 @@ module Parser =
 
     module private AST =
 
-        type ValueSpecification =
+        type CommodityValue =
             | TotalCost of Amount
             | UnitCost of Amount
 
@@ -20,7 +20,7 @@ module Parser =
             Account: string;
             EntryType: EntryType;
             Amount: Amount option;
-            Value: ValueSpecification option;
+            CommodityValue: CommodityValue option;
             Comment: string option
         }
 
@@ -102,27 +102,27 @@ module Parser =
             .>> skipWS
             |>> System.Decimal.Parse
 
-        /// Parse the commodity portion of an amount
-        let parseCommodity =
+        /// Parse the symbol portion of an amount
+        let parseSymbol =
             let quotedIdentifier = noneOf "\r\n\""
             let identifier = noneOf "-0123456789., @;\r\n\""
             attempt (pchar '\"' >>. manyCharsTill quotedIdentifier (pchar '\"'))
             <|> attempt (many1Chars identifier)
             .>> skipWS
 
-        /// Parse an amount that includes the numerical value and the commodity.
-        /// The commodity can come before or after the amount. If the commodity contains
+        /// Parse an amount that includes the numerical value and the symbol.
+        /// The symbol can come before or after the amount. If the symbol contains
         /// numbers or a space, it must be quoted.
         let parseAmount =
-            let createAmount (amount, commodity) = {Amount = amount; Commodity = commodity}
+            let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
             let amountTuple amount = (amount, None)
             let reverse (a,b) = (b,a)
-            attempt (parseAmountNumber .>>. (parseCommodity |>> Some) |>> createAmount)
+            attempt (parseAmountNumber .>>. (parseSymbol |>> Some) |>> createAmount)
             <|> attempt (parseAmountNumber |>> amountTuple |>> createAmount)
-            <|> ((parseCommodity |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
+            <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
 
-        /// Parse a value amount in terms of UnitCost or TotalCost
-        let parseValue =
+        /// Parse a commodity value amount in terms of UnitCost or TotalCost
+        let parseCommodityValue =
             let parseTotalCost = (pstring "@@" .>> skipWS >>. parseAmount) |>> TotalCost
             let parseUnitCost = (pstring "@" .>> skipWS >>. parseAmount) |>> UnitCost
             attempt (parseTotalCost <|> parseUnitCost)
@@ -136,8 +136,8 @@ module Parser =
         /// Parse a complete transaction entry
         let parseTransactionEntry =
             let createEntry (account, entryType) amount value comment =
-                {Account=account; EntryType=entryType; Amount=amount; Value=value; Comment=comment}
-            pipe4 parseAccount (opt parseAmount) (opt parseValue) (opt parseComment) createEntry |>> Entry
+                {Account=account; EntryType=entryType; Amount=amount; CommodityValue=value; Comment=comment}
+            pipe4 parseAccount (opt parseAmount) (opt parseCommodityValue) (opt parseComment) createEntry |>> Entry
 
         /// Parse a journal comment line
         let parseCommentLine = parseComment |>> Comment
@@ -198,7 +198,7 @@ module Parser =
 
         /// Verifies that transactions balance for all entry types and autobalances
         /// transactions if one amount is missing.
-        /// TODO: The possibility of different commodities is completely ignored right now.
+        /// TODO: The possibility of different symbols for amounts is completely ignored right now.
         let balanceTransactions transactions =
             // Virtual Unbalanced transactions must have an amount (since they are unbalanced)
             let verifyVirtualUnbalanced entries =
@@ -212,10 +212,10 @@ module Parser =
             // amount missing (which can be auto-balanced).
             let verifyBalanced entryType entries =
                 let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
-                let commodity =
+                let symbol =
                     balancedEntries
-                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && entry.Amount.Value.Commodity.IsSome 
-                                                  then entry.Amount.Value.Commodity
+                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && entry.Amount.Value.Symbol.IsSome 
+                                                  then entry.Amount.Value.Symbol
                                                   else None)
                 let sum =
                     balancedEntries
@@ -227,16 +227,16 @@ module Parser =
                     balancedEntries
                     |> List.filter (fun entry -> entry.Amount.IsNone)
                     |> List.length
-                (sum, commodity, numMissing)
+                (sum, symbol, numMissing)
 
             // Balanced entry types can be autobalanced as long as there is only 1 amount missing.
             let autobalance entryType entries =
                 match verifyBalanced entryType entries with
                 | _, _, numMissing when numMissing > 1 -> failwith "Encountered balanced transaction with more than one amount missing."
-                | sum, commodity, numMissing when numMissing = 1 ->
+                | sum, symbol, numMissing when numMissing = 1 ->
                     entries
                     |> List.map (fun entry -> if entry.Amount.IsNone
-                                              then { entry with Amount = Some {Amount = -sum; Commodity = commodity} }
+                                              then { entry with Amount = Some {Amount = -sum; Symbol = symbol} }
                                               else entry)
                 | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
                 | otherwise -> entries
@@ -264,12 +264,20 @@ module Parser =
                         account.Split ':'
                         |> Array.fold combinator []
                         |> List.rev
-                    let getValue (value: ValueSpecification option) (amount : Amount) =
+                    let getValue (value: CommodityValue option) (amount : Amount) =
                         match value with
                         | Some(TotalCost(v)) -> Some v
-                        | Some(UnitCost(v)) -> Some {Amount = v.Amount * amount.Amount; Commodity = v.Commodity}
+                        | Some(UnitCost(v)) -> Some {Amount = v.Amount * amount.Amount; Symbol = v.Symbol}
                         | None -> None
-                    ({ Header=header; Account=e.Account; AccountLineage=getAccountLineage e.Account; EntryType=e.EntryType; Amount=e.Amount.Value; Value=getValue e.Value e.Amount.Value; Comment=e.Comment } : Entry)
+                    ({
+                        Header=header; 
+                        Account=e.Account;
+                        AccountLineage=getAccountLineage e.Account;
+                        EntryType=e.EntryType;
+                        Amount=e.Amount.Value;
+                        Commodity=getValue e.CommodityValue e.Amount.Value;
+                        Comment=e.Comment 
+                    } : Entry)
                 List.map toEntry es
             List.collect transactionToJournal ts
 

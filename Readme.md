@@ -215,6 +215,7 @@ Journal Parsing
 	- May need to update some transactions to accommodate this
 OR
 - [ ] Update ledger file to use @@ or @ spec for commodity transactions (not sure if I want to do this yet)
+	- [ ] Need to fix balanceTransactions as it doesn't work with this type of entry
 
 Balance Report
 - [ ] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
