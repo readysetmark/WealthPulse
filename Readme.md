@@ -209,6 +209,7 @@ Prices
 	- [x] Need prices from first date commodity appears in ledger file until 0 balance
 	- [x] Store prices in a local cache (and in memory while app is running)
 	- [ ] Calculate prices from ledger information if prices cannot be fetched
+	- [ ] Move into main wealthpulse app
 
 Journal Parsing
 - [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format)

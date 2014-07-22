@@ -118,9 +118,10 @@ var BalanceReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.key);
     var row = React.DOM.tr({className: this.props.rowClass},
-                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance.join(" ")),
                            React.DOM.td({style: this.props.accountStyle},
-                                        React.DOM.a({href: link}, this.props.account)));
+                                        React.DOM.a({href: link}, this.props.account)),
+                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance.join(" "))
+                           );
     return row;
   }
 });
@@ -151,8 +152,8 @@ var BalanceReport = React.createClass({
                                  React.DOM.table({className: "table table-hover table-condensed"},
                                                  React.DOM.thead(null,
                                                                  React.DOM.tr(null,
-                                                                              React.DOM.th(null, "Balance"),
-                                                                              React.DOM.th(null, "Account"))),
+                                                                              React.DOM.th(null, "Account"),
+                                                                              React.DOM.th(null, "Balance"))),
                                                  React.DOM.tbody(null, table_rows)));
 
     return React.DOM.div(null, header, body);
