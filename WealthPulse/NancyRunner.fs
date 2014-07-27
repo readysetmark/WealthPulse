@@ -36,7 +36,7 @@ module NancyRunner =
         key: string;
         account: string;
         accountStyle: Map<string,string>;
-        balance: string list;
+        balance: string;
         balanceClass: string;
         rowClass: string;
     }
@@ -135,6 +135,18 @@ module NancyRunner =
         | _, Some periodEnd -> "Up to " + periodEnd.ToString(dateFormat)
         | _, _ -> "As of " + System.DateTime.Now.ToString(dateFormat)
 
+    
+    /// Format an Amount type with the amount and symbol
+    let formatAmount (amount :Amount) =
+        let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
+        match amount.Symbol with
+        | Some s when s <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
+                                  numberFormat.CurrencyNegativePattern <- 15 // (n $)
+                                  numberFormat.CurrencySymbol <- s
+                                  numberFormat.CurrencyDecimalDigits <- 3
+        | otherwise -> ()
+        amount.Amount.ToString("C", numberFormat)
+
 
     /// Transform balance report data for presentation
     let presentBalanceData (accountBalances, totalBalance) =
@@ -147,25 +159,16 @@ module NancyRunner =
                 | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
                 | _ :: t -> accountDisplay t account parentage indent
             accountDisplay accountBalances account "" 0
-        let formatAmount (amount :Amount) =
-            let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
-            match amount.Symbol with
-            | Some s when s <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
-                                      numberFormat.CurrencyNegativePattern <- 15 // (n $)
-                                      numberFormat.CurrencySymbol <- s
-                                      numberFormat.CurrencyDecimalDigits <- 3
-            | otherwise -> ()
-            amount.Amount.ToString("C", numberFormat)
         let accountBalances =
             List.sortBy (fun a -> a.Account) accountBalances
 
-        (accountBalances @ [{Account=""; Balance=totalBalance}])
+        (accountBalances @ [{Account=""; Balance=totalBalance; RealBalance=None; Commodity=None; Price=None; PriceDate=None;}])
         |> List.map (fun accountBalance -> 
             let accountDisplay, indent = getAccountDisplay accountBalance.Account
             { key = accountBalance.Account;
               account = accountDisplay; 
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
-              balance = List.map formatAmount accountBalance.Balance
+              balance = formatAmount accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
               rowClass = 
                 match accountBalance.Account with
@@ -192,11 +195,10 @@ module NancyRunner =
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
             let _, totalBalance = Query.balance parameters journalData
-            let dollarAmount = (List.find (fun (a : Amount) -> a.Symbol = Some "$") totalBalance).Amount
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = dollarAmount.ToString(); 
-                hover = month.ToString("MMM yyyy") + ": " + dollarAmount.ToString("C");
+                amount = totalBalance.Amount.ToString(); 
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount totalBalance);
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
