@@ -61,34 +61,51 @@ module Query =
 
         
         /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries.
-        /// TODO: For accounts with commodities, we also calculate their real values, and include # units, price, and price date,
-        /// but we only propogate the book value and real value to parent accounts.
+        /// For accounts with commodities, we also calculate the total number of units, which is not propagated to parent accounts.
+        /// TODO: Real value, price, and price date for commodities will be calculated in a separate step.
         let calculateAccountBalances entries =
-            let accountBalanceMap = new System.Collections.Generic.Dictionary<string, Amount>()
+            let accountBalanceMap = new System.Collections.Generic.Dictionary<string, AccountBalance>()
             let ensureSymbolsMatch (amount1 : Amount) (amount2 : Amount) =
                 match amount1.Symbol, amount2.Symbol with
                 | Some s1, Some s2 when s1 <> s2 -> failwith (sprintf "Symbols do not match: %s and %s" s1 s2)
                 | Some s1, None                  -> failwith (sprintf "Symbols do not match: %s and <no symbol>" s1)
                 | None, Some s2                  -> failwith (sprintf "Symbols do not match: <no symbol> and %s" s2)
                 | otherwise                      -> ()
+            let createAccountBalanceForAccount (account : string) (entry : Entry) =
+                match account = entry.Account with
+                | true  ->  {
+                                Account = account;
+                                Balance = entry.Amount;
+                                RealBalance = None;
+                                Commodity = entry.Commodity;
+                                Price = None;
+                                PriceDate = None;
+                            }
+                | false ->  {
+                                Account = account;
+                                Balance = entry.Amount;
+                                RealBalance = None;
+                                Commodity = None;
+                                Price = None;
+                                PriceDate = None;
+                            }
+            let updateAccountBalanceForAccount (account : string) (balance : AccountBalance) (entry : Entry) =
+                do ensureSymbolsMatch balance.Balance entry.Amount
+                match account = entry.Account, entry.Commodity with
+                | true, Some _  ->  do ensureSymbolsMatch balance.Commodity.Value entry.Commodity.Value
+                                    { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount };
+                                                   Commodity = Some { balance.Commodity.Value with Amount = balance.Commodity.Value.Amount + entry.Commodity.Value.Amount } }
+                | otherwise     ->  { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount } }
             let addAmountForAccounts entry = 
                 fun account -> 
                     match accountBalanceMap.ContainsKey(account) with
-                    | true -> do ensureSymbolsMatch accountBalanceMap.[account] entry.Amount
-                              accountBalanceMap.[account] <- {entry.Amount with Amount = accountBalanceMap.[account].Amount + entry.Amount.Amount}
-                    | false -> accountBalanceMap.[account] <- entry.Amount
+                    | true  -> accountBalanceMap.[account] <- updateAccountBalanceForAccount account accountBalanceMap.[account] entry
+                    | false -> accountBalanceMap.[account] <- createAccountBalanceForAccount account entry
             let forEachAccountInLineageAddAmount entry =
                 List.iter (addAmountForAccounts entry) entry.AccountLineage
             do List.iter forEachAccountInLineageAddAmount entries
             accountBalanceMap.Keys
-            |> Seq.map (fun key -> {
-                                        Account = key;
-                                        Balance = accountBalanceMap.[key];
-                                        RealBalance = None;
-                                        Commodity = None;
-                                        Price = None;
-                                        PriceDate = None;
-                                   })
+            |> Seq.map (fun key -> accountBalanceMap.[key])
             |> Seq.toList
 
 
