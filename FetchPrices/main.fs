@@ -120,10 +120,13 @@ module Main =
         |> Seq.map toCommodityPrice
         |> Seq.toList
 
-    let printPrices (prices : list<CommodityPrice>) =
+    let printNewPrices (prices : list<CommodityPrice>) =
         let printMatch (price : CommodityPrice) =
             do printfn "%s - %s - %s" price.Commodity (price.Date.ToString("yyyy-MM-dd")) (price.Price.ToString())
-        do printfn "Found %d prices:" <| List.length prices
+        match List.length prices with
+        | length when length = 0 -> do printfn "No new prices to add."
+        | length when length = 1 -> do printfn "Adding %d price:" length
+        | otherwise              -> do printfn "Adding %d prices:" <| List.length prices
         prices
         |> List.iter printMatch
 
@@ -214,7 +217,6 @@ module Main =
             | Some d -> System.Net.WebUtility.UrlEncode(d.ToString(dateFormat))
             | None   -> System.Net.WebUtility.UrlEncode(System.DateTime.Today.ToString(dateFormat))
         let baseURL = sprintf "https://www.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
-        //printfn "baseURL = %s" baseURL
         baseURL
 
     
@@ -259,11 +261,8 @@ module Main =
             | otherwise -> List.Empty
 
         let earlierPrices = getEarlierMissingPrices usage config cpDB
-        printfn "New earlier prices for %s:" usage.Commodity
-        printPrices earlierPrices
         let laterPrices = getLaterMissingPrices usage config cpDB
-        printfn "New later prices for %s:" usage.Commodity
-        printPrices laterPrices
+        printNewPrices (earlierPrices @ laterPrices)
         let allPrices = 
             earlierPrices @ cpDB.Prices @ laterPrices
             |> List.sortBy (fun p -> p.Date)
