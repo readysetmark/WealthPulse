@@ -38,6 +38,7 @@ module NancyRunner =
         accountStyle: Map<string,string>;
         balance: string;
         balanceClass: string;
+        commodityBalance: string;
         rowClass: string;
     }
 
@@ -137,15 +138,18 @@ module NancyRunner =
 
     
     /// Format an Amount type with the amount and symbol
-    let formatAmount (amount :Amount) =
-        let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
-        match amount.Symbol with
-        | Some s when s <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
-                                  numberFormat.CurrencyNegativePattern <- 15 // (n $)
-                                  numberFormat.CurrencySymbol <- s
-                                  numberFormat.CurrencyDecimalDigits <- 3
-        | otherwise -> ()
-        amount.Amount.ToString("C", numberFormat)
+    let formatAmount (amount :Amount option) =
+        match amount with
+        | Some amount ->
+            let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
+            match amount.Symbol with
+            | Some s when s <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
+                                      numberFormat.CurrencyNegativePattern <- 15 // (n $)
+                                      numberFormat.CurrencySymbol <- s
+                                      numberFormat.CurrencyDecimalDigits <- 3
+            | otherwise -> ()
+            amount.Amount.ToString("C", numberFormat)
+        | otherwise -> ""
 
 
     /// Transform balance report data for presentation
@@ -168,8 +172,9 @@ module NancyRunner =
             { key = accountBalance.Account;
               account = accountDisplay; 
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
-              balance = formatAmount accountBalance.Balance
+              balance = formatAmount <| Some accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
+              commodityBalance = formatAmount accountBalance.Commodity;
               rowClass = 
                 match accountBalance.Account with
                 | "" -> "grand_total"
@@ -198,7 +203,7 @@ module NancyRunner =
             {
                 date = month.ToString("dd-MMM-yyyy"); 
                 amount = totalBalance.Amount.ToString(); 
-                hover = month.ToString("MMM yyyy") + ": " + (formatAmount totalBalance);
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some totalBalance);
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
