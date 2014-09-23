@@ -1,7 +1,8 @@
 ﻿namespace WealthPulse
 
 open System
-open Journal
+open WealthPulse.Types
+open WealthPulse.Journal
 
 module Query =
 
@@ -21,12 +22,7 @@ module Query =
         PriceDate: DateTime option;
     }
 
-    type CommodityUsage = {
-        Symbol: Symbol;
-        FirstAppeared: DateTime;
-        ZeroBalanceDate: DateTime option;
-    } 
-
+    
     module private Support =
         
         // account contains one of "terms" if "terms" provided, otherwise defaultValue
@@ -187,12 +183,12 @@ module Query =
         let buildCommodityMap map entry =
             match entry.Amount.Symbol with
             | Some symbol -> match Map.tryFind symbol map with
-                             | Some cu -> match cu.FirstAppeared > entry.Header.Date with
-                                          | true -> Map.add symbol {cu with FirstAppeared = entry.Header.Date} map
+                             | Some su -> match su.FirstAppeared > entry.Header.Date with
+                                          | true -> Map.add symbol {su with FirstAppeared = entry.Header.Date} map
                                           | false -> map 
                              | otherwise -> Map.add symbol {Symbol = symbol; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
             | otherwise -> map
-        let determineZeroBalanceDate entries symbol (cu : CommodityUsage) =
+        let determineZeroBalanceDate entries symbol (su : SymbolUsage) =
             let entriesWithSymbol = entries
                                     |> List.filter (fun (e : Entry) -> match e.Amount.Symbol with
                                                                        | Some s when s = symbol -> true
@@ -201,8 +197,8 @@ module Query =
             let lastDate = entriesWithSymbol 
                            |> List.fold (fun date entry -> if entry.Header.Date > date then entry.Header.Date else date) (List.head entriesWithSymbol).Header.Date
             match balance with
-            | 0M -> {cu with ZeroBalanceDate = Some lastDate}
-            | otherwise -> cu
+            | 0M -> {su with ZeroBalanceDate = Some lastDate}
+            | otherwise -> su
         journal.Entries
         |> List.fold buildCommodityMap Map.empty
         |> Map.map (determineZeroBalanceDate journal.Entries)

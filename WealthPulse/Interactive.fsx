@@ -8,9 +8,20 @@
 open WealthPulse
 
 let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"
+let configPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config"
 
 let entries = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
 let journal = Journal.createJournal entries
+
+
+(*
+    Load Symbol Config
+*)
+
+let symbolConfigs = SymbolPrices.loadSymbolConfig configPath
+SymbolPrices.printSymbolConfigs symbolConfigs
+
+
 
 
 (*

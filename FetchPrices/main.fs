@@ -16,6 +16,8 @@ open System.Text.RegularExpressions
             [x] fetch page and extract prices
             [x] generate next page url
             [ ] Use prices from ledger file to fill in gaps that cannot be retrieved
+                [ ] Generate list from ledger entries
+                [ ] Combine two lists
         [x] Store retrieved prices
 
     Inputs:
@@ -362,7 +364,7 @@ module Main =
     
     //let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
     let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
-    let config_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config"
+    let config_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config_standalone"
     let usage_path  = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.usage"
     //let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"
     //let url_full = "https://www.google.com/finance/historical?q=NASDAQ%3AGOOGL&startdate=Apr+24%2C+2007&enddate=Jun+17%2C+2014&num=30&start=30"

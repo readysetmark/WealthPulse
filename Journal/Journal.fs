@@ -1,12 +1,11 @@
 ﻿namespace WealthPulse
 
 open System
+open WealthPulse.Types
 
 module Journal =
 
     // Contains all the type definitions in the Journal
-
-    type Symbol = string
 
     type Amount = {
         Amount: decimal;
