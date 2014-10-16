@@ -178,9 +178,9 @@ module Query =
         |> Map.toList
 
 
-    /// Returns a list of commodities used in the journal
-    let identifyCommodities (journal : Journal) =
-        let buildCommodityMap map entry =
+    /// Returns a list of symbols used in the journal
+    let identifySymbols (journal : Journal) =
+        let buildSymbolMap map entry =
             match entry.Amount.Symbol with
             | Some symbol -> match Map.tryFind symbol map with
                              | Some su -> match su.FirstAppeared > entry.Header.Date with
@@ -200,5 +200,8 @@ module Query =
             | 0M -> {su with ZeroBalanceDate = Some lastDate}
             | otherwise -> su
         journal.Entries
-        |> List.fold buildCommodityMap Map.empty
+        |> List.fold buildSymbolMap Map.empty
         |> Map.map (determineZeroBalanceDate journal.Entries)
+        |> Map.toList
+        |> List.map snd
+

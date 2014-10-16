@@ -31,10 +31,18 @@ let priceDB = SymbolPrices.loadSymbolPriceDB pricesPath
 SymbolPrices.printSymbolPriceDB priceDB
 
 
+(*
+    Update Price DB
+*)
+
+let symbolUsages = Query.identifySymbols journal
+let newPriceDB = SymbolPrices.updateSymbolPriceDB symbolUsages symbolConfigs priceDB
+
 
 (*
     Following section is for output commodity usage
 *)
+(*
 let commodityMap = Query.identifyCommodities journal
 
 let streamWriter = new System.IO.StreamWriter(@"C:\Users\Mark\Nexus\Documents\finances\ledger\commodities.txt")
@@ -46,3 +54,4 @@ let displayCommodityMap (sw : System.IO.StreamWriter) (key : Journal.Commodity) 
 Map.iter (displayCommodityMap streamWriter) commodityMap
 
 streamWriter.Close()
+*)
