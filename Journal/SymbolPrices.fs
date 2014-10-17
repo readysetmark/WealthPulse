@@ -264,3 +264,22 @@ module SymbolPrices =
         |> List.choose id
         |> List.fold updateDB priceDB
     
+
+    //
+    // Save Symbol Prices
+    //
+
+    let serializeSymbolPriceList (sw : StreamWriter) (prices : list<SymbolPrice>) =
+        let toPriceString (price : SymbolPrice) =
+            // format is "P DATE SYMBOL PRICE"
+            sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Symbol (price.Price.ToString())
+        prices
+        |> List.iter (fun price -> sw.WriteLine(toPriceString price))
+
+
+    let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB) =
+        use sw = new StreamWriter(path, false)
+        priceDB
+        |> Map.iter (fun _ commodityPriceDB -> serializeSymbolPriceList sw commodityPriceDB.Prices)
+        sw.Close()
+    

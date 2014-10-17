@@ -37,7 +37,7 @@ SymbolPrices.printSymbolPriceDB priceDB
 
 let symbolUsages = Query.identifySymbols journal
 let newPriceDB = SymbolPrices.updateSymbolPriceDB symbolUsages symbolConfigs priceDB
-
+SymbolPrices.saveSymbolPriceDB pricesPath newPriceDB
 
 (*
     Following section is for output commodity usage
