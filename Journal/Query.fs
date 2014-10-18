@@ -179,21 +179,27 @@ module Query =
 
 
     /// Returns a list of symbols used in the journal
-    let identifySymbols (journal : Journal) =
-        let buildSymbolMap map entry =
-            match entry.Amount.Symbol with
-            | Some symbol -> match Map.tryFind symbol map with
-                             | Some su -> match su.FirstAppeared > entry.Header.Date with
-                                          | true -> Map.add symbol {su with FirstAppeared = entry.Header.Date} map
-                                          | false -> map 
-                             | otherwise -> Map.add symbol {Symbol = symbol; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
+    let identifySymbolUsage (journal : Journal) =
+        let buildSymbolMap map (entry : Entry) =
+            match entry.Commodity with
+            | Some commodity -> 
+                match commodity.Symbol with
+                | Some symbol -> match Map.tryFind symbol map with
+                                 | Some su -> match su.FirstAppeared > entry.Header.Date with
+                                              | true -> Map.add symbol {su with FirstAppeared = entry.Header.Date} map
+                                              | false -> map 
+                                 | otherwise -> Map.add symbol {Symbol = symbol; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
+                | otherwise -> map
             | otherwise -> map
         let determineZeroBalanceDate entries symbol (su : SymbolUsage) =
             let entriesWithSymbol = entries
-                                    |> List.filter (fun (e : Entry) -> match e.Amount.Symbol with
-                                                                       | Some s when s = symbol -> true
+                                    |> List.filter (fun (e : Entry) -> match e.Commodity with
+                                                                       | Some c ->
+                                                                           match c.Symbol with
+                                                                           | Some s when s = symbol -> true
+                                                                           | otherwise -> false
                                                                        | otherwise -> false)
-            let balance = entriesWithSymbol |> List.fold (fun balance entry -> balance + entry.Amount.Amount) 0M
+            let balance = entriesWithSymbol |> List.fold (fun balance entry -> balance + entry.Commodity.Value.Amount) 0M
             let lastDate = entriesWithSymbol 
                            |> List.fold (fun date entry -> if entry.Header.Date > date then entry.Header.Date else date) (List.head entriesWithSymbol).Header.Date
             match balance with

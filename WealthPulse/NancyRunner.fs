@@ -250,7 +250,7 @@ module NancyRunner =
                                  report = "balance";
                                  query = "accountsWith=income+expenses&period=last+month&title=Income+Statement"; }];
                     payees = List.map presentPayee journalService.OutstandingPayees;
-                    journalLastModified = journalService.LastModified.ToString();
+                    journalLastModified = journalService.JournalLastModified.ToString();
                     exceptionMessage = 
                         match journalService.GetAndClearException with
                         | Some msg -> msg

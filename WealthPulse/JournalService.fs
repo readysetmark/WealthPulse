@@ -1,6 +1,7 @@
 ﻿namespace WealthPulse
 
 open WealthPulse.Journal
+open WealthPulse.SymbolPrices
 open WealthPulse.Utility
 open System
 open System.IO
@@ -12,33 +13,43 @@ module JournalService =
     type IJournalService =
         abstract member Journal : Journal
         abstract member OutstandingPayees : (string * decimal) list
-        abstract member LastModified : DateTime
+        abstract member JournalLastModified : DateTime
         abstract member GetAndClearException : string option
+        abstract member SymbolPriceDB : SymbolPriceDB
 
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
         //let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
         let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments.dat"
+        let configFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_CONFIG_FILE")
+        let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
 
         let mutable journal = createJournal List.empty
         let mutable outstandingPayees = List.empty
-        let mutable lastModified = File.GetLastWriteTime(ledgerFilePath)
+        let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
+        let configEnabled = configFilePath <> null && File.Exists(configFilePath)
+        let mutable symbolConfig = Map.empty : SymbolConfigs //loadSymbolConfig configFilePath
+        let mutable configLastModified = DateTime.MinValue
+        let pricesEnabled = pricesFilePath <> null
+        let mutable symbolPriceDB = Map.empty : SymbolPriceDB //loadSymbolPriceDB pricesFilePath
+        let mutable symbolPricesLastFetched = DateTime.MinValue
+        
 
         let loadJournal () =
-            let ledgerLastModified = File.GetLastWriteTime(ledgerFilePath)
+            let lastModified = File.GetLastWriteTime(ledgerFilePath)
             do printfn "Parsing ledger file: %s" ledgerFilePath
             try
                 let (entries, parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath Text.Encoding.ASCII
                 do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
                 do printfn "Transactions parsed: %d" <| List.length entries
-                do printfn "Ledger last modified: %s" <| ledgerLastModified.ToString()
+                do printfn "Ledger last modified: %s" <| lastModified.ToString()
                 rwlock.AcquireWriterLock(Timeout.Infinite)
                 try
                     journal <- createJournal entries
                     outstandingPayees <- Query.outstandingPayees journal
-                    lastModified <- ledgerLastModified
+                    journalLastModified <- lastModified
                     exceptionMessage <- None
                 finally
                     rwlock.ReleaseWriterLock()
@@ -47,21 +58,95 @@ module JournalService =
                     do printfn "Error parsing ledger: %s" ex.Message
                     rwlock.AcquireWriterLock(Timeout.Infinite)
                     try
-                        lastModified <- ledgerLastModified
+                        journalLastModified <- lastModified
                         exceptionMessage <- Some ex.Message
                     finally
                         rwlock.ReleaseWriterLock()
-            
-        let reloadWhenModified () =
+
+
+        let loadConfig () =
+            if configEnabled then
+                let lastModified = File.GetLastWriteTime(configFilePath)
+                do printfn "Parsing config file: %s" configFilePath
+                try
+                    let (config, parseTime) = time <| fun () -> loadSymbolConfig configFilePath
+                    do printfn "Parsed config file in %A seconds." parseTime.TotalSeconds
+                    do printfn "Config last modified: %s" <| lastModified.ToString()
+                    rwlock.AcquireWriterLock(Timeout.Infinite)
+                    try
+                        symbolConfig <- config
+                        configLastModified <- lastModified
+                    finally
+                        rwlock.ReleaseWriterLock()
+                with
+                    ex -> 
+                        do printfn "Error parsing ledger: %s" ex.Message
+                        rwlock.AcquireWriterLock(Timeout.Infinite)
+                        try
+                            configLastModified <- lastModified
+                        finally
+                            rwlock.ReleaseWriterLock()
+
+
+        let loadSymbolPriceDB () =
+            if pricesEnabled then
+                do printfn "Parsing prices file: %s" pricesFilePath
+                try
+                    let (priceDB, parseTime) = time <| fun () -> loadSymbolPriceDB pricesFilePath
+                    do printfn "Parsed prices file in %A seconds." parseTime.TotalSeconds
+                    rwlock.AcquireWriterLock(Timeout.Infinite)
+                    try
+                        symbolPriceDB <- priceDB
+                    finally
+                        rwlock.ReleaseWriterLock()
+                with
+                    ex -> 
+                        do printfn "Error parsing prices: %s" ex.Message
+
+        
+        let fetchSymbolPrices () =
+            if pricesEnabled then
+                do printfn "Fetching new symbol prices..."
+                try
+                    let symbolUsage = WealthPulse.Query.identifySymbolUsage journal
+                    let priceDB = updateSymbolPriceDB symbolUsage symbolConfig symbolPriceDB
+                    do printfn "Storing prices to: %s" pricesFilePath
+                    do saveSymbolPriceDB pricesFilePath priceDB
+                    rwlock.AcquireWriterLock(Timeout.Infinite)
+                    try
+                        symbolPriceDB <- priceDB
+                        symbolPricesLastFetched <- DateTime.Now
+                    finally
+                        rwlock.ReleaseWriterLock()
+                with
+                    ex -> 
+                        do printfn "Error fetching new symbol prices: %s" ex.Message
+                        rwlock.AcquireWriterLock(Timeout.Infinite)
+                        try
+                            symbolPricesLastFetched <- DateTime.Now
+                        finally
+                            rwlock.ReleaseWriterLock()
+        
+
+        let backgroundTasks () =
             while true do
-                if File.GetLastWriteTime(ledgerFilePath) > lastModified then loadJournal ()
+                // reload journal and config files when modified
+                // fetch symbol prices once a day
+                if File.GetLastWriteTime(ledgerFilePath) > journalLastModified then loadJournal ()
+                if configEnabled && File.GetLastWriteTime(configFilePath) > configLastModified then loadConfig ()
+                if pricesEnabled && (System.DateTime.Now - symbolPricesLastFetched).TotalDays >= 1.0 then fetchSymbolPrices ()
                 do Thread.Sleep(5000)
 
-        let watchThread = new Thread(ThreadStart(reloadWhenModified))
+
         
         do loadJournal ()
-        do watchThread.Start()     
-            
+        do loadConfig ()
+        do loadSymbolPriceDB ()
+        let watchThread = new Thread(ThreadStart(backgroundTasks))
+        do watchThread.Start()
+
+        
+
         interface IJournalService with
             member this.Journal = 
                 rwlock.AcquireReaderLock(Timeout.Infinite)
@@ -77,10 +162,10 @@ module JournalService =
                 finally
                     rwlock.ReleaseReaderLock()
 
-            member this.LastModified = 
+            member this.JournalLastModified = 
                 rwlock.AcquireReaderLock(Timeout.Infinite)
                 try
-                    lastModified
+                    journalLastModified
                 finally
                     rwlock.ReleaseReaderLock()
 
@@ -92,3 +177,10 @@ module JournalService =
                     msg
                 finally
                     rwlock.ReleaseWriterLock()
+
+            member this.SymbolPriceDB = 
+                rwlock.AcquireReaderLock(Timeout.Infinite)
+                try
+                    symbolPriceDB
+                finally
+                    rwlock.ReleaseReaderLock()

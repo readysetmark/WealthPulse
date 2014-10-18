@@ -44,7 +44,19 @@ How to Run
 
 Setup a ``LEDGER_FILE`` environment variable that points to your ledger file.
 
+Optional: Setup a ``WEALTH_PULSE_CONFIG_FILE`` environment variable that points to your Wealth Pulse config file.
+
+Optional: Setup a ``WEALTH_PULSE_PRICES_FILE`` environment variable that points to where you'd like Wealth Pulse to store symbol prices.
+
 Then run ``wealthpulse.exe``.
+
+
+
+Wealth Pulse Config File
+------------------------
+
+Yet to be written...
+
 
 
 
@@ -223,6 +235,7 @@ Balance Report
 - [ ] For parent accounts & total, calculate/provide book value and real value
 - [ ] Update front end
 - [ ] Show only 1 value column if "real value" and "book value" columns are the same for the whole report (based on query parameters)
+
 
 
 ### Second Milestone

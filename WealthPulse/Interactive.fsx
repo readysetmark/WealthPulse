@@ -7,7 +7,8 @@
 
 open WealthPulse
 
-let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"
+//let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"
+let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments.dat"
 let configPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config"
 let pricesPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
 
@@ -35,7 +36,7 @@ SymbolPrices.printSymbolPriceDB priceDB
     Update Price DB
 *)
 
-let symbolUsages = Query.identifySymbols journal
+let symbolUsages = Query.identifySymbolUsage journal
 let newPriceDB = SymbolPrices.updateSymbolPriceDB symbolUsages symbolConfigs priceDB
 SymbolPrices.saveSymbolPriceDB pricesPath newPriceDB
 
