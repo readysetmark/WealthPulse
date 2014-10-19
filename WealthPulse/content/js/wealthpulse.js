@@ -114,7 +114,10 @@ var NavBox = React.createClass({
 //   @balance
 //   @accountStyle
 //   @account
+//   @realBalance
 //   @commodityBalance
+//   @price
+//   @priceDate
 var BalanceReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.key);
@@ -122,7 +125,10 @@ var BalanceReportRow = React.createClass({
                            React.DOM.td({style: this.props.accountStyle},
                                         React.DOM.a({href: link}, this.props.account)),
                            React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance),
-                           React.DOM.td(null, this.props.commodityBalance)
+                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.realBalance),
+                           React.DOM.td({className: "currency"}, this.props.commodityBalance),
+                           React.DOM.td({className: "currency"}, this.props.price),
+                           React.DOM.td(null, this.props.priceDate)
                            );
     return row;
   }
@@ -150,13 +156,16 @@ var BalanceReport = React.createClass({
                                                this.props.title,
                                                React.DOM.br(),
                                                React.DOM.small(null, this.props.subtitle)));
-    var body = React.DOM.section({className: "span4"},
+    var body = React.DOM.section({className: "span10"},
                                  React.DOM.table({className: "table table-hover table-condensed"},
                                                  React.DOM.thead(null,
                                                                  React.DOM.tr(null,
                                                                               React.DOM.th(null, "Account"),
                                                                               React.DOM.th(null, "Balance"),
-                                                                              React.DOM.th(null, "Commodity"))),
+                                                                              React.DOM.th(null, "Real Balance"),
+                                                                              React.DOM.th(null, "Commodity"),
+                                                                              React.DOM.th(null, "Price"),
+                                                                              React.DOM.th(null, "Price Date"))),
                                                  React.DOM.tbody(null, table_rows)));
 
     return React.DOM.div(null, header, body);

@@ -229,8 +229,8 @@ OR
 	- [x] Need to fix parsing so that commodities and amounts are put in the right fields in an Entry
 
 Balance Report
-- [ ] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
-	- [ ] Lookup price in price DB based on end date
+- [x] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
+	- [x] Lookup price in price DB based on end date
 	- [ ] Fallback to prices within ledger if date in price DB not found
 - [ ] For parent accounts & total, calculate/provide book value and real value
 - [ ] Update front end
