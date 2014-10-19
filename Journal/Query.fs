@@ -107,9 +107,29 @@ module Query =
 
         // Computes real value, price, and price date for commodities
         // TODO: Propogate real value to parent accounts
-        // TODO: See FIXMEs
-        let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) =
+        // TODO: get rid of yucky side-effects re:
+        let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (mainAccounts : Set<string>) =
+            let accountRealValues = new System.Collections.Generic.Dictionary<string, Amount>()
+            // TODO: getAccountLineage copied from Parser.toEntryList -- remove duplication if this works
+            let getAccountLineage (account: string) =
+                /// Use with fold to get all combinations.
+                /// ex: if we have a:b:c, returns a list of a:b:c; a:b; a
+                let combinator (s: string list) (t: string) =
+                    if not s.IsEmpty then (s.Head + ":" + t) :: s else t :: s
+                account.Split ':'
+                |> Array.fold combinator []
+                |> List.rev
+            let updateAccountRealValues lineage (amount : Amount) =
+                lineage
+                |> List.iter (fun account -> match accountRealValues.ContainsKey(account) with
+                                             | true -> 
+                                                    let currentAmount = accountRealValues.[account]
+                                                    accountRealValues.[account] <- { currentAmount with Amount = currentAmount.Amount + amount.Amount }
+                                             | false ->
+                                                    accountRealValues.[account] <- amount)
+            // for each account balance, if it has some commodity, look up price and calculate real value
             let computeValue (accountBalance : AccountBalance) =
+                let accountLineage = getAccountLineage accountBalance.Account
                 match accountBalance.Commodity with
                 | Some commodity ->
                     match Map.tryFind commodity.Symbol.Value priceDB with
@@ -118,15 +138,32 @@ module Query =
                             symbolData.Prices
                             |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
                             |> List.maxBy (fun symbolPrice -> symbolPrice.Date)
-                        { accountBalance with RealBalance = Some { Amount = symbolPrice.Price * commodity.Amount; Symbol = Some "$" }; // FIXME hard-coded symbol
-                                              Price = Some { Amount = symbolPrice.Price; Symbol = Some "$" } // FIXME hard-coded symbol
+                        let realBalance = { Amount = symbolPrice.Price * commodity.Amount; Symbol = accountBalance.Balance.Symbol }
+                        do updateAccountRealValues accountLineage realBalance
+                        { accountBalance with RealBalance = Some realBalance;
+                                              Price = Some { Amount = symbolPrice.Price; Symbol = accountBalance.Balance.Symbol };
                                               PriceDate = Some symbolPrice.Date;}
-                    | None -> accountBalance
-                | None -> 
+                    | None -> 
+                        do updateAccountRealValues accountLineage accountBalance.Balance
+                        accountBalance
+                | None ->
+                    match Set.contains accountBalance.Account mainAccounts with
+                    | true -> do updateAccountRealValues accountLineage accountBalance.Balance
+                    | false -> ()
+                    accountBalance
+            let updateRealValue (accountBalance : AccountBalance) =
+                match accountBalance.RealBalance with
+                | None ->
+                    let realValue = accountRealValues.[accountBalance.Account]
+                    match realValue.Amount = accountBalance.Balance.Amount with
+                    | true -> accountBalance
+                    | false -> { accountBalance with RealBalance = Some realValue }
+                | Some _ ->
                     accountBalance
             accountBalances
             |> List.map computeValue
-            // for each item in list, if has commodity, look up price and calculate real value
+            |> List.map updateRealValue
+            
 
 
 
@@ -170,7 +207,7 @@ module Query =
             |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
         /// Calculate real value, price, and price date for commodities
-        let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd
+        let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal.MainAccounts
 
         // calculate total balance
         let totalBalance = 
