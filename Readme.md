@@ -231,7 +231,6 @@ OR
 Balance Report
 - [x] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
 	- [x] Lookup price in price DB based on end date
-	- [ ] Fallback to prices within ledger if date in price DB not found
 - [x] For parent accounts & total, calculate/provide book value and real value
 - [x] Update front end
 - [x] Omit commodity-related columns if "real value" and "book value" columns are the same for the whole report (based on query parameters)
@@ -246,21 +245,8 @@ Net Worth Report
 Register Report
 - [ ] Prototype... what should it look like?
 
-
-### Third Milestone & beyond... 
-
-Portfolio
-- [ ] Overall portfolio return and per investment
-- [ ] Expected T3s/T5s to receive for last year (ie had distribution)
-	- I should be able to get this with a register report query
-
-Expenses
-- [ ] Average in last 3 months, in last year
-- [ ] Burn rate - using last 3 months expenses average, how long until savings is gone?
-- [ ] Top Expenses over last period
-
-Charts
-- [ ] Income Statement chart (monthly, over time)
+Balance Report
+- [ ] Fallback to prices within ledger if no date in price DB not found
 
 
 
@@ -292,6 +278,19 @@ Balance Report
 - [x] Can I get rid of the list comprehension?
 - [ ] Can I clean it up so the balance query function is just sub-function calls?
 - [ ] Clean up computeCommodityValues (get rid of side-effects)
+
+Portfolio
+- [ ] Overall portfolio return and per investment
+- [ ] Expected T3s/T5s to receive for last year (ie had distribution)
+	- I should be able to get this with a register report query
+
+Expenses
+- [ ] Average in last 3 months, in last year
+- [ ] Burn rate - using last 3 months expenses average, how long until savings is gone?
+- [ ] Top Expenses over last period
+
+Charts
+- [ ] Income Statement chart (monthly, over time)
 
 Command Bar Enhancements
 - [ ] Add paramters:
