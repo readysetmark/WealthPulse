@@ -208,10 +208,11 @@ module Query =
                                                   | Some balance -> balance
                                                   | None -> accountBalance.Balance
                                 (accountBalance.Balance, realBalance))
-            |> List.reduce (fun (balance1, realBalance1) (balance2, realBalance2) -> 
-                                let totalBalance = {balance1 with Amount = balance1.Amount + balance2.Amount}
-                                let totalRealBalance = {realBalance1 with Amount = realBalance1.Amount + realBalance2.Amount}
-                                (totalBalance, totalRealBalance))
+            |> List.fold (fun (totalBalance : Amount, totalRealBalance : Amount) (balance, realBalance) -> 
+                                let newTotalBalance = {totalBalance with Amount = totalBalance.Amount + balance.Amount}
+                                let newTotalRealBalance = {totalRealBalance with Amount = totalRealBalance.Amount + realBalance.Amount}
+                                (newTotalBalance, newTotalRealBalance))
+                         ({Amount = 0.0M; Symbol = Some "$"}, {Amount = 0.0M; Symbol = Some "$"})
 
         (accountBalances, totalBalances)
 
