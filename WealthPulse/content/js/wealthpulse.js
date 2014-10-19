@@ -118,17 +118,24 @@ var NavBox = React.createClass({
 //   @commodityBalance
 //   @price
 //   @priceDate
+//   @showCommodities
 var BalanceReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.key);
+    var commodity_columns = [];
+
+    if (this.props.showCommodities) {
+      commodity_columns = [React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.realBalance),
+                           React.DOM.td({className: "currency"}, this.props.commodityBalance),
+                           React.DOM.td({className: "currency"}, this.props.price),
+                           React.DOM.td(null, this.props.priceDate)]
+    }
+
     var row = React.DOM.tr({className: this.props.rowClass},
                            React.DOM.td({style: this.props.accountStyle},
                                         React.DOM.a({href: link}, this.props.account)),
                            React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance),
-                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.realBalance),
-                           React.DOM.td({className: "currency"}, this.props.commodityBalance),
-                           React.DOM.td({className: "currency"}, this.props.price),
-                           React.DOM.td(null, this.props.priceDate)
+                           commodity_columns
                            );
     return row;
   }
@@ -142,11 +149,31 @@ var BalanceReportRow = React.createClass({
 var BalanceReport = React.createClass({
   render: function() {
     var table_rows = [];
+    var commodity_headers = [];
+    var show_commodities = false;
+    var table_span = "span4"
     var i = 0;
 
+    // determine if we must show the commodity-related columns
     if (this.props.hasOwnProperty('balances')) {
       for (i = 0; i < this.props.balances.length; i++) {
         var balance = this.props.balances[i];
+        if (balance.realBalance != "") {
+          show_commodities = true;
+          table_span = "span10";
+          commodity_headers = [React.DOM.th(null, "Real Balance"),
+                               React.DOM.th(null, "Commodity"),
+                               React.DOM.th(null, "Price"),
+                               React.DOM.th(null, "Price Date")];
+        }
+      }
+    }
+
+    // generate table rows
+    if (this.props.hasOwnProperty('balances')) {
+      for (i = 0; i < this.props.balances.length; i++) {
+        var balance = this.props.balances[i];
+        balance.showCommodities = show_commodities;
         table_rows.push(BalanceReportRow(balance));
       }
     }
@@ -156,16 +183,13 @@ var BalanceReport = React.createClass({
                                                this.props.title,
                                                React.DOM.br(),
                                                React.DOM.small(null, this.props.subtitle)));
-    var body = React.DOM.section({className: "span10"},
+    var body = React.DOM.section({className: table_span},
                                  React.DOM.table({className: "table table-hover table-condensed"},
                                                  React.DOM.thead(null,
                                                                  React.DOM.tr(null,
                                                                               React.DOM.th(null, "Account"),
                                                                               React.DOM.th(null, "Balance"),
-                                                                              React.DOM.th(null, "Real Balance"),
-                                                                              React.DOM.th(null, "Commodity"),
-                                                                              React.DOM.th(null, "Price"),
-                                                                              React.DOM.th(null, "Price Date"))),
+                                                                              commodity_headers)),
                                                  React.DOM.tbody(null, table_rows)));
 
     return React.DOM.div(null, header, body);

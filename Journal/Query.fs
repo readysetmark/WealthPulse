@@ -175,7 +175,7 @@ module Query =
 
 
     /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
-    /// where accountBalances has type AccountBalance and totalBalance is a pair: (total balance, real balance)
+    /// where accountBalances has type AccountBalance and totalBalance is a pair: (total balance, option<real balance>)
     let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceDB) =
         let filteredEntries = filterEntries filters journal
 
@@ -196,7 +196,7 @@ module Query =
             accountBalances
             |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
-        /// Calculate real value, price, and price date for commodities
+        // Calculate real value, price, and price date for commodities
         let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal.MainAccounts
 
         // calculate (total balance, real balance) pair
@@ -213,6 +213,12 @@ module Query =
                                 let newTotalRealBalance = {totalRealBalance with Amount = totalRealBalance.Amount + realBalance.Amount}
                                 (newTotalBalance, newTotalRealBalance))
                          ({Amount = 0.0M; Symbol = Some "$"}, {Amount = 0.0M; Symbol = Some "$"})
+
+        // if total balance = real balance, omit real balance
+        let totalBalances =
+            match totalBalances with
+            | totalBalance, totalRealBalance when totalBalance = totalRealBalance -> totalBalance, None
+            | totalBalance, totalRealBalance -> totalBalance, Some totalRealBalance
 
         (accountBalances, totalBalances)
 

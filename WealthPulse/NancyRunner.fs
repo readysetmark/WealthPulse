@@ -169,7 +169,7 @@ module NancyRunner =
         let accountBalances =
             List.sortBy (fun a -> a.Account) accountBalances
 
-        (accountBalances @ [{Account=""; Balance=totalBalance; RealBalance=Some totalRealBalance; Commodity=None; Price=None; PriceDate=None;}])
+        (accountBalances @ [{Account=""; Balance=totalBalance; RealBalance=totalRealBalance; Commodity=None; Price=None; PriceDate=None;}])
         |> List.map (fun accountBalance -> 
             let accountDisplay, indent = getAccountDisplay accountBalance.Account
             { key = accountBalance.Account;

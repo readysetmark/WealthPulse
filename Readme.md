@@ -234,7 +234,7 @@ Balance Report
 	- [ ] Fallback to prices within ledger if date in price DB not found
 - [x] For parent accounts & total, calculate/provide book value and real value
 - [x] Update front end
-- [ ] Show only 1 value column if "real value" and "book value" columns are the same for the whole report (based on query parameters)
+- [x] Omit commodity-related columns if "real value" and "book value" columns are the same for the whole report (based on query parameters)
 
 
 
