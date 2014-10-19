@@ -3,6 +3,7 @@
 open System
 open WealthPulse.Types
 open WealthPulse.Journal
+open WealthPulse.SymbolPrices
 
 module Query =
 
@@ -58,7 +59,6 @@ module Query =
         
         /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries.
         /// For accounts with commodities, we also calculate the total number of units, which is not propagated to parent accounts.
-        /// TODO: Real value, price, and price date for commodities will be calculated in a separate step.
         let calculateAccountBalances entries =
             let accountBalanceMap = new System.Collections.Generic.Dictionary<string, AccountBalance>()
             let ensureSymbolsMatch (amount1 : Amount) (amount2 : Amount) =
@@ -105,6 +105,31 @@ module Query =
             |> Seq.toList
 
 
+        // Computes real value, price, and price date for commodities
+        // TODO: Propogate real value to parent accounts
+        // TODO: See FIXMEs
+        let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) =
+            let computeValue (accountBalance : AccountBalance) =
+                match accountBalance.Commodity with
+                | Some commodity ->
+                    match Map.tryFind commodity.Symbol.Value priceDB with
+                    | Some symbolData ->
+                        let symbolPrice = 
+                            symbolData.Prices
+                            |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
+                            |> List.maxBy (fun symbolPrice -> symbolPrice.Date)
+                        { accountBalance with RealBalance = Some { Amount = symbolPrice.Price * commodity.Amount; Symbol = Some "$" }; // FIXME hard-coded symbol
+                                              Price = Some { Amount = symbolPrice.Price; Symbol = Some "$" } // FIXME hard-coded symbol
+                                              PriceDate = Some symbolPrice.Date;}
+                    | None -> accountBalance
+                | None -> 
+                    accountBalance
+            accountBalances
+            |> List.map computeValue
+            // for each item in list, if has commodity, look up price and calculate real value
+
+
+
         /// Groups entries by header and returns (date, payee, entries) tuples
         let calculateRegisterLines entries =
             let runningTotal = ref 0M
@@ -124,7 +149,7 @@ module Query =
 
     /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
     /// where accountBalances has type AccountBalance
-    let balance (filters : QueryFilters) (journal : Journal) =
+    let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceDB) =
         let filteredEntries = filterEntries filters journal
 
         // sum to get account balances, discard accounts with 0 balance
@@ -143,6 +168,9 @@ module Query =
                 |> not
             accountBalances
             |> List.filter (existsChildAccountWithSameAmount accountBalances)
+
+        /// Calculate real value, price, and price date for commodities
+        let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd
 
         // calculate total balance
         let totalBalance = 

@@ -217,11 +217,9 @@ Prototype
 Prices
 - [x] Identify commodities in ledger file
 	- [x] Commodity, date of first use, date when balance becomes 0
-- [ ] Fetch prices from internet, cache and store
-	- [x] Need prices from first date commodity appears in ledger file until 0 balance
+- [x] Fetch prices from internet, cache and store
+	- [x] Fetch prices from first date commodity appears in ledger file until 0 balance reached
 	- [x] Store prices in a local cache (and in memory while app is running)
-	- [ ] Calculate prices from ledger information if prices cannot be fetched
-	- [ ] Move into main wealthpulse app
 
 Journal Parsing
 - [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format)
@@ -232,6 +230,8 @@ OR
 
 Balance Report
 - [ ] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
+	- [ ] Lookup price in price DB based on end date
+	- [ ] Fallback to prices within ledger if date in price DB not found
 - [ ] For parent accounts & total, calculate/provide book value and real value
 - [ ] Update front end
 - [ ] Show only 1 value column if "real value" and "book value" columns are the same for the whole report (based on query parameters)

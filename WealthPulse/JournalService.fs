@@ -34,7 +34,7 @@ module JournalService =
         let mutable configLastModified = DateTime.MinValue
         let pricesEnabled = pricesFilePath <> null
         let mutable symbolPriceDB = Map.empty : SymbolPriceDB //loadSymbolPriceDB pricesFilePath
-        let mutable symbolPricesLastFetched = DateTime.MinValue
+        let mutable symbolPricesLastFetched = DateTime.Now.AddMinutes(10.0) // delay first fetch by 10 minutes
         
 
         let loadJournal () =
@@ -138,7 +138,8 @@ module JournalService =
                 do Thread.Sleep(5000)
 
 
-        
+        // Initialization
+
         do loadJournal ()
         do loadConfig ()
         do loadSymbolPriceDB ()

@@ -38,7 +38,10 @@ module NancyRunner =
         accountStyle: Map<string,string>;
         balance: string;
         balanceClass: string;
+        realBalance: string;
         commodityBalance: string;
+        price: string;
+        priceDate: string;
         rowClass: string;
     }
 
@@ -174,7 +177,12 @@ module NancyRunner =
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
               balance = formatAmount <| Some accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
+              realBalance = formatAmount accountBalance.RealBalance;
               commodityBalance = formatAmount accountBalance.Commodity;
+              price = formatAmount accountBalance.Price;
+              priceDate = match accountBalance.PriceDate with
+                          | Some priceDate -> priceDate.ToString("dd-MMM-yyyy")
+                          | otherwise -> ""
               rowClass = 
                 match accountBalance.Account with
                 | "" -> "grand_total"
@@ -191,7 +199,7 @@ module NancyRunner =
         |> List.map presentTransaction
     
 
-    let generateNetWorthData journalData =
+    let generateNetWorthData journalData symbolPriceDB =
         let generatePeriodBalance month =
             let parameters = {
                 AccountsWith = Some ["assets"; "liabilities"];
@@ -199,7 +207,7 @@ module NancyRunner =
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
-            let _, totalBalance = Query.balance parameters journalData
+            let _, totalBalance = Query.balance parameters journalData symbolPriceDB
             {
                 date = month.ToString("dd-MMM-yyyy"); 
                 amount = totalBalance.Amount.ToString(); 
@@ -265,7 +273,7 @@ module NancyRunner =
                 let balanceSheetData = {
                     title = title;
                     subtitle = generateSubtitle queryParameters;
-                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal;
+                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal journalService.SymbolPriceDB;
                 }
                 balanceSheetData |> box
 
@@ -285,7 +293,7 @@ module NancyRunner =
             fun parameters ->
                 let netWorthData = {
                     title = "Net Worth";
-                    data = generateNetWorthData journalService.Journal;
+                    data = generateNetWorthData journalService.Journal journalService.SymbolPriceDB;
                 }
                 netWorthData |> box
 
