@@ -265,14 +265,6 @@ module Parser =
             let transactionToJournal (h, es) =
                 let header = ({ Date=h.Date; Status=h.Status; Code=h.Code; Description=h.Description; Comment=h.Comment; } : Header)
                 let toEntry e =
-                    let getAccountLineage (account: string) =
-                        /// Use with fold to get all combinations.
-                        /// ex: if we have a:b:c, returns a list of a:b:c; a:b; a
-                        let combinator (s: string list) (t: string) =
-                            if not s.IsEmpty then (s.Head + ":" + t) :: s else t :: s
-                        account.Split ':'
-                        |> Array.fold combinator []
-                        |> List.rev
                     ({
                         Header=header; 
                         Account=e.Account;

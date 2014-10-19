@@ -156,7 +156,7 @@ module NancyRunner =
 
 
     /// Transform balance report data for presentation
-    let presentBalanceData (accountBalances, totalBalance) =
+    let presentBalanceData (accountBalances, (totalBalance, totalRealBalance)) =
         let paddingLeftBase = 8
         let indentPadding = 20
         let getAccountDisplay account =
@@ -169,7 +169,7 @@ module NancyRunner =
         let accountBalances =
             List.sortBy (fun a -> a.Account) accountBalances
 
-        (accountBalances @ [{Account=""; Balance=totalBalance; RealBalance=None; Commodity=None; Price=None; PriceDate=None;}])
+        (accountBalances @ [{Account=""; Balance=totalBalance; RealBalance=Some totalRealBalance; Commodity=None; Price=None; PriceDate=None;}])
         |> List.map (fun accountBalance -> 
             let accountDisplay, indent = getAccountDisplay accountBalance.Account
             { key = accountBalance.Account;
@@ -207,7 +207,7 @@ module NancyRunner =
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
-            let _, totalBalance = Query.balance parameters journalData symbolPriceDB
+            let _, (totalBalance, totalRealBalance) = Query.balance parameters journalData symbolPriceDB
             {
                 date = month.ToString("dd-MMM-yyyy"); 
                 amount = totalBalance.Amount.ToString(); 

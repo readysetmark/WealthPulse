@@ -106,19 +106,9 @@ module Query =
 
 
         // Computes real value, price, and price date for commodities
-        // TODO: Propogate real value to parent accounts
-        // TODO: get rid of yucky side-effects re:
+        // TODO: get rid of yucky side-effects re: accountRealValues
         let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (mainAccounts : Set<string>) =
             let accountRealValues = new System.Collections.Generic.Dictionary<string, Amount>()
-            // TODO: getAccountLineage copied from Parser.toEntryList -- remove duplication if this works
-            let getAccountLineage (account: string) =
-                /// Use with fold to get all combinations.
-                /// ex: if we have a:b:c, returns a list of a:b:c; a:b; a
-                let combinator (s: string list) (t: string) =
-                    if not s.IsEmpty then (s.Head + ":" + t) :: s else t :: s
-                account.Split ':'
-                |> Array.fold combinator []
-                |> List.rev
             let updateAccountRealValues lineage (amount : Amount) =
                 lineage
                 |> List.iter (fun account -> match accountRealValues.ContainsKey(account) with
@@ -185,7 +175,7 @@ module Query =
 
 
     /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
-    /// where accountBalances has type AccountBalance
+    /// where accountBalances has type AccountBalance and totalBalance is a pair: (total balance, real balance)
     let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceDB) =
         let filteredEntries = filterEntries filters journal
 
@@ -209,14 +199,21 @@ module Query =
         /// Calculate real value, price, and price date for commodities
         let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal.MainAccounts
 
-        // calculate total balance
-        let totalBalance = 
+        // calculate (total balance, real balance) pair
+        let totalBalances = 
             accountBalances
             |> List.filter (fun accountBalance -> Set.contains accountBalance.Account journal.MainAccounts)
-            |> List.map (fun accountBalance -> accountBalance.Balance)
-            |> List.reduce (fun balance1 balance2 -> {balance1 with Amount = balance1.Amount + balance2.Amount})
+            |> List.map (fun accountBalance ->
+                                let realBalance = match accountBalance.RealBalance with
+                                                  | Some balance -> balance
+                                                  | None -> accountBalance.Balance
+                                (accountBalance.Balance, realBalance))
+            |> List.reduce (fun (balance1, realBalance1) (balance2, realBalance2) -> 
+                                let totalBalance = {balance1 with Amount = balance1.Amount + balance2.Amount}
+                                let totalRealBalance = {realBalance1 with Amount = realBalance1.Amount + realBalance2.Amount}
+                                (totalBalance, totalRealBalance))
 
-        (accountBalances, totalBalance)
+        (accountBalances, totalBalances)
 
 
     /// Returns a list of (date, payee, entries) tuples that match the filters,

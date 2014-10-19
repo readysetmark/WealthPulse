@@ -51,3 +51,15 @@ module Journal =
         let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
         let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
         { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; }
+
+
+
+    // TODO: Find a better place for this...
+    let getAccountLineage (account: string) =
+        /// Use with fold to get all combinations.
+        /// ex: if we have a:b:c, returns a list of a:b:c; a:b; a
+        let combinator (s: string list) (t: string) =
+            if not s.IsEmpty then (s.Head + ":" + t) :: s else t :: s
+        account.Split ':'
+        |> Array.fold combinator []
+        |> List.rev

@@ -232,8 +232,8 @@ Balance Report
 - [x] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
 	- [x] Lookup price in price DB based on end date
 	- [ ] Fallback to prices within ledger if date in price DB not found
-- [ ] For parent accounts & total, calculate/provide book value and real value
-- [ ] Update front end
+- [x] For parent accounts & total, calculate/provide book value and real value
+- [x] Update front end
 - [ ] Show only 1 value column if "real value" and "book value" columns are the same for the whole report (based on query parameters)
 
 
@@ -291,6 +291,7 @@ Balance Report
 - [ ] Can I improve the entry filtering code?
 - [x] Can I get rid of the list comprehension?
 - [ ] Can I clean it up so the balance query function is just sub-function calls?
+- [ ] Clean up computeCommodityValues (get rid of side-effects)
 
 Command Bar Enhancements
 - [ ] Add paramters:
