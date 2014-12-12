@@ -1,7 +1,7 @@
-﻿namespace WealthPulse
+﻿namespace Journal
 
 open FParsec
-open Journal
+open Journal.Types
 
 // Parser module contains functions for parsing the Ledger journal file
 
@@ -268,7 +268,7 @@ module Parser =
                     ({
                         Header=header; 
                         Account=e.Account;
-                        AccountLineage=getAccountLineage e.Account;
+                        AccountLineage=Account.getAccountLineage e.Account;
                         EntryType=e.EntryType;
                         Amount=e.Amount.Value;
                         Commodity=e.Commodity;

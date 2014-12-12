@@ -209,6 +209,10 @@ Commodity Prices
 
 ### First Milestone
 
+Prototype using @@ or @ notation for commodity transactions, as per Ledger file spec. I'm not sure if I want to use
+Ledger's way of doing this, so going to set up the logic for the balance report and see how it feels with a sample
+file.
+
 Prototype
 - [x] What do I want the balance report to look like with investments?
 	- [x] Update backend functions to handle multiple commodities
@@ -221,13 +225,6 @@ Prices
 	- [x] Fetch prices from first date commodity appears in ledger file until 0 balance reached
 	- [x] Store prices in a local cache (and in memory while app is running)
 
-Journal Parsing
-- [ ] Detect investment transactions and merge transaction lines (while continuing to use ledger file format)
-	- May need to update some transactions to accommodate this
-OR
-- [ ] Update ledger file to use @@ or @ spec for commodity transactions (not sure if I want to do this yet)
-	- [x] Need to fix parsing so that commodities and amounts are put in the right fields in an Entry
-
 Balance Report
 - [x] For leaf accounts, calculate/provide book value, real value, number of units, price, price date (may drop price date)
 	- [x] Lookup price in price DB based on end date
@@ -238,6 +235,25 @@ Balance Report
 
 
 ### Second Milestone
+
+Turns out I don't like using the @@ and @ notation. Recently found Penny, a ledger-inspired app that handles
+commodities much more cleanly and a lot closer to how I've been handling them in my own ledger file. This milestone
+will be about modifying Wealth Pulse to behave a bit more like Penny than Ledger.
+
+One thing I will have to decide is if I will parse prices out of the ledger file at all.
+
+Types
+- [ ] Update Entry type -- will only have one amount, no commodity field
+
+Journal Parsing
+- [ ] Remove multiple commodity parsing logic. ie. remove @@ and @ options
+
+Balance Report
+- [ ] Update logic for calculating basis and real value for commodities
+
+
+
+### Third Milestone
 
 Net Worth Report
 - [ ] Provide "real value" and "book value" lines
@@ -272,6 +288,7 @@ Parsing Ledger File
 	- [ ] Make specifying a commodity mandatory? Cleans up some code and I always do it...
 	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
 	- [ ] Improve error reporting
+	- [ ] Consider removing the virtual transaction types once commodity support is complete
 
 Balance Report
 - [ ] Can I improve the entry filtering code?

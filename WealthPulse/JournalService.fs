@@ -1,7 +1,8 @@
 ﻿namespace WealthPulse
 
-open WealthPulse.Journal
-open WealthPulse.SymbolPrices
+open Journal
+open Journal.Types
+open Journal.SymbolPrices
 open WealthPulse.Utility
 open System
 open System.IO
@@ -25,7 +26,7 @@ module JournalService =
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
 
-        let mutable journal = createJournal List.empty
+        let mutable journal = Journal.create List.empty
         let mutable outstandingPayees = List.empty
         let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
@@ -47,7 +48,7 @@ module JournalService =
                 do printfn "Ledger last modified: %s" <| lastModified.ToString()
                 rwlock.AcquireWriterLock(Timeout.Infinite)
                 try
-                    journal <- createJournal entries
+                    journal <- Journal.create entries
                     outstandingPayees <- Query.outstandingPayees journal
                     journalLastModified <- lastModified
                     exceptionMessage <- None
@@ -108,7 +109,7 @@ module JournalService =
             if pricesEnabled then
                 do printfn "Fetching new symbol prices..."
                 try
-                    let symbolUsage = WealthPulse.Query.identifySymbolUsage journal
+                    let symbolUsage = Query.identifySymbolUsage journal
                     let priceDB = updateSymbolPriceDB symbolUsage symbolConfig symbolPriceDB
                     do printfn "Storing prices to: %s" pricesFilePath
                     do saveSymbolPriceDB pricesFilePath priceDB
