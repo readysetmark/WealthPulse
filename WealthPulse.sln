@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Web
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Journal", "Journal\Journal.fsproj", "{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}"
-EndProject
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{53BCB42E-C524-47B6-BDA7-0761281307D9}"
 	ProjectSection(SolutionItems) = preProject
 		LICENSE = LICENSE
@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{457E12
 	ProjectSection(SolutionItems) = preProject
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Journal", "Journal\Journal.fsproj", "{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WealthPulse", "WealthPulse\WealthPulse.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
 EndProject

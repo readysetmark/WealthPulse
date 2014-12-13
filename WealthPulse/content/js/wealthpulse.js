@@ -134,7 +134,7 @@ var BalanceReportRow = React.createClass({
     var row = React.DOM.tr({className: this.props.rowClass},
                            React.DOM.td({style: this.props.accountStyle},
                                         React.DOM.a({href: link}, this.props.account)),
-                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance),
+                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance.join(" ")),
                            commodity_columns
                            );
     return row;

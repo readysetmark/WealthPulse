@@ -3,38 +3,46 @@
 open FParsec
 open Journal.Types
 
-// Parser module contains functions for parsing the Ledger journal file
-
+/// Parser module contains functions for parsing the Ledger journal file
 module Parser =
     
-    // AST module contains transient types for the Abstract Syntax Tree used by the parser
-    // Eventually we convert all the data to the types in the Journal module
+    /// Contains transient types used during parsing. Eventually all the data
+    /// will be converted to the appropriate Journal types.
+    module Types =
 
-    module private AST =
-
-        type CommodityValue =
-            | TotalCost of Amount
-            | UnitCost of Amount
-
-        type ASTEntry = {
+        /// Parsed Entry. The only difference from a Journal.Type.Entry is
+        /// the Amount field is an option, to allow for entries with blank
+        /// amounts. A blank will get calculated when we create the Journal.    
+        type ParsedEntry = {
             Account: string;
             EntryType: EntryType;
             Amount: Amount option;
-            Commodity: Amount option;
             Comment: string option
         }
 
-        type ASTNode =
+        /// A parsed line will be one of these types
+        type ParsedLine =
             | Comment of string
-            | Transaction of Header * ASTNode list
-            | Entry of ASTEntry
+            | Transaction of Header * ParsedLine list
+            | Entry of ParsedEntry
 
 
+    /// Terminals for parser
+    module Terminals =
+
+        /// Whitespace characters        
+        let whitespace c =
+            c = ' ' || c = '\t'
+        
+        /// Date separator
+//        let dateSeparator c =
+//            c = "/" || c = "-"
     
-    // Parse module contains FParsec parsing functions
 
-    module private Parse =
-        open AST
+    /// Parsing combinator functions
+    module Combinators =
+        open Types
+        open Terminals
         
         /// Call Trim() on a string
         let trim (s : string) = 
@@ -42,8 +50,7 @@ module Parser =
 
         /// Skip whitespace as spaces and tabs
         let skipWS = 
-            let isWS c = c = ' ' || c = '\t'
-            skipManySatisfy isWS
+            skipManySatisfy whitespace
 
         /// Parse a date
         let parseDate =
@@ -121,12 +128,6 @@ module Parser =
             <|> attempt (parseAmountNumber |>> amountTuple |>> createAmount)
             <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
 
-        /// Parse a commodity value amount in terms of UnitCost or TotalCost
-        let parseCommodityValue =
-            let parseTotalCost = (pstring "@@" .>> skipWS >>. parseAmount) |>> TotalCost
-            let parseUnitCost = (pstring "@" .>> skipWS >>. parseAmount) |>> UnitCost
-            attempt (parseTotalCost <|> parseUnitCost)
-
         /// Parse a complete transaction header
         let parseTransactionHeader =
             let createHeader date status code payee comment =
@@ -134,19 +135,10 @@ module Parser =
             pipe5 parseDate parseTransactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
 
         /// Parse a complete transaction entry
-        /// If the entry has an amount and commodity value, the commodity is before the @@/@, and the amount is after
         let parseTransactionEntry =
-            let determineAmountAndCommodity (amount : Amount option) (value: CommodityValue option) =
-                match amount, value with
-                | Some commodity, Some(TotalCost(v)) -> Some v, Some commodity
-                | Some commodity, Some(UnitCost(v))  -> Some {Amount = v.Amount * commodity.Amount; Symbol = v.Symbol}, Some commodity
-                | Some amount, None                  -> Some amount, None
-                | None, None                         -> None, None
-                | otherwise                          -> failwith "Unexpected amount and commodity specification"
-            let createEntry (account, entryType) amount value comment =
-                let amount, commodity = determineAmountAndCommodity amount value
-                {Account=account; EntryType=entryType; Amount=amount; Commodity=commodity; Comment=comment}
-            pipe4 parseAccount (opt parseAmount) (opt parseCommodityValue) (opt parseComment) createEntry |>> Entry
+            let createEntry (account, entryType) amount comment =
+                {Account=account; EntryType=entryType; Amount=amount; Comment=comment}
+            pipe3 parseAccount (opt parseAmount) (opt parseComment) createEntry |>> Entry
 
         /// Parse a journal comment line
         let parseCommentLine = parseComment |>> Comment
@@ -167,39 +159,39 @@ module Parser =
     // Module PostProcess contains post-parsing transformations
 
     module private PostProcess =
-        open AST
+        open Types
 
-        /// Transforms the AST data structure into a list of (Header, ASTEntry list) tuples
+        /// Transforms the ParsedLine tree data structure into a list of (Header, ParsedEntry list) tuples
         /// Basically, we're dropping all the comment nodes
-        let transformASTToTransactions ast =
-            let transactionFilter (node: ASTNode) =
-                match node with
+        let transformParsedLinesToTransactions lines =
+            let transactionFilter (line: ParsedLine) =
+                match line with
                 | Transaction(_,_) -> true
                 | _ -> false
 
-            let getTransactionHeader (node: ASTNode) =
-                match node with
-                | Transaction(header, ast) -> (header, ast)
+            let getTransactionHeader (line: ParsedLine) =
+                match line with
+                | Transaction(header, lines) -> (header, lines)
                 | _ -> failwith "Unexpected AST value in getTransactionHeader"
 
-            let transactionEntryFilter (node: ASTNode) =
-                match node with
+            let transactionEntryFilter (line: ParsedLine) =
+                match line with
                 | Entry(_) -> true
                 | _ -> false
 
-            let getTransactionEntry (node: ASTNode) =
-                match node with
+            let getTransactionEntry (line: ParsedLine) =
+                match line with
                 | Entry(te) -> te
                 | _ -> failwith "Unexpected AST value in getTransactionEntry"
 
-            let getTransactionEntries (header, ast) =
+            let getTransactionEntries (header, lines) =
                 let entries = 
-                    ast
+                    lines
                     |> List.filter transactionEntryFilter
                     |> List.map getTransactionEntry
                 (header, entries)
 
-            ast
+            lines
             |> List.filter transactionFilter
             |> List.map getTransactionHeader
             |> List.map getTransactionEntries
@@ -271,7 +263,6 @@ module Parser =
                         AccountLineage=Account.getAccountLineage e.Account;
                         EntryType=e.EntryType;
                         Amount=e.Amount.Value;
-                        Commodity=e.Commodity;
                         Comment=e.Comment 
                     } : Entry)
                 List.map toEntry es
@@ -280,7 +271,7 @@ module Parser =
 
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let transform = 
-            transformASTToTransactions >> balanceTransactions >> toEntryList
+            transformParsedLinesToTransactions >> balanceTransactions >> toEntryList
 
 
     
@@ -291,12 +282,12 @@ module Parser =
 
     /// Run the parser against a file
     let parseJournalFile fileName encoding =
-        runParserOnFile Parse.parseJournal () fileName encoding
+        runParserOnFile Combinators.parseJournal () fileName encoding
         |> processResult
 
     /// Run the parser against a stream
     let parseJournalStream stream encoding =
-        runParserOnStream Parse.parseJournal () "" stream encoding
+        runParserOnStream Combinators.parseJournal () "" stream encoding
         |> processResult
 
 
@@ -306,7 +297,7 @@ module Parser =
     module Test =
         open FsUnit.Xunit
         open Xunit
-        open Parse
+        open Combinators
 
         let testParse parser text =
             match run parser text with

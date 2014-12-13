@@ -4,6 +4,8 @@ open System
 open Journal.Types
 open Journal.SymbolPrices
 
+type SymbolAmountMap = System.Collections.Generic.Dictionary<Symbol option,Amount>
+
 type QueryFilters = {
     AccountsWith: string list option;
     ExcludeAccountsWith: string list option;
@@ -13,7 +15,7 @@ type QueryFilters = {
 
 type AccountBalance = {
     Account: string;
-    Balance: Amount;
+    Balance: Amount list;
     RealBalance: Amount option;
     Commodity: Amount option;
     Price: Amount option;
@@ -37,6 +39,14 @@ module private Support =
         | None, Some periodEnd -> date <= periodEnd
         | _, _ -> true
 
+    /// Add an amount to a SymbolAmountMap
+    let addAmountForCommodity (map : SymbolAmountMap) (amount : Amount) =
+        match map.ContainsKey(amount.Symbol) with
+        | true -> 
+            map.[amount.Symbol] <- {Amount = map.[amount.Symbol].Amount + amount.Amount;
+                                    Symbol = amount.Symbol}
+        | false -> 
+            map.[amount.Symbol] <- amount
 
     /// Apply filters to retrieve journal entries
     let filterEntries (filters : QueryFilters) (journal : Journal) =
@@ -53,9 +63,31 @@ module private Support =
         |> List.filter (fun entry -> (Set.contains entry.Account accounts) 
                                         && (withinPeriod entry.Header.Date filters.PeriodStart filters.PeriodEnd))
 
-        
+    
+    /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries
+    let calculateAccountBalances entries =
+        let accountBalanceMap = new System.Collections.Generic.Dictionary<Account,SymbolAmountMap>()
+        let addAmountForAccounts entry =
+            fun account ->
+                match accountBalanceMap.ContainsKey(account) with
+                | true -> addAmountForCommodity accountBalanceMap.[account] entry.Amount
+                | false -> accountBalanceMap.[account] <- new SymbolAmountMap()
+                           addAmountForCommodity accountBalanceMap.[account] entry.Amount
+        let forEachAccountInLineageAddAmount entry =
+            List.iter (addAmountForAccounts entry) entry.AccountLineage
+        do List.iter forEachAccountInLineageAddAmount entries
+        accountBalanceMap.Keys
+        |> Seq.map (fun key -> {Account = key; 
+                                Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values;
+                                RealBalance = None;
+                                Commodity = None;
+                                Price = None;
+                                PriceDate = None;})
+        |> Seq.toList
+
     /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries.
     /// For accounts with commodities, we also calculate the total number of units, which is not propagated to parent accounts.
+    (* commenting out for now as this version need a complete overhaul
     let calculateAccountBalances entries =
         let accountBalanceMap = new System.Collections.Generic.Dictionary<string, AccountBalance>()
         let ensureSymbolsMatch (amount1 : Amount) (amount2 : Amount) =
@@ -70,7 +102,7 @@ module private Support =
                             Account = account;
                             Balance = entry.Amount;
                             RealBalance = None;
-                            Commodity = entry.Commodity;
+                            Commodity = None; //entry.Commodity; -- TODO review
                             Price = None;
                             PriceDate = None;
                         }
@@ -84,11 +116,13 @@ module private Support =
                         }
         let updateAccountBalanceForAccount (account : string) (balance : AccountBalance) (entry : Entry) =
             do ensureSymbolsMatch balance.Balance entry.Amount
-            match account = entry.Account, entry.Commodity with
-            | true, Some _  ->  do ensureSymbolsMatch balance.Commodity.Value entry.Commodity.Value
-                                { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount };
-                                                Commodity = Some { balance.Commodity.Value with Amount = balance.Commodity.Value.Amount + entry.Commodity.Value.Amount } }
-            | otherwise     ->  { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount } }
+            // TODO review
+//            match account = entry.Account, entry.Commodity with
+//            | true, Some _  ->  do ensureSymbolsMatch balance.Commodity.Value entry.Commodity.Value
+//                                { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount };
+//                                                Commodity = Some { balance.Commodity.Value with Amount = balance.Commodity.Value.Amount + entry.Commodity.Value.Amount } }
+//            | otherwise     ->  { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount } }
+            { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount } }
         let addAmountForAccounts entry = 
             fun account -> 
                 match accountBalanceMap.ContainsKey(account) with
@@ -100,10 +134,11 @@ module private Support =
         accountBalanceMap.Keys
         |> Seq.map (fun key -> accountBalanceMap.[key])
         |> Seq.toList
-
+    *)
 
     // Computes real value, price, and price date for commodities
     // TODO: get rid of yucky side-effects re: accountRealValues
+    (*
     let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (mainAccounts : Set<string>) =
         let accountRealValues = new System.Collections.Generic.Dictionary<string, Amount>()
         let updateAccountRealValues lineage (amount : Amount) =
@@ -150,7 +185,7 @@ module private Support =
         accountBalances
         |> List.map computeValue
         |> List.map updateRealValue
-            
+    *)
 
 
 
@@ -180,23 +215,42 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
     let accountBalances =
         filteredEntries
         |> calculateAccountBalances
-        |> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
+        |> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Amount <> 0M) accountBalance.Balance})
+        |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
+        //|> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
         
     // filter parent accounts where amount is the same as the (assumed) single child
     let accountBalances =
+        let amountsEqual a b =
+            (List.sort a) = (List.sort b)
         let existsChildAccountWithSameAmount allBalances accountBalance =
             allBalances
             |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
-                                                        && otherAccountBalance.Account.Length > accountBalance.Account.Length 
-                                                        && otherAccountBalance.Balance.Amount = accountBalance.Balance.Amount)
+                                                        && otherAccountBalance.Account.Length > accountBalance.Account.Length
+                                                        && (amountsEqual otherAccountBalance.Balance accountBalance.Balance))
+                                                        //&& otherAccountBalance.Balance.Amount = accountBalance.Balance.Amount)
             |> not
         accountBalances
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     // Calculate real value, price, and price date for commodities
-    let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal.MainAccounts
+    //let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal.MainAccounts
 
     // calculate (total balance, real balance) pair
+    let totalBalance =
+        let sumBalances balances =
+            let map = new SymbolAmountMap()
+            List.iter (addAmountForCommodity map) balances
+            map.Values
+            |> Seq.toList
+            |> List.sort
+        accountBalances
+        |> List.filter (fun accountBalance -> Set.contains accountBalance.Account journal.MainAccounts)
+        |> List.collect (fun accountBalance -> accountBalance.Balance)
+        |> sumBalances
+
+    let totalBalances = (totalBalance, None)
+    (*
     let totalBalances = 
         accountBalances
         |> List.filter (fun accountBalance -> Set.contains accountBalance.Account journal.MainAccounts)
@@ -216,6 +270,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
         match totalBalances with
         | totalBalance, totalRealBalance when totalBalance = totalRealBalance -> totalBalance, None
         | totalBalance, totalRealBalance -> totalBalance, Some totalRealBalance
+    *)
 
     (accountBalances, totalBalances)
 
@@ -247,30 +302,34 @@ let outstandingPayees (journal : Journal) =
 /// Returns a list of symbols used in the journal
 let identifySymbolUsage (journal : Journal) =
     let buildSymbolMap map (entry : Entry) =
-        match entry.Commodity with
-        | Some commodity -> 
-            match commodity.Symbol with
-            | Some symbol -> match Map.tryFind symbol map with
-                                | Some su -> match su.FirstAppeared > entry.Header.Date with
-                                             | true -> Map.add symbol {su with FirstAppeared = entry.Header.Date} map
-                                             | false -> map 
-                                | otherwise -> Map.add symbol {Symbol = symbol; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
-            | otherwise -> map
-        | otherwise -> map
+        // TODO review
+//        match entry.Commodity with
+//        | Some commodity -> 
+//            match commodity.Symbol with
+//            | Some symbol -> match Map.tryFind symbol map with
+//                                | Some su -> match su.FirstAppeared > entry.Header.Date with
+//                                             | true -> Map.add symbol {su with FirstAppeared = entry.Header.Date} map
+//                                             | false -> map 
+//                                | otherwise -> Map.add symbol {Symbol = symbol; FirstAppeared = entry.Header.Date; ZeroBalanceDate = None;} map
+//            | otherwise -> map
+//        | otherwise -> map
+        map
     let determineZeroBalanceDate entries symbol (su : SymbolUsage) =
-        let entriesWithSymbol = entries
-                                |> List.filter (fun (e : Entry) -> match e.Commodity with
-                                                                    | Some c ->
-                                                                        match c.Symbol with
-                                                                        | Some s when s = symbol -> true
-                                                                        | otherwise -> false
-                                                                    | otherwise -> false)
-        let balance = entriesWithSymbol |> List.fold (fun balance entry -> balance + entry.Commodity.Value.Amount) 0M
-        let lastDate = entriesWithSymbol 
-                        |> List.fold (fun date entry -> if entry.Header.Date > date then entry.Header.Date else date) (List.head entriesWithSymbol).Header.Date
-        match balance with
-        | 0M -> {su with ZeroBalanceDate = Some lastDate}
-        | otherwise -> su
+        // TODO revew
+//        let entriesWithSymbol = entries
+//                                |> List.filter (fun (e : Entry) -> match e.Commodity with
+//                                                                    | Some c ->
+//                                                                        match c.Symbol with
+//                                                                        | Some s when s = symbol -> true
+//                                                                        | otherwise -> false
+//                                                                    | otherwise -> false)
+//        let balance = entriesWithSymbol |> List.fold (fun balance entry -> balance + entry.Commodity.Value.Amount) 0M
+//        let lastDate = entriesWithSymbol 
+//                        |> List.fold (fun date entry -> if entry.Header.Date > date then entry.Header.Date else date) (List.head entriesWithSymbol).Header.Date
+//        match balance with
+//        | 0M -> {su with ZeroBalanceDate = Some lastDate}
+//        | otherwise -> su
+        su
     journal.Entries
     |> List.fold buildSymbolMap Map.empty
     |> Map.map (determineZeroBalanceDate journal.Entries)

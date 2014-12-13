@@ -21,7 +21,7 @@ module JournalService =
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
         //let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
-        let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments.dat"
+        let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments_penny.dat"
         let configFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_CONFIG_FILE")
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()

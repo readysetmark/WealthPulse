@@ -58,7 +58,6 @@ type Entry = {
     AccountLineage: string list;
     EntryType: EntryType;
     Amount: Amount;
-    Commodity: Amount option;
     Comment: string option;
 }
 

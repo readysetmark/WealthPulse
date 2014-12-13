@@ -37,7 +37,7 @@ module NancyRunner =
         key: string;
         account: string;
         accountStyle: Map<string,string>;
-        balance: string;
+        balance: string list;
         balanceClass: string;
         realBalance: string;
         commodityBalance: string;
@@ -176,7 +176,7 @@ module NancyRunner =
             { key = accountBalance.Account;
               account = accountDisplay; 
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
-              balance = formatAmount <| Some accountBalance.Balance
+              balance = List.map (Some >> formatAmount) accountBalance.Balance//formatAmount <| Some accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
               realBalance = formatAmount accountBalance.RealBalance;
               commodityBalance = formatAmount accountBalance.Commodity;
@@ -209,10 +209,11 @@ module NancyRunner =
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
             let _, (totalBalance, totalRealBalance) = Query.balance parameters journalData symbolPriceDB
+            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol = Some "$") totalBalance)
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = totalBalance.Amount.ToString(); 
-                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some totalBalance);
+                amount = dollarAmount.Amount.ToString();//totalBalance.Amount.ToString(); 
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some dollarAmount);
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
