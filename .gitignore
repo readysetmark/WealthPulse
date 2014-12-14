@@ -2,12 +2,8 @@
 */obj
 output
 packages/FParsec.*
-packages/FsUnit.xUnit.*
-packages/Nustache*
-packages/xunit.*
-packages/xunit.runners.*
+packages/Fuchu.*
 packages/Nancy.*
 packages/Nancy.Hosting.Self.*
-packages/Nancy.Viewengines.Nustache.*
 .nuget
 
