@@ -4,9 +4,6 @@ open System
 
 // Journal Types
 
-/// A commodity symbol. e.g. "$", "AAPL", "MSFT"
-type Symbol = string
-
 /// A ledger account. e.g. "Assets:Accounts:Savings"
 type Account = string
 
@@ -23,13 +20,36 @@ module Account =
         account.Split ':'
         |> Array.fold combinator []
         |> List.rev
-    
+
+
+/// A commodity symbol. e.g. "$", "AAPL", "MSFT"
+type Symbol = string
+
+/// Symbol price as of a certain date.
+type SymbolPrice = {
+    Date: System.DateTime;
+    Symbol: Symbol;
+    Price: decimal
+}
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolPrice =
+
+    let create date symbol price =
+        {Date = date; Symbol = symbol; Price = price;}
 
 /// An amount is a quantity and an optional symbol.
 type Amount = {
     Amount: decimal;
     Symbol: Symbol option;
 }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Amount =
+
+    let create amount symbol =
+        {Amount = amount; Symbol = symbol;}
+
 
 /// Transaction status.
 type Status =

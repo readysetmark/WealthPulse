@@ -19,12 +19,6 @@ type SymbolConfig = {
 
 type SymbolConfigs = Map<Symbol, SymbolConfig>
 
-type SymbolPrice = {
-    Date: System.DateTime;
-    Symbol: Symbol;
-    Price: Price
-}
-
 type SymbolPriceData = {
     Symbol: Symbol;
     FirstDate: System.DateTime;
@@ -85,7 +79,7 @@ let deserializePrices (path : string) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
         let symbol = regexMatch.Groups.[2].Value
         let price = System.Decimal.Parse(regexMatch.Groups.[3].Value)
-        {Date = date; Symbol = symbol; Price = price}
+        SymbolPrice.create date symbol price
     match File.Exists(path) with
     | true ->
         use sr = new StreamReader(path)
@@ -149,7 +143,7 @@ let scrapePrices (symbol : Symbol) (html : string) =
     let toSymbolPrice (regexMatch : Match) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
         let price = System.Decimal.Parse(regexMatch.Groups.[2].Value)
-        {Date = date; Symbol = symbol; Price = price}
+        SymbolPrice.create date symbol price
 
     let regex = new Regex("<td class=\"lm\">(\w+ \d{1,2}, \d{4})\s<td class=\"rgt rm\">(\d+\.\d+)")
     regex.Matches(html)

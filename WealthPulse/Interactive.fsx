@@ -5,6 +5,7 @@
 #r "FParsecCS.dll"
 #r "Journal.dll"
 
+FParsec.CharParsers.run Journal.Parser.Combinators.parsePrice "P 2014/12/14 AAPL $13.33"
 open WealthPulse
 
 //let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"

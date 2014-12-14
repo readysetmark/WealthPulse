@@ -252,11 +252,17 @@ lookup, check the downloaded prices file first, and the ledger file if no price 
 
 Types
 - [x] Update Entry type -- will only have one amount, no commodity field
+- [ ] Price on SymbolPrice record should be an Amount, not just a decimal
 - [ ] Move price DBs into Journal record
 
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
 - [ ] Parse price lines from journal file
+	- [x] "get it working"
+	- [ ] Should fix it up to be more precise (amount MUST have symbol)
+
+PriceDB
+- [ ] Fix pricedb parsing and serialization -> Price should be an Amount with a symbol
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities

@@ -10,9 +10,9 @@ module Parser =
     /// will be converted to the appropriate Journal types.
     module Types =
 
-        /// Parsed Entry. The only difference from a Journal.Type.Entry is
-        /// the Amount field is an option, to allow for entries with blank
-        /// amounts. A blank will get calculated when we create the Journal.    
+        /// Parsed Entry. The only difference from a Journal.Type.Entry is the Amount field is an option,
+        /// to allow for entries with blank amounts during parsing. A blank will get calculated when we
+        /// create the Journal.    
         type ParsedEntry = {
             Account: string;
             EntryType: EntryType;
@@ -23,6 +23,7 @@ module Parser =
         /// A parsed line will be one of these types
         type ParsedLine =
             | Comment of string
+            | Price of SymbolPrice
             | Transaction of Header * ParsedLine list
             | Entry of ParsedEntry
 
@@ -155,9 +156,16 @@ module Parser =
             .>>. many parseEntry
             |>> Transaction
 
+        /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
+        let parsePrice =
+            let createSymbolPrice date symbol (amount : Amount) =
+                {Date = date; Symbol = symbol; Price = amount.Amount;}
+            let parseP = pchar 'P' .>> skipWS
+            parseP >>. pipe3 parseDate parseSymbol parseAmount createSymbolPrice |>> Price
+
         /// Parse a complete ledger journal
         let parseJournal =
-            sepEndBy (parseCommentLine <|> parseTransaction) (many (skipWS >>. newline))
+            sepEndBy (parseCommentLine <|> parseTransaction <|> parsePrice) (many (skipWS >>. newline))
 
 
         
