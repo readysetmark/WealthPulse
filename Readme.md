@@ -240,17 +240,32 @@ Turns out I don't like using the @@ and @ notation. Recently found Penny, a ledg
 commodities much more cleanly and a lot closer to how I've been handling them in my own ledger file. This milestone
 will be about modifying Wealth Pulse to behave a bit more like Penny than Ledger.
 
-One thing I will have to decide is if I will parse prices out of the ledger file at all.
+Instead of using the @@/@ notation that Ledger supports/recommends, I will use Basis accounts the same way Penny
+documentation recommends. I will probably also have to write the "selloff" function.
+
+One thing I will have to decide is if I will parse prices out of the ledger file at all. Gut feeling right now is
+that I should. I think the .pricedb file should __only__ have downloaded prices, and the ledger file should __only__
+have prices that were manually input.
+
+I will keep track of two price DBs in memory: the downloaded prices and the ledger file prices. When performing a price
+lookup, check the downloaded prices file first, and the ledger file if no price exists.
 
 Types
-- [ ] Update Entry type -- will only have one amount, no commodity field
+- [x] Update Entry type -- will only have one amount, no commodity field
+- [ ] Move price DBs into Journal record
 
 Journal Parsing
-- [ ] Remove multiple commodity parsing logic. ie. remove @@ and @ options
+- [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
+- [ ] Parse price lines from journal file
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
+- [ ] Need query function for latest price as of date (check .pricedb then ledger prices)
 
+Documentation
+- [ ] Use of commodities within file
+- [ ] Configuration file
+	- [ ] Scraping Google Finance for prices
 
 
 ### Third Milestone
