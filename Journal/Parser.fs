@@ -5,7 +5,7 @@ open Journal.Types
 
 /// Parser module contains functions for parsing the Ledger journal file
 module Parser =
-    
+
     /// Contains transient types used during parsing. Eventually all the data
     /// will be converted to the appropriate Journal types.
     module Types =
@@ -27,6 +27,14 @@ module Parser =
             | Entry of ParsedEntry
 
 
+    /// Parser utility functions
+    module Utilities =
+
+        /// Call Trim() on a string
+        let trim (s : string) = 
+            s.Trim()
+
+
     /// Terminals for parser
     module Terminals =
 
@@ -36,26 +44,23 @@ module Parser =
         
         /// Date separator
         let dateSeparator c =
-            c = "/" || c = "-"
+            c = '/' || c = '-'
     
 
     /// Parsing combinator functions
     module Combinators =
         open Types
+        open Utilities
         open Terminals
         
-        /// Call Trim() on a string
-        let trim (s : string) = 
-            s.Trim()
-
         /// Skip whitespace as spaces and tabs
         let skipWS = 
             skipManySatisfy whitespace
 
         /// Parse a date
         let parseDate =
-            let isDateChar c = isDigit c || c = '/' || c = '-' || c = '.'
-            many1SatisfyL isDateChar "Expecting a date separated by / or - or ." .>> skipWS |>> System.DateTime.Parse
+            let isDateChar c = isDigit c || dateSeparator c
+            many1SatisfyL isDateChar "Expecting a date separated by / or -" .>> skipWS |>> System.DateTime.Parse
 
         /// Parse transaction status as Cleared or Uncleared
         let parseTransactionStatus = 

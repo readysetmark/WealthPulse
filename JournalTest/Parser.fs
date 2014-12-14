@@ -18,6 +18,15 @@ let terminals =
 
         testCase "not whitespace" <|
             fun _ -> Assert.Equal("whitespace 'A'", false, whitespace 'A')
+
+        testCase "/ is a date separator" <|
+            fun _ -> Assert.Equal("dateSeparator '/'", true, dateSeparator '/')
+
+        testCase "- is a date separator" <|
+            fun _ -> Assert.Equal("dateSeparator '-'", true, dateSeparator '-')
+
+        testCase "not a date separator" <|
+            fun _ -> Assert.Equal("dateSeparator 'A'", false, dateSeparator 'A')
     ]
 
 
@@ -49,4 +58,13 @@ let combinators =
 
         testCase "skipWS should skip tabs and spaces" <|
             fun _ -> Assert.Equal("skipWS \"   \\t  \\t \\t", Some(()), testParse skipWS "   \t  \t \t")
+
+        testCase "parse date with / separator" <|
+            fun _ -> Assert.Equal("parseDate \"2014/12/14\"", Some(new System.DateTime(2014, 12, 14)), testParse parseDate "2014/12/14")
+
+        testCase "parse date with - separator" <|
+            fun _ -> Assert.Equal("parseDate \"2014-12-14\"", Some(new System.DateTime(2014, 12, 14)), testParse parseDate "2014-12-14")
+
+        testCase "invalid date separator" <|
+            fun _ -> Assert.Raise("parseDate \"2014.12.14\"", typeof<System.FormatException>, fun _ -> ignore <| testParse parseDate "2014.12.14")
     ]
