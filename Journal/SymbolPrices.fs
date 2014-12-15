@@ -10,8 +10,6 @@ open Journal.Types
 // Types
 //
 
-type Price = decimal
-
 type SymbolConfig = {
     Symbol: Symbol;
     GoogleFinanceSearchSymbol: string;
@@ -78,7 +76,7 @@ let deserializePrices (path : string) =
     let toSymbolPrice (regexMatch : Match) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
         let symbol = regexMatch.Groups.[2].Value
-        let price = System.Decimal.Parse(regexMatch.Groups.[3].Value)
+        let price = Amount.create <| System.Decimal.Parse(regexMatch.Groups.[3].Value) <| Some "$"
         SymbolPrice.create date symbol price
     match File.Exists(path) with
     | true ->
@@ -142,7 +140,7 @@ let fetch (url : string) =
 let scrapePrices (symbol : Symbol) (html : string) =
     let toSymbolPrice (regexMatch : Match) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
-        let price = System.Decimal.Parse(regexMatch.Groups.[2].Value)
+        let price = Amount.create <| System.Decimal.Parse(regexMatch.Groups.[2].Value) <| Some "$"
         SymbolPrice.create date symbol price
 
     let regex = new Regex("<td class=\"lm\">(\w+ \d{1,2}, \d{4})\s<td class=\"rgt rm\">(\d+\.\d+)")
@@ -264,7 +262,7 @@ let updateSymbolPriceDB (usages : list<SymbolUsage>) (configs : SymbolConfigs) (
 let serializeSymbolPriceList (sw : StreamWriter) (prices : list<SymbolPrice>) =
     let toPriceString (price : SymbolPrice) =
         // format is "P DATE SYMBOL PRICE"
-        sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Symbol (price.Price.ToString())
+        sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Symbol (price.Price.Amount.ToString())
     prices
     |> List.iter (fun price -> sw.WriteLine(toPriceString price))
 

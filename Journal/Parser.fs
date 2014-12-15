@@ -158,10 +158,8 @@ module Parser =
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
-            let createSymbolPrice date symbol (amount : Amount) =
-                {Date = date; Symbol = symbol; Price = amount.Amount;}
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 parseDate parseSymbol parseAmount createSymbolPrice |>> Price
+            parseP >>. pipe3 parseDate parseSymbol parseAmount SymbolPrice.create |>> Price
 
         /// Parse a complete ledger journal
         let parseJournal =
