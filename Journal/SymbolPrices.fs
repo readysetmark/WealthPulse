@@ -17,15 +17,6 @@ type SymbolConfig = {
 
 type SymbolConfigs = Map<Symbol, SymbolConfig>
 
-type SymbolPriceData = {
-    Symbol: Symbol;
-    FirstDate: System.DateTime;
-    LastDate:  System.DateTime;
-    Prices:    list<SymbolPrice>;
-}
-
-type SymbolPriceDB = Map<Symbol, SymbolPriceData>
-
 type Pagination = {
     Start: int;
     RecordsPerPage: int;
@@ -73,21 +64,9 @@ let printSymbolConfigs (configs : SymbolConfigs) =
 //
 
 let deserializePrices (path : string) =
-    let toSymbolPrice (regexMatch : Match) =
-        let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
-        let symbol = regexMatch.Groups.[2].Value
-        let price = Amount.create <| System.Decimal.Parse(regexMatch.Groups.[3].Value) <| Some "$"
-        SymbolPrice.create date symbol price
     match File.Exists(path) with
     | true ->
-        use sr = new StreamReader(path)
-        let contents = sr.ReadToEnd()
-        sr.Close()
-        let regex = new Regex("P (\d{4}-\d{2}-\d{2}) (\w+) (\d+.\d+)")
-        regex.Matches(contents)
-        |> Seq.cast<Match>
-        |> Seq.map toSymbolPrice
-        |> Seq.toList
+        Parser.parsePricesFile path System.Text.Encoding.ASCII
     | false ->
         List.Empty
 
@@ -107,20 +86,6 @@ let loadSymbolPriceDB (path : string) : SymbolPriceDB =
     |> Seq.map createSymbolPriceDB
     |> Map.ofSeq
 
-let printSymbolPriceDB (priceDB : SymbolPriceDB) =
-    let dateFormat = "yyyy-MM-dd"
-    let printSymbolPrices _ (sd : SymbolPriceData) =
-        let printPrice (price : SymbolPrice) =
-            do printfn "%s - %s" (price.Date.ToString(dateFormat)) (price.Price.ToString())
-        do printfn "----"
-        do printfn "Symbol:  %s" sd.Symbol
-        do printfn "First Date: %s" (sd.FirstDate.ToString(dateFormat))
-        do printfn "Last Date:  %s" (sd.LastDate.ToString(dateFormat))
-        do printfn "Price History:"
-        List.iter printPrice sd.Prices
-    priceDB
-    |> Map.iter printSymbolPrices
-    
 
 //
 // Update Symbol Prices
@@ -203,8 +168,8 @@ let getPricesForNewSymbol (usage: SymbolUsage) (config : SymbolConfig) =
     | otherwise -> Some <| createSymbolPriceDB (usage.Symbol, prices)
         
 
-let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceData) = 
-    let getEarlierMissingPrices (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceData) =
+let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) = 
+    let getEarlierMissingPrices (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) =
         match usage.FirstAppeared, symbolData.FirstDate with
         | firstAppeared, firstDate when firstAppeared < firstDate ->
             let endDate = firstDate.AddDays(-1.0)
@@ -212,7 +177,7 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolDa
             getPrices baseURL 0 usage.Symbol
         | otherwise -> List.Empty
         
-    let getLaterMissingPrices (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceData) =
+    let getLaterMissingPrices (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) =
         match usage.ZeroBalanceDate, symbolData.LastDate with
         | None, lastDate when lastDate < System.DateTime.Today ->
             let startDate = lastDate.AddDays(1.0)
@@ -231,7 +196,7 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolDa
     createSymbolPriceDB (symbolData.Symbol, allPrices)
 
 
-let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : option<SymbolPriceData>) =
+let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : option<SymbolPriceCollection>) =
     printfn "Fetching prices for: %s" usage.Symbol
     match usage, symbolData with
     | usage, Some symbolData -> Some <| updatePricesForSymbol usage config symbolData
@@ -245,7 +210,7 @@ let updateSymbolPriceDB (usages : list<SymbolUsage>) (configs : SymbolConfigs) (
         let config = Map.find usage.Symbol configs
         let symbolData = Map.tryFind config.Symbol priceDB
         fetchPricesForSymbol usage config symbolData
-    let updateDB (priceDB : SymbolPriceDB) ((commodity : string), (cpDB : SymbolPriceData)) =
+    let updateDB (priceDB : SymbolPriceDB) ((commodity : string), (cpDB : SymbolPriceCollection)) =
         Map.add commodity cpDB priceDB
 
     usages
@@ -264,7 +229,7 @@ let serializeSymbolPriceList (sw : StreamWriter) (prices : list<SymbolPrice>) =
         // format is "P DATE SYMBOL PRICE"
         sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Symbol (price.Price.Amount.ToString())
     prices
-    |> List.iter (fun price -> sw.WriteLine(toPriceString price))
+    |> List.iter (fun price -> sw.WriteLine(SymbolPrice.serialize price))
 
 
 let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB) =

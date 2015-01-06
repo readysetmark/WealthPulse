@@ -25,6 +25,14 @@ module Account =
 /// A commodity symbol. e.g. "$", "AAPL", "MSFT"
 type Symbol = string
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Symbol =
+
+    let serialize (symbol : Symbol) =
+        let quoteSymbol = String.exists (fun c -> "-0123456789., @;".IndexOf(c) >= 0) symbol
+        if quoteSymbol then "\"" + symbol + "\"" else symbol
+
+
 /// An amount is a quantity and an optional symbol.
 type Amount = {
     Amount: decimal;
@@ -36,6 +44,13 @@ module Amount =
 
     let create amount symbol =
         {Amount = amount; Symbol = symbol;}
+
+    let serialize (amount : Amount) =
+        match amount.Symbol with
+        | Some symbol ->
+            let symbol = Symbol.serialize symbol
+            if symbol.StartsWith("\"") then amount.Amount.ToString() + " " + symbol else symbol + amount.Amount.ToString()
+        | None -> amount.Amount.ToString()
 
 
 /// Symbol price as of a certain date.
@@ -50,6 +65,47 @@ module SymbolPrice =
 
     let create date symbol price =
         {Date = date; Symbol = symbol; Price = price;}
+
+    let serialize (sp : SymbolPrice) =
+        let dateFormat = "yyyy-MM-dd"
+        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.serialize sp.Symbol) (Amount.serialize sp.Price)
+
+
+/// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
+type SymbolPriceCollection = {
+    Symbol: Symbol;
+    FirstDate: System.DateTime;
+    LastDate:  System.DateTime;
+    Prices:    list<SymbolPrice>;
+}
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolPriceCollection =
+
+    let prettyPrint spc =
+        let dateFormat = "yyyy-MM-dd"
+        let printPrice (price : SymbolPrice) =
+            do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.serialize price.Price)
+        do printfn "Symbol:  %s" spc.Symbol
+        do printfn "First Date: %s" (spc.FirstDate.ToString(dateFormat))
+        do printfn "Last Date:  %s" (spc.LastDate.ToString(dateFormat))
+        do printfn "Price History:"
+        List.iter printPrice spc.Prices
+
+
+/// Symbol Price DB is a map of symbols to symbol price collections
+type SymbolPriceDB = Map<Symbol, SymbolPriceCollection>
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolPriceDB =
+
+    let prettyPrint (priceDB : SymbolPriceDB) =
+        let dateFormat = "yyyy-MM-dd"
+        let printSymbolPrices _ (spc : SymbolPriceCollection) =
+            do printfn "----"
+            do SymbolPriceCollection.prettyPrint spc
+        priceDB
+        |> Map.iter printSymbolPrices
 
 
 /// Transaction status.

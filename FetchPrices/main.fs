@@ -363,7 +363,7 @@ module Main =
     *********************************************************************)
     
     //let path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\tdb900.html"
-    let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
+    let prices_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb_standalone"
     let config_path = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config_standalone"
     let usage_path  = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.usage"
     //let url = "https://www.google.com/finance/historical?q=MUTF_CA%3ATDB900&startdate=Mar+28%2C+2008&enddate=Jun+28%2C+2014&num=60"

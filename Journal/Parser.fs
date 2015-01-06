@@ -165,6 +165,10 @@ module Parser =
         let parseJournal =
             sepEndBy (parseCommentLine <|> parseTransaction <|> parsePrice) (many (skipWS >>. newline))
 
+        /// Parse a prices file
+        let parsePrices =
+            sepEndBy parsePrice (many (skipWS >>. newline))
+
 
         
     // Module PostProcess contains post-parsing transformations
@@ -284,19 +288,36 @@ module Parser =
         let transform = 
             transformParsedLinesToTransactions >> balanceTransactions >> toEntryList
 
+        /// Extract prices only from AST
+        let pricesOnly lines =
+            let transformPrice (line: ParsedLine) =
+                match line with
+                    | Price p -> p
+                    | _ -> failwith "Unexpected AST value in transformPrice"
+            List.map transformPrice lines
+            
+
 
     
-    let private processResult result =
+    let private extractResult result =
         match result with
-            | Success(ast, _, _) -> PostProcess.transform ast
+            | Success(ast, _, _) -> ast
             | Failure(errorMsg, _, _) -> failwith errorMsg
 
-    /// Run the parser against a file
+    /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =
         runParserOnFile Combinators.parseJournal () fileName encoding
-        |> processResult
+        |> extractResult
+        |> PostProcess.transform
 
     /// Run the parser against a stream
     let parseJournalStream stream encoding =
         runParserOnStream Combinators.parseJournal () "" stream encoding
-        |> processResult
+        |> extractResult
+        |> PostProcess.transform
+
+    /// Run the parser against a prices file
+    let parsePricesFile fileName encoding =
+        runParserOnFile Combinators.parsePrices () fileName encoding
+        |> extractResult
+        |> PostProcess.pricesOnly

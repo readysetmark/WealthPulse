@@ -55,8 +55,8 @@
     <None Include="packages.config" />
     <Compile Include="DateUtils.fs" />
     <Compile Include="Types.fs" />
-    <Compile Include="SymbolPrices.fs" />
     <Compile Include="Parser.fs" />
+    <Compile Include="SymbolPrices.fs" />
     <Compile Include="Query.fs" />
     <None Include="app.config" />
   </ItemGroup>

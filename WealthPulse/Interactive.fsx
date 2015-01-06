@@ -6,12 +6,14 @@
 #r "Journal.dll"
 
 FParsec.CharParsers.run Journal.Parser.Combinators.parsePrice "P 2014/12/14 AAPL $13.33"
-open WealthPulse
+open Journal
 
 //let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"
 let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments.dat"
 let configPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config"
 let pricesPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
+
+let prices = Parser.parsePricesFile pricesPath System.Text.Encoding.ASCII
 
 let entries = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
 let journal = Journal.createJournal entries
