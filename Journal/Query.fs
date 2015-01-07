@@ -136,10 +136,47 @@ module private Support =
         |> Seq.toList
     *)
 
+
+    let lookupPricePoint (symbol : Symbol) (periodEnd : option<DateTime>) priceDB journalPriceDB =
+        let selectPricePointByDate symbolData =
+            symbolData.Prices
+            |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
+            |> List.maxBy (fun symbolPrice -> symbolPrice.Date)
+            |> Some
+        match Map.tryFind symbol priceDB with
+        | Some symbolData -> 
+            selectPricePointByDate symbolData
+        | None ->
+            match Map.tryFind symbol journalPriceDB with
+            | Some symbolData ->
+                selectPricePointByDate symbolData
+            | None -> None
+
+
+    let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (journal : Journal) =
+        let computeRealBalance (accountBalance : AccountBalance) =
+            match List.length accountBalance.Balance with
+            | 1 -> 
+                let first = List.head accountBalance.Balance
+                match first.Symbol with
+                | Some s when s = "$" -> accountBalance
+                | Some s -> 
+                    match lookupPricePoint s periodEnd priceDB journal.JournalPriceDB with
+                    | Some pricePoint ->
+                        let realBalance = Amount.create (pricePoint.Price.Amount * first.Amount) pricePoint.Price.Symbol
+                        // TODO: Hmm.. calculating the basis (book value) and setting up parent accounts properly might be the hard parts...
+                        { accountBalance with RealBalance = Some realBalance; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
+                    | None -> accountBalance
+                | None -> accountBalance
+            | _ -> accountBalance
+        accountBalances
+        |> List.map computeRealBalance
+
+
     // Computes real value, price, and price date for commodities
     // TODO: get rid of yucky side-effects re: accountRealValues
     (*
-    let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (mainAccounts : Set<string>) =
+    let xcomputeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (mainAccounts : Set<string>) =
         let accountRealValues = new System.Collections.Generic.Dictionary<string, Amount>()
         let updateAccountRealValues lineage (amount : Amount) =
             lineage
@@ -188,7 +225,6 @@ module private Support =
     *)
 
 
-
     /// Groups entries by header and returns (date, payee, entries) tuples
     let calculateRegisterLines entries =
         let runningTotal = ref 0M
@@ -234,7 +270,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     // Calculate real value, price, and price date for commodities
-    //let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal.MainAccounts
+    let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal
 
     // calculate (total balance, real balance) pair
     let totalBalance =
