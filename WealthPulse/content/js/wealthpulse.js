@@ -114,7 +114,7 @@ var NavBox = React.createClass({
 //   @balance
 //   @accountStyle
 //   @account
-//   @realBalance
+//   @basisBalance
 //   @commodityBalance
 //   @price
 //   @priceDate
@@ -125,7 +125,7 @@ var BalanceReportRow = React.createClass({
     var commodity_columns = [];
 
     if (this.props.showCommodities) {
-      commodity_columns = [React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.realBalance),
+      commodity_columns = [React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.basisBalance),
                            React.DOM.td({className: "currency"}, this.props.commodityBalance),
                            React.DOM.td({className: "currency"}, this.props.price),
                            React.DOM.td(null, this.props.priceDate)]
@@ -158,10 +158,10 @@ var BalanceReport = React.createClass({
     if (this.props.hasOwnProperty('balances')) {
       for (i = 0; i < this.props.balances.length; i++) {
         var balance = this.props.balances[i];
-        if (balance.realBalance != "") {
+        if (balance.basisBalance != "") {
           show_commodities = true;
           table_span = "span10";
-          commodity_headers = [React.DOM.th(null, "Real Balance"),
+          commodity_headers = [React.DOM.th(null, "Basis"),
                                React.DOM.th(null, "Commodity"),
                                React.DOM.th(null, "Price"),
                                React.DOM.th(null, "Price Date")];

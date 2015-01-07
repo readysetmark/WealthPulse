@@ -182,11 +182,11 @@ Phase 2 Implementation (Commodities)
 2014/06/11
 I've prototyped it out enough now that I think what I want to do is make sure I can get current prices for commodities
 and then for the balance sheet, it would look something like:
-	Assets:Investments		$bookvalue	$realvalue
-		Investment1			$bookvalue	$realvalue	(for)	num_units	(at)	price	(as of)	price_date
-		Investment2			$bookvalue	$realvalue			num_units			price	(as of)	price_date
-		Investment3			$bookvalue	$realvalue			num_units			price	(as of)	price_date
-	TOTAL					$bookvalue	$realvalue
+	Assets:Investments		$realvalue	$basis
+		Investment1			$realvalue	$basis	num_units	price	price_date
+		Investment2			$realvalue	$basis	num_units	price	price_date
+		Investment3			$realvalue	$basis	num_units	price	price_date
+	TOTAL					$realvalue	$basis
 That would be the eventual goal. That assumes that I'm either going to merge units/book value entries in the program
 or update the ledger file. In the mean time, I'll have to keep the "units" excluded from the main balance report.
 This way I can avoid having to propogate up the account hierarchy all the different commodities.
@@ -269,7 +269,7 @@ PriceDB
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
-- [ ] Need query function for latest price as of date (check .pricedb then ledger prices)
+- [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 
 Documentation
 - [ ] Use of commodities within file
@@ -285,8 +285,6 @@ Net Worth Report
 Register Report
 - [ ] Prototype... what should it look like?
 
-Balance Report
-- [ ] Fallback to prices within ledger if no date in price DB not found
 
 
 

@@ -16,7 +16,7 @@ type QueryFilters = {
 type AccountBalance = {
     Account: string;
     Balance: Amount list;
-    RealBalance: Amount option;
+    Basis: Amount option;
     Commodity: Amount option;
     Price: Amount option;
     PriceDate: DateTime option;
@@ -79,7 +79,7 @@ module private Support =
         accountBalanceMap.Keys
         |> Seq.map (fun key -> {Account = key; 
                                 Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values;
-                                RealBalance = None;
+                                Basis = None;
                                 Commodity = None;
                                 Price = None;
                                 PriceDate = None;})
@@ -153,7 +153,18 @@ module private Support =
             | None -> None
 
 
-    let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (journal : Journal) =
+    let computeBasis (symbol : Symbol) (filters : QueryFilters) (journal : Journal) =
+        let basisAccount = "Basis:" + symbol
+        let basisFilter = {filters with AccountsWith = Some [basisAccount]; ExcludeAccountsWith = None;}
+        let basisAmount = 
+            journal
+            |> filterEntries basisFilter
+            |> List.filter (fun (e:Entry) -> e.Amount.Symbol.Value = "$")
+            |> List.sumBy (fun (e:Entry) -> e.Amount.Amount)
+        Amount.create basisAmount (Some "$")
+
+
+    let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (filters : QueryFilters) (journal : Journal) =
         let computeRealBalance (accountBalance : AccountBalance) =
             match List.length accountBalance.Balance with
             | 1 -> 
@@ -161,11 +172,12 @@ module private Support =
                 match first.Symbol with
                 | Some s when s = "$" -> accountBalance
                 | Some s -> 
-                    match lookupPricePoint s periodEnd priceDB journal.JournalPriceDB with
+                    match lookupPricePoint s filters.PeriodEnd priceDB journal.JournalPriceDB with
                     | Some pricePoint ->
                         let realBalance = Amount.create (pricePoint.Price.Amount * first.Amount) pricePoint.Price.Symbol
+                        let basisBalance = computeBasis s filters journal
                         // TODO: Hmm.. calculating the basis (book value) and setting up parent accounts properly might be the hard parts...
-                        { accountBalance with RealBalance = Some realBalance; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
+                        { accountBalance with Balance = [realBalance]; Basis = Some basisBalance; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
                     | None -> accountBalance
                 | None -> accountBalance
             | _ -> accountBalance
@@ -270,7 +282,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     // Calculate real value, price, and price date for commodities
-    let accountBalances = computeCommodityValues accountBalances priceDB filters.PeriodEnd journal
+    let accountBalances = computeCommodityValues accountBalances priceDB filters journal
 
     // calculate (total balance, real balance) pair
     let totalBalance =

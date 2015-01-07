@@ -39,7 +39,7 @@ module NancyRunner =
         accountStyle: Map<string,string>;
         balance: string list;
         balanceClass: string;
-        realBalance: string;
+        basisBalance: string;
         commodityBalance: string;
         price: string;
         priceDate: string;
@@ -157,7 +157,7 @@ module NancyRunner =
 
 
     /// Transform balance report data for presentation
-    let presentBalanceData (accountBalances, (totalBalance, totalRealBalance)) =
+    let presentBalanceData (accountBalances, (totalBalance, totalBasisBalance)) =
         let paddingLeftBase = 8
         let indentPadding = 20
         let getAccountDisplay account =
@@ -170,7 +170,7 @@ module NancyRunner =
         let accountBalances =
             List.sortBy (fun a -> a.Account) accountBalances
 
-        (accountBalances @ [{Account=""; Balance=totalBalance; RealBalance=totalRealBalance; Commodity=None; Price=None; PriceDate=None;}])
+        (accountBalances @ [{Account=""; Balance=totalBalance; Basis=totalBasisBalance; Commodity=None; Price=None; PriceDate=None;}])
         |> List.map (fun accountBalance -> 
             let accountDisplay, indent = getAccountDisplay accountBalance.Account
             { key = accountBalance.Account;
@@ -178,7 +178,7 @@ module NancyRunner =
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
               balance = List.map (Some >> formatAmount) accountBalance.Balance//formatAmount <| Some accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
-              realBalance = formatAmount accountBalance.RealBalance;
+              basisBalance = formatAmount accountBalance.Basis;
               commodityBalance = formatAmount accountBalance.Commodity;
               price = formatAmount accountBalance.Price;
               priceDate = match accountBalance.PriceDate with
