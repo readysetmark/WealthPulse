@@ -259,13 +259,13 @@ Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
 - [ ] Parse price lines from journal file
 	- [x] Get initial parsing working
-	- [ ] Should fix parsing up to be more precise (amount MUST have symbol)
+	- [x] Should fix parsing up to be more precise (amount MUST have symbol)
 	- [ ] Create price db from parsed prices
 
 PriceDB
-- [ ] Fix pricedb parsing and serialization
-	- [ ] Use FParsec parser instead of regex
-	- [ ] Price should be an Amount with a symbol
+- [x] Fix pricedb parsing and serialization
+	- [x] Use FParsec parser instead of regex
+	- [x] Price should be an Amount with a symbol
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities

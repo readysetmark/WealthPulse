@@ -123,7 +123,7 @@ module Parser =
             <|> attempt (many1Chars identifier)
             .>> skipWS
 
-        /// Parse an amount that includes the numerical value and the symbol.
+        /// Parse an amount that includes the numerical value and an optional symbol.
         /// The symbol can come before or after the amount. If the symbol contains
         /// numbers or a space, it must be quoted.
         let parseAmount =
@@ -132,6 +132,15 @@ module Parser =
             let reverse (a,b) = (b,a)
             attempt (parseAmountNumber .>>. (parseSymbol |>> Some) |>> createAmount)
             <|> attempt (parseAmountNumber |>> amountTuple |>> createAmount)
+            <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
+
+        /// Parse an amount that includes the numerical value and a symbol.
+        /// The symbol can come before or after the amount. If the symbol contains
+        /// numbers or a space, it must be quoted.
+        let parseAmountWithSymbol =
+            let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
+            let reverse (a,b) = (b,a)
+            attempt (parseAmountNumber .>>. (parseSymbol |>> Some) |>> createAmount)
             <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
 
         /// Parse a complete transaction header
@@ -159,15 +168,23 @@ module Parser =
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 parseDate parseSymbol parseAmount SymbolPrice.create |>> Price
+            parseP >>. pipe3 parseDate parseSymbol parseAmountWithSymbol SymbolPrice.create |>> Price
 
         /// Parse a complete ledger journal
         let parseJournal =
             sepEndBy (parseCommentLine <|> parseTransaction <|> parsePrice) (many (skipWS >>. newline))
 
+
+        /// Price file parsing combinators
+
+        /// Parse a price entry in a price file. e.g. "P 2014/12/14 AAPL $23.44"
+        let parsePriceFilePrice =
+            let parseP = pchar 'P' .>> skipWS
+            parseP >>. pipe3 parseDate parseSymbol parseAmountWithSymbol SymbolPrice.create
+
         /// Parse a prices file
-        let parsePrices =
-            sepEndBy parsePrice (many (skipWS >>. newline))
+        let parsePriceFilePrices =
+            sepEndBy parsePriceFilePrice (many (skipWS >>. newline))
 
 
         
@@ -287,16 +304,7 @@ module Parser =
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let transform = 
             transformParsedLinesToTransactions >> balanceTransactions >> toEntryList
-
-        /// Extract prices only from AST
-        let pricesOnly lines =
-            let transformPrice (line: ParsedLine) =
-                match line with
-                    | Price p -> p
-                    | _ -> failwith "Unexpected AST value in transformPrice"
-            List.map transformPrice lines
             
-
 
     
     let private extractResult result =
@@ -318,6 +326,5 @@ module Parser =
 
     /// Run the parser against a prices file
     let parsePricesFile fileName encoding =
-        runParserOnFile Combinators.parsePrices () fileName encoding
+        runParserOnFile Combinators.parsePriceFilePrices () fileName encoding
         |> extractResult
-        |> PostProcess.pricesOnly
