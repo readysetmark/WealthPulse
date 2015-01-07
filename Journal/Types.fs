@@ -82,6 +82,15 @@ type SymbolPriceCollection = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceCollection =
 
+    let create (s : Symbol, prices : seq<SymbolPrice>) =
+        let sortedPrices = 
+            prices
+            |> Seq.toList
+            |> List.sortBy (fun sp -> sp.Date)
+        let firstDate = (List.head sortedPrices).Date
+        let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
+        (s, {Symbol = s; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
+
     let prettyPrint spc =
         let dateFormat = "yyyy-MM-dd"
         let printPrice (price : SymbolPrice) =
@@ -98,6 +107,12 @@ type SymbolPriceDB = Map<Symbol, SymbolPriceCollection>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
+
+    let createFromSymbolPriceList (prices : list<SymbolPrice>) : SymbolPriceDB =
+        prices
+        |> Seq.groupBy (fun sp -> sp.Symbol)
+        |> Seq.map SymbolPriceCollection.create
+        |> Map.ofSeq
 
     let prettyPrint (priceDB : SymbolPriceDB) =
         let dateFormat = "yyyy-MM-dd"
@@ -143,16 +158,17 @@ type Journal = {
     Entries: Entry list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
+    JournalPriceDB: SymbolPriceDB;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Journal = 
     
     /// Given a list of journal entries, returns a Journal record
-    let create entries =
+    let create entries pricedb =
         let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
         let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
-        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; }
+        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
 
 
 // Symbol Usage Types

@@ -70,21 +70,10 @@ let deserializePrices (path : string) =
     | false ->
         List.Empty
 
-let createSymbolPriceDB (s : Symbol, prices : seq<SymbolPrice>) =
-    let sortedPrices = 
-        prices
-        |> Seq.toList
-        |> List.sortBy (fun sp -> sp.Date)
-    let firstDate = (List.head sortedPrices).Date
-    let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
-    (s, {Symbol = s; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
 
 let loadSymbolPriceDB (path : string) : SymbolPriceDB =
     deserializePrices path
-    |> Seq.ofList
-    |> Seq.groupBy (fun sp -> sp.Symbol)
-    |> Seq.map createSymbolPriceDB
-    |> Map.ofSeq
+    |> SymbolPriceDB.createFromSymbolPriceList
 
 
 //
@@ -165,7 +154,7 @@ let getPricesForNewSymbol (usage: SymbolUsage) (config : SymbolConfig) =
     let prices = getPrices baseURL 0 usage.Symbol
     match List.length prices with
     | 0         -> None
-    | otherwise -> Some <| createSymbolPriceDB (usage.Symbol, prices)
+    | otherwise -> Some <| SymbolPriceCollection.create (usage.Symbol, prices)
         
 
 let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) = 
@@ -193,7 +182,7 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolDa
     let laterPrices = getLaterMissingPrices usage config symbolData
     printNewPrices (earlierPrices @ laterPrices)
     let allPrices = earlierPrices @ symbolData.Prices @ laterPrices
-    createSymbolPriceDB (symbolData.Symbol, allPrices)
+    SymbolPriceCollection.create (symbolData.Symbol, allPrices)
 
 
 let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : option<SymbolPriceCollection>) =

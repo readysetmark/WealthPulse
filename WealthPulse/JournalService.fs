@@ -26,7 +26,7 @@ module JournalService =
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
 
-        let mutable journal = Journal.create List.empty
+        let mutable journal = Journal.create List.empty Map.empty
         let mutable outstandingPayees = List.empty
         let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
@@ -42,13 +42,13 @@ module JournalService =
             let lastModified = File.GetLastWriteTime(ledgerFilePath)
             do printfn "Parsing ledger file: %s" ledgerFilePath
             try
-                let (entries, parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath Text.Encoding.ASCII
+                let ((entries, pricedb), parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath Text.Encoding.ASCII
                 do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
                 do printfn "Transactions parsed: %d" <| List.length entries
                 do printfn "Ledger last modified: %s" <| lastModified.ToString()
                 rwlock.AcquireWriterLock(Timeout.Infinite)
                 try
-                    journal <- Journal.create entries
+                    journal <- Journal.create entries pricedb
                     outstandingPayees <- Query.outstandingPayees journal
                     journalLastModified <- lastModified
                     exceptionMessage <- None

@@ -257,10 +257,10 @@ Types
 
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
-- [ ] Parse price lines from journal file
+- [x] Parse price lines from journal file
 	- [x] Get initial parsing working
 	- [x] Should fix parsing up to be more precise (amount MUST have symbol)
-	- [ ] Create price db from parsed prices
+	- [x] Create price db from parsed prices
 
 PriceDB
 - [x] Fix pricedb parsing and serialization

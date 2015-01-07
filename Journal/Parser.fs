@@ -302,8 +302,20 @@ module Parser =
 
 
         /// Pipelined functions applied to the AST to produce the final journal data structure
-        let transform = 
+        let extractEntries = 
             transformParsedLinesToTransactions >> balanceTransactions >> toEntryList
+
+
+        /// Extract the price entries from the AST
+        let extractPrices lines =
+            let priceOnly (line : ParsedLine) =
+                match line with
+                | Price p -> Some p
+                | _ -> None
+            lines
+            |> List.choose priceOnly
+            |> SymbolPriceDB.createFromSymbolPriceList
+            
             
 
     
@@ -314,15 +326,12 @@ module Parser =
 
     /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =
-        runParserOnFile Combinators.parseJournal () fileName encoding
-        |> extractResult
-        |> PostProcess.transform
-
-    /// Run the parser against a stream
-    let parseJournalStream stream encoding =
-        runParserOnStream Combinators.parseJournal () "" stream encoding
-        |> extractResult
-        |> PostProcess.transform
+        let ast = 
+            runParserOnFile Combinators.parseJournal () fileName encoding
+            |> extractResult
+        let entries = PostProcess.extractEntries ast
+        let pricedb = PostProcess.extractPrices ast
+        (entries, pricedb)
 
     /// Run the parser against a prices file
     let parsePricesFile fileName encoding =
