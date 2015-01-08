@@ -16,7 +16,7 @@ type QueryFilters = {
 type AccountBalance = {
     Account: string;
     Balance: Amount list;
-    Basis: Amount option;
+    Basis: Amount list;
     Commodity: Amount option;
     Price: Amount option;
     PriceDate: DateTime option;
@@ -76,7 +76,7 @@ module private Support =
         accountBalanceMap.Keys
         |> Seq.map (fun key -> {Account = key; 
                                 Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values;
-                                Basis = None;
+                                Basis = List.sort <| Seq.toList accountBalanceMap.[key].Values;
                                 Commodity = None;
                                 Price = None;
                                 PriceDate = None;})
@@ -198,7 +198,7 @@ module private Support =
                     | Some pricePoint ->
                         let realBalance = Amount.create (pricePoint.Price.Amount * first.Amount) pricePoint.Price.Symbol
                         let basisBalance = computeBasis s filters journal
-                        { accountBalance with Balance = [realBalance]; Basis = Some basisBalance; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
+                        { accountBalance with Balance = [realBalance]; Basis = [basisBalance]; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
                     | None -> accountBalance
                 | _ -> accountBalance
             | _ -> accountBalance
@@ -251,21 +251,13 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
             |> List.sort
         let balances, basisBalances = 
             accountBalances
-            |> List.map (fun accountBalance -> 
-                                let basis =
-                                    match accountBalance.Basis with
-                                    | Some b -> b
-                                    | None -> List.head accountBalance.Balance
-                                (accountBalance.Balance, basis))
+            |> List.map (fun accountBalance -> (accountBalance.Balance, accountBalance.Basis))
             |> List.unzip
-        let totalBasis =
-            basisBalances
-            |> List.fold (fun (sum : Amount) amount -> {sum with Amount = sum.Amount + amount.Amount;}) (Amount.create 0M (Some "$"))
-        (sumBalances balances, totalBasis)
+        (sumBalances balances, sumBalances basisBalances)
 
 
     //let totalBalances = (totalBalance, totalBasisBalance)
-    let totalBalances = (totalBalance, Some totalBasisBalance)
+    let totalBalances = (totalBalance, totalBasisBalance)
     (*
     let totalBalances = 
         accountBalances

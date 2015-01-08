@@ -39,7 +39,7 @@ module NancyRunner =
         accountStyle: Map<string,string>;
         balance: string list;
         balanceClass: string;
-        basisBalance: string;
+        basisBalance: string list;
         commodityBalance: string;
         price: string;
         priceDate: string;
@@ -178,7 +178,7 @@ module NancyRunner =
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
               balance = List.map (Some >> formatAmount) accountBalance.Balance//formatAmount <| Some accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
-              basisBalance = formatAmount accountBalance.Basis;
+              basisBalance = List.map (Some >> formatAmount) accountBalance.Basis;
               commodityBalance = formatAmount accountBalance.Commodity;
               price = formatAmount accountBalance.Price;
               priceDate = match accountBalance.PriceDate with
