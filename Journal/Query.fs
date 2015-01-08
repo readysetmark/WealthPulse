@@ -64,8 +64,29 @@ module private Support =
                                         && (withinPeriod entry.Header.Date filters.PeriodStart filters.PeriodEnd))
 
     
+    /// Sums a list of entries by account and returns a list of AccountBalance records
+    let sumEntriesByAccount (entries : list<Entry>) =
+        let accountBalanceMap = new System.Collections.Generic.Dictionary<Account,SymbolAmountMap>()
+        let addAmountForAccount (entry : Entry) =
+            match accountBalanceMap.ContainsKey(entry.Account) with
+            | true -> addAmountForCommodity accountBalanceMap.[entry.Account] entry.Amount
+            | false -> accountBalanceMap.[entry.Account] <- new SymbolAmountMap()
+                       addAmountForCommodity accountBalanceMap.[entry.Account] entry.Amount
+        do List.iter addAmountForAccount entries
+        accountBalanceMap.Keys
+        |> Seq.map (fun key -> {Account = key; 
+                                Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values;
+                                Basis = None;
+                                Commodity = None;
+                                Price = None;
+                                PriceDate = None;})
+        |> Seq.toList
+
+
     /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries
-    let calculateAccountBalances entries =
+    (* commenting this out. was replaced by sumEntriesByAccount, but might want/need some of this logic
+       for generating parent accounts later in a later step of the balance report
+    let xcalculateAccountBalances entries =
         let accountBalanceMap = new System.Collections.Generic.Dictionary<Account,SymbolAmountMap>()
         let addAmountForAccounts entry =
             fun account ->
@@ -84,6 +105,7 @@ module private Support =
                                 Price = None;
                                 PriceDate = None;})
         |> Seq.toList
+    *)
 
     /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each entry in entries.
     /// For accounts with commodities, we also calculate the total number of units, which is not propagated to parent accounts.
@@ -164,77 +186,24 @@ module private Support =
         Amount.create basisAmount (Some "$")
 
 
+    // TODO: Review this for handling multiple commodities in an account.. and hard coded 1 to find these accounts is horrible
     let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (filters : QueryFilters) (journal : Journal) =
         let computeRealBalance (accountBalance : AccountBalance) =
             match List.length accountBalance.Balance with
             | 1 -> 
                 let first = List.head accountBalance.Balance
                 match first.Symbol with
-                | Some s when s = "$" -> accountBalance
-                | Some s -> 
+                | Some s when s <> "$" -> 
                     match lookupPricePoint s filters.PeriodEnd priceDB journal.JournalPriceDB with
                     | Some pricePoint ->
                         let realBalance = Amount.create (pricePoint.Price.Amount * first.Amount) pricePoint.Price.Symbol
                         let basisBalance = computeBasis s filters journal
-                        // TODO: Hmm.. calculating the basis (book value) and setting up parent accounts properly might be the hard parts...
                         { accountBalance with Balance = [realBalance]; Basis = Some basisBalance; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
                     | None -> accountBalance
-                | None -> accountBalance
+                | _ -> accountBalance
             | _ -> accountBalance
         accountBalances
         |> List.map computeRealBalance
-
-
-    // Computes real value, price, and price date for commodities
-    // TODO: get rid of yucky side-effects re: accountRealValues
-    (*
-    let xcomputeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (periodEnd : option<DateTime>) (mainAccounts : Set<string>) =
-        let accountRealValues = new System.Collections.Generic.Dictionary<string, Amount>()
-        let updateAccountRealValues lineage (amount : Amount) =
-            lineage
-            |> List.iter (fun account -> match accountRealValues.ContainsKey(account) with
-                                            | true -> 
-                                                let currentAmount = accountRealValues.[account]
-                                                accountRealValues.[account] <- { currentAmount with Amount = currentAmount.Amount + amount.Amount }
-                                            | false ->
-                                                accountRealValues.[account] <- amount)
-        // for each account balance, if it has some commodity, look up price and calculate real value
-        let computeValue (accountBalance : AccountBalance) =
-            let accountLineage = Account.getAccountLineage accountBalance.Account
-            match accountBalance.Commodity with
-            | Some commodity ->
-                match Map.tryFind commodity.Symbol.Value priceDB with
-                | Some symbolData ->
-                    let symbolPrice = 
-                        symbolData.Prices
-                        |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
-                        |> List.maxBy (fun symbolPrice -> symbolPrice.Date)
-                    let realBalance = { Amount = symbolPrice.Price * commodity.Amount; Symbol = accountBalance.Balance.Symbol }
-                    do updateAccountRealValues accountLineage realBalance
-                    { accountBalance with RealBalance = Some realBalance;
-                                            Price = Some { Amount = symbolPrice.Price; Symbol = accountBalance.Balance.Symbol };
-                                            PriceDate = Some symbolPrice.Date;}
-                | None -> 
-                    do updateAccountRealValues accountLineage accountBalance.Balance
-                    accountBalance
-            | None ->
-                match Set.contains accountBalance.Account mainAccounts with
-                | true -> do updateAccountRealValues accountLineage accountBalance.Balance
-                | false -> ()
-                accountBalance
-        let updateRealValue (accountBalance : AccountBalance) =
-            match accountBalance.RealBalance with
-            | None ->
-                let realValue = accountRealValues.[accountBalance.Account]
-                match realValue.Amount = accountBalance.Balance.Amount with
-                | true -> accountBalance
-                | false -> { accountBalance with RealBalance = Some realValue }
-            | Some _ ->
-                accountBalance
-        accountBalances
-        |> List.map computeValue
-        |> List.map updateRealValue
-    *)
 
 
     /// Groups entries by header and returns (date, payee, entries) tuples
@@ -262,42 +231,41 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
     // sum to get account balances, discard accounts with 0 balance
     let accountBalances =
         filteredEntries
-        |> calculateAccountBalances
+        |> sumEntriesByAccount
         |> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Amount <> 0M) accountBalance.Balance})
         |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
         //|> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
         
-    // filter parent accounts where amount is the same as the (assumed) single child
-    let accountBalances =
-        let amountsEqual a b =
-            (List.sort a) = (List.sort b)
-        let existsChildAccountWithSameAmount allBalances accountBalance =
-            allBalances
-            |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
-                                                        && otherAccountBalance.Account.Length > accountBalance.Account.Length
-                                                        && (amountsEqual otherAccountBalance.Balance accountBalance.Balance))
-                                                        //&& otherAccountBalance.Balance.Amount = accountBalance.Balance.Amount)
-            |> not
-        accountBalances
-        |> List.filter (existsChildAccountWithSameAmount accountBalances)
-
     // Calculate real value, price, and price date for commodities
     let accountBalances = computeCommodityValues accountBalances priceDB filters journal
 
     // calculate (total balance, real balance) pair
-    let totalBalance =
+    let totalBalance, totalBasisBalance =
         let sumBalances balances =
             let map = new SymbolAmountMap()
-            List.iter (addAmountForCommodity map) balances
+            balances
+            |> List.collect id
+            |> List.iter (addAmountForCommodity map)
             map.Values
             |> Seq.toList
             |> List.sort
-        accountBalances
-        |> List.filter (fun accountBalance -> Set.contains accountBalance.Account journal.MainAccounts)
-        |> List.collect (fun accountBalance -> accountBalance.Balance)
-        |> sumBalances
+        let balances, basisBalances = 
+            accountBalances
+            |> List.map (fun accountBalance -> 
+                                let basis =
+                                    match accountBalance.Basis with
+                                    | Some b -> b
+                                    | None -> List.head accountBalance.Balance
+                                (accountBalance.Balance, basis))
+            |> List.unzip
+        let totalBasis =
+            basisBalances
+            |> List.fold (fun (sum : Amount) amount -> {sum with Amount = sum.Amount + amount.Amount;}) (Amount.create 0M (Some "$"))
+        (sumBalances balances, totalBasis)
 
-    let totalBalances = (totalBalance, None)
+
+    //let totalBalances = (totalBalance, totalBasisBalance)
+    let totalBalances = (totalBalance, Some totalBasisBalance)
     (*
     let totalBalances = 
         accountBalances
@@ -319,6 +287,20 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
         | totalBalance, totalRealBalance when totalBalance = totalRealBalance -> totalBalance, None
         | totalBalance, totalRealBalance -> totalBalance, Some totalRealBalance
     *)
+
+    // filter parent accounts where amount is the same as the (assumed) single child
+    let accountBalances =
+        let amountsEqual a b =
+            (List.sort a) = (List.sort b)
+        let existsChildAccountWithSameAmount allBalances accountBalance =
+            allBalances
+            |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
+                                                        && otherAccountBalance.Account.Length > accountBalance.Account.Length
+                                                        && (amountsEqual otherAccountBalance.Balance accountBalance.Balance))
+                                                        //&& otherAccountBalance.Balance.Amount = accountBalance.Balance.Amount)
+            |> not
+        accountBalances
+        |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     (accountBalances, totalBalances)
 

@@ -269,6 +269,9 @@ PriceDB
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
+	- I'm checking this in in a horrible state. Still to do:
+		- calculate basis total -- not sure how to do this cleanly right now
+		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 
 Documentation
