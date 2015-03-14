@@ -58,9 +58,11 @@
     </Reference>
     <Reference Include="Nancy, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
+      <HintPath>..\packages\Nancy.0.21.1\lib\net40\Nancy.dll</HintPath>
     </Reference>
     <Reference Include="Nancy.Hosting.Self, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
+      <HintPath>..\packages\Nancy.Hosting.Self.0.21.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -72,6 +74,7 @@
     </ProjectReference>
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
+<!--
   <PropertyGroup>
     <PostBuildEvent>rmdir /Q /S views
 mkdir views
@@ -81,11 +84,21 @@ rmdir /Q /S content
 mkdir content
 xcopy $(ProjectDir)content content /S</PostBuildEvent>
   </PropertyGroup>
+-->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
-  <Target Name="AfterBuild">
-  </Target>
   -->
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <Content Include=".\content\**\*.*" />
+    </ItemGroup>
+    <ItemGroup>
+      <Views Include=".\views\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(Content)" DestinationFolder="$(TargetDir)\content\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(Views)" DestinationFolder="$(TargetDir)\views\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+  
 </Project>
