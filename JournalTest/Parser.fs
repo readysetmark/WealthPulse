@@ -45,6 +45,19 @@ let lineNumberParsers =
     ]
 
 [<Tests>]
+let commentParsers =
+    testList "comment" [
+        testCase "with leading space" <|
+            fun _ -> Assert.Equal("comment: ; Hi", Some("Hi"), parse comment "; Hi")
+
+        testCase "no leading space" <|
+            fun _ -> Assert.Equal("comment: ;Hi", Some("Hi"), parse comment ";Hi")
+
+        testCase "empty" <|
+            fun _ -> Assert.Equal("comment: <empty>", Some(""), parse comment ";")
+    ]
+
+[<Tests>]
 let dateParsers =
     testList "date parsers" [
         testList "year" [

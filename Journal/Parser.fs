@@ -26,7 +26,7 @@ module Parser =
 
         /// A parsed line will be one of these types
         type ParsedLine =
-            | Comment of string
+            | Comment of Journal.Types.Comment
             | Price of SymbolPrice
             | Transaction of Header * ParsedLine list
             | Entry of ParsedEntry
@@ -63,6 +63,14 @@ module Parser =
         let lineNumber : Parser<int64> =
             let posLineNumber (pos : Position) = pos.Line
             getPosition |>> posLineNumber
+
+
+        // Comment Parsers
+
+        /// Parse a comment that begins with a semi-colon (;)
+        let comment : Parser<Comment> =
+            let commentChar = noneOf "\r\n"
+            pstring ";" >>. manyChars commentChar |>> trim
 
 
         // Date Parsers
@@ -106,14 +114,6 @@ module Parser =
             let payeeChar = noneOf ";\r\n"
             many1Chars payeeChar |>> trim
 
-
-
-        // Comment Parsers
-
-        /// Parse a comment that begins with a semi-colon (;)
-        let parseComment =
-            let commentChar = noneOf "\r\n"
-            pstring ";" >>. manyChars commentChar |>> trim
 
 
         /// Parse an account
@@ -179,20 +179,20 @@ module Parser =
         let parseTransactionHeader =
             let createHeader date status code payee comment =
                 {Date=date; Status=status; Code=code; Payee=payee; Comment=comment}        
-            pipe5 date status (opt code) payee (opt parseComment) createHeader
+            pipe5 date status (opt code) payee (opt comment) createHeader
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
             let createEntry (account, entryType) amount comment =
                 {Account=account; EntryType=entryType; Amount=amount; Comment=comment}
-            pipe3 parseAccount (opt parseAmount) (opt parseComment) createEntry |>> Entry
+            pipe3 parseAccount (opt parseAmount) (opt comment) createEntry |>> Entry
 
         /// Parse a journal comment line
-        let parseCommentLine = parseComment |>> Comment
+        let commentLine = comment |>> Comment
 
         /// Parse a complete transaction
         let parseTransaction =
-            let parseEntry = attempt (skipWS >>. (parseTransactionEntry <|> parseCommentLine) .>> newline)
+            let parseEntry = attempt (skipWS >>. (parseTransactionEntry <|> commentLine) .>> newline)
             parseTransactionHeader .>> newline
             .>>. many parseEntry
             |>> Transaction
@@ -204,7 +204,7 @@ module Parser =
 
         /// Parse a complete ledger journal
         let parseJournal =
-            sepEndBy (parseCommentLine <|> parseTransaction <|> parsePrice) (many (skipWS >>. newline))
+            sepEndBy (commentLine <|> parseTransaction <|> parsePrice) (many (skipWS >>. newline))
 
 
         /// Price file parsing combinators
