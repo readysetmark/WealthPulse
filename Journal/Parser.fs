@@ -34,32 +34,21 @@ module Parser =
         /// Call Trim() on a string
         let trim (s : string) = 
             s.Trim()
-
-
-    /// Terminals for parser
-    module Terminals =
-
-        /// Whitespace characters        
-        let whitespace c =
-            c = ' ' || c = '\t'
-        
-        /// Date separator
-        let dateSeparator c =
-            c = '/' || c = '-'
     
 
     /// Parsing combinator functions
     module Combinators =
         open Types
         open Utilities
-        open Terminals
         
         /// Skip whitespace as spaces and tabs
         let skipWS = 
+            let whitespace c = c = ' ' || c = '\t'
             skipManySatisfy whitespace
 
         /// Parse a date
         let parseDate =
+            let dateSeparator c = c = '/' || c = '-'
             let isDateChar c = isDigit c || dateSeparator c
             many1SatisfyL isDateChar "Expecting a date separated by / or -" .>> skipWS |>> System.DateTime.Parse
 
