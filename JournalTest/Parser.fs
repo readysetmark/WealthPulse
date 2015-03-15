@@ -16,25 +16,32 @@ let parse parser text =
 let whitespaceParsers =
     testList "skipWS" [
         testCase "skipWS should be ok when input is an empty string" <|
-            fun _ -> Assert.Equal("skipWS \"\"", Some(()), parse skipWS "")
+            fun _ -> Assert.Equal("skipWS: \"\"", Some(()), parse skipWS "")
 
         testCase "skipWS should be ok when input has no whitespace" <|
-            fun _ -> Assert.Equal("skipWS \"alpha\"", Some(()), parse skipWS "alpha")
+            fun _ -> Assert.Equal("skipWS: \"alpha\"", Some(()), parse skipWS "alpha")
 
         testCase "skipWS should skip a single space" <|
-            fun _ -> Assert.Equal("skipWS \" \"", Some(()), parse skipWS " ")
+            fun _ -> Assert.Equal("skipWS: \" \"", Some(()), parse skipWS " ")
 
         testCase "skipWS should skip many spaces" <|
-            fun _ -> Assert.Equal("skipWS \"     \"", Some(()), parse skipWS "     ")
+            fun _ -> Assert.Equal("skipWS: \"     \"", Some(()), parse skipWS "     ")
 
         testCase "skipWS should skip a single tab" <|
-            fun _ -> Assert.Equal("skipWS \"\\t\"", Some(()), parse skipWS "\t")
+            fun _ -> Assert.Equal("skipWS: \"\\t\"", Some(()), parse skipWS "\t")
 
         testCase "skipWS should skip many tabs" <|
-            fun _ -> Assert.Equal("skipWS \"\\t\\t\\t\"", Some(()), parse skipWS "\t\t\t")
+            fun _ -> Assert.Equal("skipWS: \"\\t\\t\\t\"", Some(()), parse skipWS "\t\t\t")
 
         testCase "skipWS should skip tabs and spaces" <|
-            fun _ -> Assert.Equal("skipWS \"   \\t  \\t \\t", Some(()), parse skipWS "   \t  \t \t")
+            fun _ -> Assert.Equal("skipWS: \"   \\t  \\t \\t", Some(()), parse skipWS "   \t  \t \t")
+    ]
+
+[<Tests>]
+let lineNumberParsers =
+    testList "lineNumber" [
+        testCase "first line is 1" <|
+            fun _ -> Assert.Equal("lineNumber: 1", Some(1L), parse lineNumber "hi")
     ]
 
 [<Tests>]
@@ -42,25 +49,25 @@ let dateParsers =
     testList "date parsers" [
         testList "year" [
             testCase "parse 4-digit year" <|
-                fun _ -> Assert.Equal("year 2015", Some(2015), parse year "2015")
+                fun _ -> Assert.Equal("year: 2015", Some(2015), parse year "2015")
         ]
 
         testList "month" [
             testCase "parse 2-digit month" <|
-                fun _ -> Assert.Equal("month 03", Some(3), parse month "03")
+                fun _ -> Assert.Equal("month: 03", Some(3), parse month "03")
         ]
 
         testList "day" [
             testCase "parse 2-digit day" <|
-                fun _ -> Assert.Equal("day 15", Some(15), parse day "15")
+                fun _ -> Assert.Equal("day: 15", Some(15), parse day "15")
         ]
 
         testList "date" [
             testCase "parse date with / separator" <|
-                fun _ -> Assert.Equal("date 2014/12/14", Some(new System.DateTime(2014, 12, 14)), parse date "2014/12/14")
+                fun _ -> Assert.Equal("date: 2014/12/14", Some(new System.DateTime(2014, 12, 14)), parse date "2014/12/14")
 
             testCase "parse date with - separator" <|
-                fun _ -> Assert.Equal("date 2014-12-14", Some(new System.DateTime(2014, 12, 14)), parse date "2014-12-14")
+                fun _ -> Assert.Equal("date: 2014-12-14", Some(new System.DateTime(2014, 12, 14)), parse date "2014-12-14")
         ]
     ]
 
@@ -69,20 +76,32 @@ let transactionHeaderParsers =
     testList "transaction header parsers" [
         testList "status" [
             testCase "cleared" <|
-                fun _ -> Assert.Equal("status *", Some(Cleared), parse status "*")
+                fun _ -> Assert.Equal("status: *", Some(Cleared), parse status "*")
 
             testCase "uncleared" <|
-                fun _ -> Assert.Equal("status !", Some(Uncleared), parse status "!")
+                fun _ -> Assert.Equal("status: !", Some(Uncleared), parse status "!")
         ]
 
         testList "code" [
             testCase "long code" <|
-                fun _ -> Assert.Equal("code (conf# ABC-123-def)", Some("conf# ABC-123-def"), parse code "(conf# ABC-123-def)")
+                fun _ -> Assert.Equal("code: (conf# ABC-123-def)", Some("conf# ABC-123-def"), parse code "(conf# ABC-123-def)")
 
             testCase "short code" <|
-                fun _ -> Assert.Equal("code (89)", Some("89"), parse code "(89)")
+                fun _ -> Assert.Equal("code: (89)", Some("89"), parse code "(89)")
 
             testCase "Empty code" <|
-                fun _ -> Assert.Equal("code ()", Some(""), parse code "()")
+                fun _ -> Assert.Equal("code: ()", Some(""), parse code "()")
+        ]
+
+        testList "payee" [
+            testCase "long payee" <|
+                fun _ -> 
+                    Assert.Equal(
+                        "payee: WonderMart - groceries, toiletries, kitchen supplies",
+                        Some ("WonderMart - groceries, toiletries, kitchen supplies"),
+                        parse payee "WonderMart - groceries, toiletries, kitchen supplies")
+
+            testCase "short payee" <|
+                fun _ -> Assert.Equal("payee: W", Some("W"), parse payee "W")
         ]
     ]

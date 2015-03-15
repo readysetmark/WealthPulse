@@ -57,18 +57,26 @@ module Parser =
             skipManySatisfy whitespace
 
 
+        // Line number
+
+        /// Get current line number
+        let lineNumber : Parser<int64> =
+            let posLineNumber (pos : Position) = pos.Line
+            getPosition |>> posLineNumber
+
+
         // Date Parsers
 
         /// Parse a 4 digit year
-        let year : Parser<int> =
+        let year : Parser<int32> =
             parray 4 digit |>> charArrayToInt32
 
         /// Parse a 2 digit month
-        let month : Parser<int> =
+        let month : Parser<int32> =
             parray 2 digit |>> charArrayToInt32
 
         /// Parse a 2 digit day
-        let day : Parser<int> =
+        let day : Parser<int32> =
             parray 2 digit |>> charArrayToInt32
 
         /// Parse a date
@@ -80,7 +88,7 @@ module Parser =
             |>> createDate
 
 
-        // Transaction Header Fields
+        // Simple Transaction Header Field Parsers
 
         /// Parse transaction status as Cleared or Uncleared
         let status : Parser<Status> = 
@@ -93,15 +101,20 @@ module Parser =
             let codeChar = noneOf ");\r\n"
             between (pstring "(") (pstring ")") (manyChars codeChar) .>> skipWS
 
+        /// Parse a payee
+        let payee : Parser<Payee> = 
+            let payeeChar = noneOf ";\r\n"
+            many1Chars payeeChar |>> trim
+
+
+
+        // Comment Parsers
+
         /// Parse a comment that begins with a semi-colon (;)
         let parseComment =
             let commentChar = noneOf "\r\n"
             pstring ";" >>. manyChars commentChar |>> trim
 
-        /// Parse a payee
-        let parsePayee = 
-            let payeeChar = noneOf ";\r\n"
-            many1Chars payeeChar |>> trim
 
         /// Parse an account
         let parseAccount =
@@ -166,7 +179,7 @@ module Parser =
         let parseTransactionHeader =
             let createHeader date status code payee comment =
                 {Date=date; Status=status; Code=code; Payee=payee; Comment=comment}        
-            pipe5 date status (opt code) parsePayee (opt parseComment) createHeader
+            pipe5 date status (opt code) payee (opt parseComment) createHeader
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
