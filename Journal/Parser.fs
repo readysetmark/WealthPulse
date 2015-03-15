@@ -38,6 +38,10 @@ module Parser =
         /// Call Trim() on a string
         let trim (s : string) = 
             s.Trim()
+
+        /// Convert a char array of digits to an Int32
+        let charArrayToInt32 (a : char[]) =
+            a |> System.String.Concat |> System.Int32.Parse
     
 
     /// Parsing combinator functions
@@ -57,37 +61,34 @@ module Parser =
 
         /// Parse a 4 digit year
         let year : Parser<int> =
-            parray 4 digit
-            |>> (System.String.Concat >> System.Int32.Parse)
+            parray 4 digit |>> charArrayToInt32
 
         /// Parse a 2 digit month
         let month : Parser<int> =
-            parray 2 digit
-            |>> (System.String.Concat >> System.Int32.Parse)
+            parray 2 digit |>> charArrayToInt32
 
         /// Parse a 2 digit day
         let day : Parser<int> =
-            parray 2 digit
-            |>> (System.String.Concat >> System.Int32.Parse)
+            parray 2 digit |>> charArrayToInt32
 
         /// Parse a date
         let date : Parser<System.DateTime> =
             let isDateSeparator c = c = '/' || c = '-'
             let dateSeparator = satisfy isDateSeparator
             let createDate ((year, month), day) = new System.DateTime(year, month, day)
-            year .>> dateSeparator .>>. month .>> dateSeparator .>>. day
+            year .>> dateSeparator .>>. month .>> dateSeparator .>>. day .>> skipWS
             |>> createDate
 
 
-
+        // Transaction Header Fields
 
         /// Parse transaction status as Cleared or Uncleared
-        let parseTransactionStatus = 
+        let transactionStatus : Parser<Status> = 
             let parseCleared = charReturn '*' Cleared
             let parseUncleared = charReturn '!' Uncleared
             (parseCleared <|> parseUncleared) .>> skipWS
-    
-        /// Parse a code between parentheses
+
+        /// Parse a transaction code between parentheses
         let parseCode = 
             let codeChar = noneOf ");\r\n"
             between (pstring "(") (pstring ")") (manyChars codeChar) .>> skipWS
@@ -165,7 +166,7 @@ module Parser =
         let parseTransactionHeader =
             let createHeader date status code payee comment =
                 {Date=date; Status=status; Code=code; Description=payee; Comment=comment}        
-            pipe5 date parseTransactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
+            pipe5 date transactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
