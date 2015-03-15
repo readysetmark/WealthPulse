@@ -10,6 +10,10 @@ module Parser =
     /// will be converted to the appropriate Journal types.
     module Types =
 
+        // Types for resolving value restriction errors with FParsec
+        type UserState = unit
+        type Parser<'t> = Parser<'t, UserState>
+
         /// Parsed Entry. The only difference from a Journal.Type.Entry is the Amount field is an option,
         /// to allow for entries with blank amounts during parsing. A blank will get calculated when we
         /// create the Journal.    
@@ -41,16 +45,41 @@ module Parser =
         open Types
         open Utilities
         
+        // Whitespace Parsers
+
         /// Skip whitespace as spaces and tabs
-        let skipWS = 
+        let skipWS : Parser<unit> = 
             let whitespace c = c = ' ' || c = '\t'
             skipManySatisfy whitespace
 
+
+        // Date Parsers
+
+        /// Parse a 4 digit year
+        let year : Parser<int> =
+            parray 4 digit
+            |>> (System.String.Concat >> System.Int32.Parse)
+
+        /// Parse a 2 digit month
+        let month : Parser<int> =
+            parray 2 digit
+            |>> (System.String.Concat >> System.Int32.Parse)
+
+        /// Parse a 2 digit day
+        let day : Parser<int> =
+            parray 2 digit
+            |>> (System.String.Concat >> System.Int32.Parse)
+
         /// Parse a date
-        let parseDate =
-            let dateSeparator c = c = '/' || c = '-'
-            let isDateChar c = isDigit c || dateSeparator c
-            many1SatisfyL isDateChar "Expecting a date separated by / or -" .>> skipWS |>> System.DateTime.Parse
+        let date : Parser<System.DateTime> =
+            let isDateSeparator c = c = '/' || c = '-'
+            let dateSeparator = satisfy isDateSeparator
+            let createDate ((year, month), day) = new System.DateTime(year, month, day)
+            year .>> dateSeparator .>>. month .>> dateSeparator .>>. day
+            |>> createDate
+
+
+
 
         /// Parse transaction status as Cleared or Uncleared
         let parseTransactionStatus = 
@@ -136,7 +165,7 @@ module Parser =
         let parseTransactionHeader =
             let createHeader date status code payee comment =
                 {Date=date; Status=status; Code=code; Description=payee; Comment=comment}        
-            pipe5 parseDate parseTransactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
+            pipe5 date parseTransactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
@@ -157,7 +186,7 @@ module Parser =
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 parseDate parseSymbol parseAmountWithSymbol SymbolPrice.create |>> Price
+            parseP >>. pipe3 date parseSymbol parseAmountWithSymbol SymbolPrice.create |>> Price
 
         /// Parse a complete ledger journal
         let parseJournal =
@@ -169,7 +198,7 @@ module Parser =
         /// Parse a price entry in a price file. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePriceFilePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 parseDate parseSymbol parseAmountWithSymbol SymbolPrice.create
+            parseP >>. pipe3 date parseSymbol parseAmountWithSymbol SymbolPrice.create
 
         /// Parse a prices file
         let parsePriceFilePrices =
