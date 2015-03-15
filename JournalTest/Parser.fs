@@ -67,11 +67,22 @@ let dateParsers =
 [<Tests>]
 let transactionHeaderParsers =
     testList "transaction header parsers" [
-        testList "transaction status" [
+        testList "status" [
             testCase "cleared" <|
-                fun _ -> Assert.Equal("transactionStatus *", Some(Cleared), parse transactionStatus "*")
+                fun _ -> Assert.Equal("status *", Some(Cleared), parse status "*")
 
             testCase "uncleared" <|
-                fun _ -> Assert.Equal("transactionStatus !", Some(Uncleared), parse transactionStatus "!")
+                fun _ -> Assert.Equal("status !", Some(Uncleared), parse status "!")
+        ]
+
+        testList "code" [
+            testCase "long code" <|
+                fun _ -> Assert.Equal("code (conf# ABC-123-def)", Some("conf# ABC-123-def"), parse code "(conf# ABC-123-def)")
+
+            testCase "short code" <|
+                fun _ -> Assert.Equal("code (89)", Some("89"), parse code "(89)")
+
+            testCase "Empty code" <|
+                fun _ -> Assert.Equal("code ()", Some(""), parse code "()")
         ]
     ]

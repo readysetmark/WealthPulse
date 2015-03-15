@@ -216,7 +216,7 @@ module private Support =
             (entry.Account, entry.Amount.Amount, !runningTotal)
         entries
         |> Seq.groupBy (fun entry -> entry.Header)
-        |> Seq.map (fun (header, entries) -> header.Date, header.Description, Seq.map calculateEntryLine entries |> Seq.toList |> List.rev)
+        |> Seq.map (fun (header, entries) -> header.Date, header.Payee, Seq.map calculateEntryLine entries |> Seq.toList |> List.rev)
 
             
 

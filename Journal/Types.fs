@@ -123,6 +123,10 @@ module SymbolPriceDB =
         |> Map.iter printSymbolPrices
 
 
+type Code = string
+type Payee = string
+type Comment = string
+
 /// Transaction status.
 type Status =
     | Cleared
@@ -138,9 +142,9 @@ type EntryType =
 type Header = {
     Date: System.DateTime;
     Status: Status;
-    Code: string option;
-    Description: string;
-    Comment: string option
+    Code: Code option;
+    Payee: Payee;
+    Comment: Comment option
 }
 
 /// Transaction entry line.

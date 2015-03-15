@@ -83,13 +83,13 @@ module Parser =
         // Transaction Header Fields
 
         /// Parse transaction status as Cleared or Uncleared
-        let transactionStatus : Parser<Status> = 
+        let status : Parser<Status> = 
             let parseCleared = charReturn '*' Cleared
             let parseUncleared = charReturn '!' Uncleared
             (parseCleared <|> parseUncleared) .>> skipWS
 
         /// Parse a transaction code between parentheses
-        let parseCode = 
+        let code : Parser<Code> = 
             let codeChar = noneOf ");\r\n"
             between (pstring "(") (pstring ")") (manyChars codeChar) .>> skipWS
 
@@ -98,7 +98,7 @@ module Parser =
             let commentChar = noneOf "\r\n"
             pstring ";" >>. manyChars commentChar |>> trim
 
-        /// Parse a description/payee
+        /// Parse a payee
         let parsePayee = 
             let payeeChar = noneOf ";\r\n"
             many1Chars payeeChar |>> trim
@@ -165,8 +165,8 @@ module Parser =
         /// Parse a complete transaction header
         let parseTransactionHeader =
             let createHeader date status code payee comment =
-                {Date=date; Status=status; Code=code; Description=payee; Comment=comment}        
-            pipe5 date transactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
+                {Date=date; Status=status; Code=code; Payee=payee; Comment=comment}        
+            pipe5 date status (opt code) parsePayee (opt parseComment) createHeader
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
@@ -306,7 +306,7 @@ module Parser =
         /// Convert to a list of journal entries (transaction entries)
         let toEntryList ts =
             let transactionToJournal (h, es) =
-                let header = ({ Date=h.Date; Status=h.Status; Code=h.Code; Description=h.Description; Comment=h.Comment; } : Header)
+                let header = ({ Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
                 let toEntry e =
                     ({
                         Header=header; 
