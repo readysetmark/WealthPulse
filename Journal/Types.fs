@@ -138,14 +138,23 @@ type EntryType =
     | VirtualBalanced
     | VirtualUnbalanced
 
+
 /// Transaction header.
 type Header = {
+    LineNumber: int64;
     Date: System.DateTime;
     Status: Status;
     Code: Code option;
     Payee: Payee;
     Comment: Comment option
 }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Header =
+
+    let create lineNum date status code payee comment =
+        {LineNumber=lineNum; Date=date; Status=status; Code=code; Payee=payee; Comment=comment}
+
 
 /// Transaction entry line.
 type Entry = {

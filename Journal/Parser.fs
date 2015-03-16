@@ -115,6 +115,16 @@ module Parser =
             many1Chars payeeChar |>> trim
 
 
+        // Transaction Header
+
+        /// Parse a complete transaction header
+        let header =
+            let createHeader (((((lineNum, date), status), code), payee), comment) =
+                Header.create lineNum date status code payee comment
+            lineNumber .>>. date .>>. status .>>. (opt code) .>>. payee .>>. (opt comment)
+            |>> createHeader
+
+
 
         /// Parse an account
         let parseAccount =
@@ -175,12 +185,6 @@ module Parser =
             attempt (parseAmountNumber .>>. (parseSymbol |>> Some) |>> createAmount)
             <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
 
-        /// Parse a complete transaction header
-        let parseTransactionHeader =
-            let createHeader date status code payee comment =
-                {Date=date; Status=status; Code=code; Payee=payee; Comment=comment}        
-            pipe5 date status (opt code) payee (opt comment) createHeader
-
         /// Parse a complete transaction entry
         let parseTransactionEntry =
             let createEntry (account, entryType) amount comment =
@@ -193,9 +197,7 @@ module Parser =
         /// Parse a complete transaction
         let parseTransaction =
             let parseEntry = attempt (skipWS >>. (parseTransactionEntry <|> commentLine) .>> newline)
-            parseTransactionHeader .>> newline
-            .>>. many parseEntry
-            |>> Transaction
+            header .>> newline .>>. many parseEntry |>> Transaction
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
@@ -319,7 +321,7 @@ module Parser =
         /// Convert to a list of journal entries (transaction entries)
         let toEntryList ts =
             let transactionToJournal (h, es) =
-                let header = ({ Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
+                let header = ({ LineNumber=h.LineNumber; Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
                 let toEntry e =
                     ({
                         Header=header; 

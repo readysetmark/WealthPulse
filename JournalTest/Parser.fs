@@ -85,8 +85,8 @@ let dateParsers =
     ]
 
 [<Tests>]
-let transactionHeaderParsers =
-    testList "transaction header parsers" [
+let transactionHeaderSimpleFieldParsers =
+    testList "transaction header simple field parsers" [
         testList "status" [
             testCase "cleared" <|
                 fun _ -> Assert.Equal("status: *", Some(Cleared), parse status "*")
@@ -117,4 +117,65 @@ let transactionHeaderParsers =
             testCase "short payee" <|
                 fun _ -> Assert.Equal("payee: W", Some("W"), parse payee "W")
         ]
+    ]
+
+
+[<Tests>]
+let transactionHeaderParser =
+    testList "transaction header" [
+        testCase "with all fields" <|
+            fun _ ->
+                Assert.Equal(
+                    "header with all fields",
+                    Some({
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,2,15);
+                            Status = Cleared;
+                            Code = Some("conf# abc-123");
+                            Payee = "Payee";
+                            Comment = Some("Comment")
+                        }),
+                    parse header "2015/02/15 * (conf# abc-123) Payee ;Comment")
+
+        testCase "with code and no comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "header with code and no comment",
+                    Some({
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,2,15);
+                            Status = Uncleared;
+                            Code = Some("conf# abc-123");
+                            Payee = "Payee";
+                            Comment = None
+                        }),
+                    parse header "2015/02/15 ! (conf# abc-123) Payee")
+
+        testCase "with comment and no code" <|
+            fun _ ->
+                Assert.Equal(
+                    "header with comment and no code",
+                    Some({
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,2,15);
+                            Status = Cleared;
+                            Code = None;
+                            Payee = "Payee";
+                            Comment = Some("Comment")
+                        }),
+                    parse header "2015/02/15 * Payee ;Comment")
+
+        testCase "with no code or comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "header with no code or comment",
+                    Some({
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,2,15);
+                            Status = Cleared;
+                            Code = None;
+                            Payee = "Payee";
+                            Comment = None
+                        }),
+                    parse header "2015/02/15 * Payee")
     ]
