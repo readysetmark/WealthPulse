@@ -70,7 +70,7 @@ module Parser =
         /// Parse a comment that begins with a semi-colon (;)
         let comment : Parser<Comment> =
             let commentChar = noneOf "\r\n"
-            pstring ";" >>. manyChars commentChar |>> trim
+            pchar ';' >>. manyChars commentChar |>> trim
 
 
         // Date Parsers
@@ -107,7 +107,7 @@ module Parser =
         /// Parse a transaction code between parentheses
         let code : Parser<Code> = 
             let codeChar = noneOf ");\r\n"
-            between (pstring "(") (pstring ")") (manyChars codeChar) .>> skipWS
+            between (pchar '(') (pchar ')') (manyChars codeChar) .>> skipWS
 
         /// Parse a payee
         let payee : Parser<Payee> = 
@@ -129,22 +129,38 @@ module Parser =
 
         /// Parse a subaccount, which can be any alphanumeric character sequence
         let subaccount : Parser<Account> =
-            let isAlphanumeric c = System.Char.IsDigit(c) || System.Char.IsLetter(c)
+            let isAlphanumeric c = isDigit(c) || isLetter(c)
             many1Satisfy isAlphanumeric
 
         /// Parse an account
         let account : Parser<Account list> =
-            sepBy1 subaccount (pstring ":") .>> skipWS
+            sepBy1 subaccount (pchar ':') .>> skipWS
 
 
+        // Quantity Parser
 
-        /// Parse the numeric portion of an amount
-        let parseAmountNumber =
-            let isAmountChar c = isDigit c || c = '.' || c = ','
-            attempt (pipe2 <| pchar '-' <| many1Satisfy isAmountChar <| (fun a b -> a.ToString() + b)) 
-            <|> (many1Satisfy isAmountChar)
+        /// Parse a quantity
+        let quantity : Parser<decimal> =
+            let negativeSign = pstring "-"
+            let isAmountChar c = isDigit c || c = ','
+            let integerPart =
+                digit .>>. manySatisfy isAmountChar
+                |>> System.String.Concat
+            let fractionPart =
+                (pstring ".") .>>. many1Satisfy isDigit
+                |>> System.String.Concat
+            let createDecimal negSign intPart fracPart =
+                let qty = 
+                    match negSign, fracPart with
+                    | Some(n), Some(f) -> n + intPart + f
+                    | Some(n), None    -> n + intPart
+                    | None, Some(f)    -> intPart + f
+                    | None, None       -> intPart
+                System.Decimal.Parse(qty)
+            pipe3 (opt negativeSign) integerPart (opt fractionPart) createDecimal
             .>> skipWS
-            |>> System.Decimal.Parse
+
+
 
         /// Parse the symbol portion of an amount
         let parseSymbol =
@@ -161,9 +177,9 @@ module Parser =
             let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
             let amountTuple amount = (amount, None)
             let reverse (a,b) = (b,a)
-            attempt (parseAmountNumber .>>. (parseSymbol |>> Some) |>> createAmount)
-            <|> attempt (parseAmountNumber |>> amountTuple |>> createAmount)
-            <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
+            attempt (quantity .>>. (parseSymbol |>> Some) |>> createAmount)
+            <|> attempt (quantity |>> amountTuple |>> createAmount)
+            <|> ((parseSymbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
 
         /// Parse an amount that includes the numerical value and a symbol.
         /// The symbol can come before or after the amount. If the symbol contains
@@ -171,8 +187,8 @@ module Parser =
         let parseAmountWithSymbol =
             let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
             let reverse (a,b) = (b,a)
-            attempt (parseAmountNumber .>>. (parseSymbol |>> Some) |>> createAmount)
-            <|> ((parseSymbol |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
+            attempt (quantity .>>. (parseSymbol |>> Some) |>> createAmount)
+            <|> ((parseSymbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =

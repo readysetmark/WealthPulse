@@ -214,3 +214,19 @@ let accountParsers =
                         parse account "Expenses")
         ]
     ]
+
+[<Tests>]
+let quantityParser =
+    testList "quantity" [
+        testCase "negative quantity with no fractional part" <|
+            fun _ -> Assert.Equal("quantity: -1,110", Some(-1110M), parse quantity "-1,110")
+
+        testCase "positive quantity with no fractional part" <|
+            fun _ -> Assert.Equal("quantity: 2314", Some(2314M), parse quantity "2314")
+
+        testCase "negative quantity with fractional part" <|
+            fun _ -> Assert.Equal("quantity: -1,110.38", Some(-1110.38M), parse quantity "-1,110.38")
+
+        testCase "positive quantity with fractional part" <|
+            fun _ -> Assert.Equal("quantity: 24521.793", Some(24521.793M), parse quantity "24521.793")
+    ]

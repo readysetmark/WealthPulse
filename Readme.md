@@ -266,6 +266,7 @@ Journal Parsing
 	- [x] Get initial parsing working
 	- [x] Should fix parsing up to be more precise (amount MUST have symbol)
 	- [x] Create price db from parsed prices
+- [ ] Get line numbers for headers, postings, prices and comment lines
 - [ ] Add unit tests
 - [ ] Rework post-parse processing
 
@@ -273,6 +274,7 @@ PriceDB
 - [x] Fix pricedb parsing and serialization
 	- [x] Use FParsec parser instead of regex
 	- [x] Price should be an Amount with a symbol
+- [ ] Pricedb and Journal should use the same parser combinator
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
@@ -280,6 +282,7 @@ Balance Report
 		- calculate basis total -- not sure how to do this cleanly right now
 		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
+- [ ] Can I use LINQ for querying?
 
 Documentation
 - [ ] Use of commodities within file
