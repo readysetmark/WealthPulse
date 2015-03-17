@@ -119,7 +119,6 @@ let transactionHeaderSimpleFieldParsers =
         ]
     ]
 
-
 [<Tests>]
 let transactionHeaderParser =
     testList "transaction header" [
@@ -178,4 +177,40 @@ let transactionHeaderParser =
                             Comment = None
                         }),
                     parse header "2015/02/15 * Payee")
+    ]
+
+[<Tests>]
+let accountParsers = 
+    testList "account parsers" [
+        testList "subaccount" [
+            testCase "may have any alphanumeric" <|
+                fun _ ->
+                    Assert.Equal(
+                        "any alphanumeric",
+                        Some("ABCabc123"),
+                        parse subaccount "ABCabc123")
+
+            testCase "may start with a digit" <|
+                fun _ ->
+                    Assert.Equal(
+                        "may start with a digit",
+                        Some("123abcABC"),
+                        parse subaccount "123abcABC")
+        ]
+
+        testList "account" [
+            testCase "multiple level account" <|
+                fun _ ->
+                    Assert.Equal(
+                        "multiple level account",
+                        Some(["Expenses"; "Food"; "Groceries"]),
+                        parse account "Expenses:Food:Groceries")
+
+            testCase "single level account" <|
+                fun _ ->
+                    Assert.Equal(
+                        "single level account",
+                        Some(["Expenses"]),
+                        parse account "Expenses")
+        ]
     ]

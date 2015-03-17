@@ -118,36 +118,25 @@ module Parser =
         // Transaction Header
 
         /// Parse a complete transaction header
-        let header =
+        let header : Parser<Header> =
             let createHeader (((((lineNum, date), status), code), payee), comment) =
                 Header.create lineNum date status code payee comment
             lineNumber .>>. date .>>. status .>>. (opt code) .>>. payee .>>. (opt comment)
             |>> createHeader
 
 
+        // Account Parsers
+
+        /// Parse a subaccount, which can be any alphanumeric character sequence
+        let subaccount : Parser<Account> =
+            let isAlphanumeric c = System.Char.IsDigit(c) || System.Char.IsLetter(c)
+            many1Satisfy isAlphanumeric
 
         /// Parse an account
-        let parseAccount =
-            let extractAccountAndEntryType (account :string) =
-                let entryType = 
-                    match account.[0] with
-                        | '(' -> VirtualUnbalanced
-                        | '[' -> VirtualBalanced
-                        | _ -> Balanced
-                let account = (account.TrimStart [| '('; '[' |]).TrimEnd [| ')'; ']' |]
-                (account, entryType)
-            let accountChar = noneOf " ;\t\r\n" 
-            let stringsSepEndBy p sep =
-                Inline.SepBy(elementParser = p,
-                             separatorParser = sep,
-                             ?separatorMayEndSequence = Some true,
-                             stateFromFirstElement = (fun str -> 
-                                                        let sb = new System.Text.StringBuilder()
-                                                        sb.Append(str : string)),
-                             foldState = (fun sb sep str -> sb.Append(sep : string)
-                                                              .Append(str : string)),
-                             resultFromState = (fun sb -> sb.ToString()))
-            stringsSepEndBy (many1Chars accountChar) (pstring " ") .>> skipWS |>> extractAccountAndEntryType
+        let account : Parser<Account list> =
+            sepBy1 subaccount (pstring ":") .>> skipWS
+
+
 
         /// Parse the numeric portion of an amount
         let parseAmountNumber =
@@ -187,9 +176,9 @@ module Parser =
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
-            let createEntry (account, entryType) amount comment =
-                {Account=account; EntryType=entryType; Amount=amount; Comment=comment}
-            pipe3 parseAccount (opt parseAmount) (opt comment) createEntry |>> Entry
+            let createEntry account amount comment =
+                {Account=String.concat ":" account; EntryType=Balanced; Amount=amount; Comment=comment}
+            pipe3 account (opt parseAmount) (opt comment) createEntry |>> Entry
 
         /// Parse a journal comment line
         let commentLine = comment |>> Comment

@@ -261,6 +261,12 @@ Journal Parsing
 	- [x] Get initial parsing working
 	- [x] Should fix parsing up to be more precise (amount MUST have symbol)
 	- [x] Create price db from parsed prices
+- [ ] Rename Entry to Posting
+- [ ] Include a list of account levels field on Posting?
+	- Also change Account to a Subaccount list and Subaccount = String
+- [ ] Remove EntryType field from Posting (no longer supporting "virtual" accounts)
+- [ ] Add unit tests
+- [ ] Rework post-parse processing
 
 PriceDB
 - [x] Fix pricedb parsing and serialization
