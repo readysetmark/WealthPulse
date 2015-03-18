@@ -230,3 +230,28 @@ let quantityParser =
         testCase "positive quantity with fractional part" <|
             fun _ -> Assert.Equal("quantity: 24521.793", Some(24521.793M), parse quantity "24521.793")
     ]
+
+[<Tests>]
+let symbolParser =
+    testList "symbol" [
+        testCase "quoted symbol \"MTF5004\"" <|
+            fun _ ->
+                Assert.Equal(
+                    "symbol: \"MTF5004\"",
+                    Some({Value = "MTF5004"; Quoted = true}),
+                    parse symbol "\"MTF5004\"")
+
+        testCase "unquoted symbol $" <|
+            fun _ ->
+                Assert.Equal(
+                    "symbol: $",
+                    Some({Value = "$"; Quoted = false}),
+                    parse symbol "$")
+
+        testCase "unquoted symbol US$" <|
+            fun _ ->
+                Assert.Equal(
+                    "symbol: US$",
+                    Some({Value = "US$"; Quoted = false}),
+                    parse symbol "US$")
+    ]

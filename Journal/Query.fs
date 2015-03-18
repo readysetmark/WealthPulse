@@ -176,14 +176,14 @@ module private Support =
 
 
     let computeBasis (symbol : Symbol) (filters : QueryFilters) (journal : Journal) =
-        let basisAccount = "Basis:" + symbol
+        let basisAccount = "Basis:" + symbol.Value
         let basisFilter = {filters with AccountsWith = Some [basisAccount]; ExcludeAccountsWith = None;}
         let basisAmount = 
             journal
             |> filterEntries basisFilter
-            |> List.filter (fun (e:Entry) -> e.Amount.Symbol.Value = "$")
+            |> List.filter (fun (e:Entry) -> e.Amount.Symbol.Value.Value = "$")
             |> List.sumBy (fun (e:Entry) -> e.Amount.Amount)
-        Amount.create basisAmount (Some "$")
+        Amount.create basisAmount (Some {Value = "$"; Quoted = false})
 
 
     // TODO: Review this for handling multiple commodities in an account.. and hard coded 1 to find these accounts is horrible
@@ -193,7 +193,7 @@ module private Support =
             | 1 -> 
                 let first = List.head accountBalance.Balance
                 match first.Symbol with
-                | Some s when s <> "$" -> 
+                | Some s when s.Value <> "$" -> 
                     match lookupPricePoint s filters.PeriodEnd priceDB journal.JournalPriceDB with
                     | Some pricePoint ->
                         let realBalance = Amount.create (pricePoint.Price.Amount * first.Amount) pricePoint.Price.Symbol

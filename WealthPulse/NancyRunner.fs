@@ -147,10 +147,11 @@ module NancyRunner =
         | Some amount ->
             let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
             match amount.Symbol with
-            | Some s when s <> "$" -> numberFormat.CurrencyPositivePattern <- 3  // n $
-                                      numberFormat.CurrencyNegativePattern <- 15 // (n $)
-                                      numberFormat.CurrencySymbol <- s
-                                      numberFormat.CurrencyDecimalDigits <- 3
+            | Some s when s.Value <> "$" ->
+                numberFormat.CurrencyPositivePattern <- 3  // n $
+                numberFormat.CurrencyNegativePattern <- 15 // (n $)
+                numberFormat.CurrencySymbol <- s.Value
+                numberFormat.CurrencyDecimalDigits <- 3
             | otherwise -> ()
             amount.Amount.ToString("C", numberFormat)
         | otherwise -> ""
@@ -209,7 +210,7 @@ module NancyRunner =
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
             }
             let _, (totalBalance, totalRealBalance) = Query.balance parameters journalData symbolPriceDB
-            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol = Some "$") totalBalance)
+            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol = Some({Value="$"; Quoted=false})) totalBalance)
             {
                 date = month.ToString("dd-MMM-yyyy"); 
                 amount = dollarAmount.Amount.ToString();//totalBalance.Amount.ToString(); 

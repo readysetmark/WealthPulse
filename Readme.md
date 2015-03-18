@@ -253,11 +253,14 @@ lookup, check the downloaded prices file first, and the ledger file if no price 
 Types
 - [x] Update Entry type -- will only have one amount, no commodity field
 - [x] Price on SymbolPrice record should be an Amount, not just a decimal
+- [x] Symbol type should be value + quoted or format
 - [ ] Move price DBs into Journal record
 - [ ] Rename Entry to Posting
 - [ ] Include a list of account levels field on Posting?
 	- Also change Account to a Subaccount list and Subaccount = String
 - [ ] Remove EntryType field from Posting (no longer supporting "virtual" accounts)
+- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
+- [ ] Review all types
 
 
 Journal Parsing
@@ -275,6 +278,7 @@ PriceDB
 	- [x] Use FParsec parser instead of regex
 	- [x] Price should be an Amount with a symbol
 - [ ] Pricedb and Journal should use the same parser combinator
+- [ ] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities

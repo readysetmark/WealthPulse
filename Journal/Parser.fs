@@ -161,14 +161,18 @@ module Parser =
             .>> skipWS
 
 
+        // Symbol Parsers
 
-        /// Parse the symbol portion of an amount
-        let parseSymbol =
-            let quotedIdentifier = noneOf "\r\n\""
-            let identifier = noneOf "-0123456789., @;\r\n\""
-            attempt (pchar '\"' >>. manyCharsTill quotedIdentifier (pchar '\"'))
-            <|> attempt (many1Chars identifier)
+        /// Parse a quoted symbol
+        let symbol : Parser<Symbol> =
+            let quote = pchar '\"'
+            let quotedSymbolChar = noneOf "\r\n\""
+            let unquotedSymbolChar = noneOf "-0123456789., @;\r\n\""
+            (attempt (between quote quote (many1Chars quotedSymbolChar)) |>> Symbol.create true)
+            <|> (many1Chars unquotedSymbolChar |>> Symbol.create false)
             .>> skipWS
+
+
 
         /// Parse an amount that includes the numerical value and an optional symbol.
         /// The symbol can come before or after the amount. If the symbol contains
@@ -177,9 +181,9 @@ module Parser =
             let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
             let amountTuple amount = (amount, None)
             let reverse (a,b) = (b,a)
-            attempt (quantity .>>. (parseSymbol |>> Some) |>> createAmount)
+            attempt (quantity .>>. (symbol |>> Some) |>> createAmount)
             <|> attempt (quantity |>> amountTuple |>> createAmount)
-            <|> ((parseSymbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
+            <|> ((symbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
 
         /// Parse an amount that includes the numerical value and a symbol.
         /// The symbol can come before or after the amount. If the symbol contains
@@ -187,8 +191,8 @@ module Parser =
         let parseAmountWithSymbol =
             let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
             let reverse (a,b) = (b,a)
-            attempt (quantity .>>. (parseSymbol |>> Some) |>> createAmount)
-            <|> ((parseSymbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
+            attempt (quantity .>>. (symbol |>> Some) |>> createAmount)
+            <|> ((symbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
@@ -207,7 +211,7 @@ module Parser =
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date parseSymbol parseAmountWithSymbol SymbolPrice.create |>> Price
+            parseP >>. pipe3 date symbol parseAmountWithSymbol SymbolPrice.create |>> Price
 
         /// Parse a complete ledger journal
         let parseJournal =
@@ -219,7 +223,7 @@ module Parser =
         /// Parse a price entry in a price file. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePriceFilePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date parseSymbol parseAmountWithSymbol SymbolPrice.create
+            parseP >>. pipe3 date symbol parseAmountWithSymbol SymbolPrice.create
 
         /// Parse a prices file
         let parsePriceFilePrices =

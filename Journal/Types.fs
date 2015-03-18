@@ -23,14 +23,23 @@ module Account =
 
 
 /// A commodity symbol. e.g. "$", "AAPL", "MSFT"
-type Symbol = string
+type Symbol = {
+    Value: string;
+    Quoted: bool;
+}
+
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Symbol =
 
+    let create quoted symbol =
+        {Value=symbol; Quoted=quoted}
+
     let serialize (symbol : Symbol) =
-        let quoteSymbol = String.exists (fun c -> "-0123456789., @;".IndexOf(c) >= 0) symbol
-        if quoteSymbol then "\"" + symbol + "\"" else symbol
+        match symbol.Quoted with
+        | true -> "\"" + symbol.Value + "\""
+        | _    -> symbol.Value
+
 
 
 /// An amount is a quantity and an optional symbol.
@@ -95,7 +104,7 @@ module SymbolPriceCollection =
         let dateFormat = "yyyy-MM-dd"
         let printPrice (price : SymbolPrice) =
             do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.serialize price.Price)
-        do printfn "Symbol:  %s" spc.Symbol
+        do printfn "Symbol:  %s" spc.Symbol.Value
         do printfn "First Date: %s" (spc.FirstDate.ToString(dateFormat))
         do printfn "Last Date:  %s" (spc.LastDate.ToString(dateFormat))
         do printfn "Price History:"
