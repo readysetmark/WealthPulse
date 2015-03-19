@@ -14,23 +14,23 @@ module Parser =
         type UserState = unit
         type Parser<'t> = Parser<'t, UserState>
 
-        /// Parsed Entry. The only difference from a Journal.Type.Entry is the Amount field is an option,
-        /// to allow for entries with blank amounts during parsing. A blank will get calculated when we
+        /// Parsed Posting. The only difference from a Journal.Type.Posting is the Amount field is an option,
+        /// to allow for postings with blank amounts during parsing. A blank will get calculated when we
         /// create the Journal.    
-        type ParsedEntry = {
+        type ParsedPosting = {
+            LineNumber: int64;
             Account: string;
-            EntryType: EntryType;
-            AmountSource: AmountSource;
             Amount: Amount option;
+            AmountSource: AmountSource;
             Comment: string option
         }
 
         /// A parsed line will be one of these types
         type ParsedLine =
-            | Comment of Journal.Types.Comment
-            | Price of SymbolPrice
-            | Transaction of Header * ParsedLine list
-            | Entry of ParsedEntry
+            | CommentLine of Journal.Types.Comment
+            | PriceLine of SymbolPrice
+            | TransactionLine of Header * ParsedLine list
+            | PostingLine of ParsedPosting
 
 
     /// Parser utility functions
@@ -205,32 +205,36 @@ module Parser =
             |>> computeSource
 
 
+        // Posting Parser
 
-
-        /// Parse a complete transaction entry
-        let parseTransactionEntry =
-            let createEntry account (amountSource, amount) comment =
+        /// Parse a transaction posting
+        let posting : Parser<ParsedLine> =
+            let createParsedPosting lineNum account (amountSource, amount) comment =
                 {
+                    LineNumber = lineNum;
                     Account = String.concat ":" account;
-                    EntryType = Balanced;
                     AmountSource = amountSource
                     Amount = amount;
                     Comment = comment
                 }
-            pipe3 account amountOrInferred (opt comment) createEntry |>> Entry
+            pipe4 lineNumber account amountOrInferred (opt comment) createParsedPosting
+            |>> PostingLine
+
+
+
 
         /// Parse a journal comment line
-        let commentLine = comment |>> Comment
+        let commentLine = comment |>> CommentLine
 
         /// Parse a complete transaction
         let parseTransaction =
-            let parseEntry = attempt (skipWS >>. (parseTransactionEntry <|> commentLine) .>> newline)
-            header .>> newline .>>. many parseEntry |>> Transaction
+            let parsePosting = attempt (skipWS >>. (posting <|> commentLine) .>> newline)
+            header .>> newline .>>. many parsePosting |>> TransactionLine
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date symbol amount SymbolPrice.create |>> Price
+            parseP >>. pipe3 date symbol amount SymbolPrice.create |>> PriceLine
 
         /// Parse a complete ledger journal
         let parseJournal =
@@ -255,44 +259,44 @@ module Parser =
     module private PostProcess =
         open Types
 
-        /// Transforms the ParsedLine tree data structure into a list of (Header, ParsedEntry list) tuples
+        /// Transforms the ParsedLine tree data structure into a list of (Header, ParsedPosting list) tuples
         /// Basically, we're dropping all the comment nodes
         let transformParsedLinesToTransactions lines =
             let transactionFilter (line: ParsedLine) =
                 match line with
-                | Transaction(_,_) -> true
+                | TransactionLine(_,_) -> true
                 | _ -> false
 
             let getTransactionHeader (line: ParsedLine) =
                 match line with
-                | Transaction(header, lines) -> (header, lines)
+                | TransactionLine(header, lines) -> (header, lines)
                 | _ -> failwith "Unexpected AST value in getTransactionHeader"
 
-            let transactionEntryFilter (line: ParsedLine) =
+            let transactionPostingFilter (line: ParsedLine) =
                 match line with
-                | Entry(_) -> true
+                | PostingLine(_) -> true
                 | _ -> false
 
-            let getTransactionEntry (line: ParsedLine) =
+            let getTransactionPosting (line: ParsedLine) =
                 match line with
-                | Entry(te) -> te
-                | _ -> failwith "Unexpected AST value in getTransactionEntry"
+                | PostingLine(p) -> p
+                | _ -> failwith "Unexpected AST value in getTransactionPosting"
 
-            let getTransactionEntries (header, lines) =
-                let entries = 
+            let getTransactionPostings (header, lines) =
+                let postings = 
                     lines
-                    |> List.filter transactionEntryFilter
-                    |> List.map getTransactionEntry
-                (header, entries)
+                    |> List.filter transactionPostingFilter
+                    |> List.map getTransactionPosting
+                (header, postings)
 
             lines
             |> List.filter transactionFilter
             |> List.map getTransactionHeader
-            |> List.map getTransactionEntries
+            |> List.map getTransactionPostings
 
 
-        /// Verifies that transactions balance for all entry types and autobalances
-        /// transactions if one amount is missing.
+        /// Verifies that transactions balance and autobalances transactions if
+        /// one amount is missing.
         /// TODO: The possibility of different symbols for amounts is completely ignored right now.
         (* This will have to be totally re-worked. No longer going to have virtual or virtual unbalanced.
             Also need to account for different commodities.
@@ -350,35 +354,36 @@ module Parser =
         *)
             
 
-        /// Convert to a list of journal entries (transaction entries)
-        let toEntryList ts =
-            let transactionToJournal (h, es) =
-                let header = ({ LineNumber=h.LineNumber; Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
-                let toEntry e =
+        /// Convert to a list of journal postings (transaction postings)
+        let toPostingList ts =
+            let transactionToJournal (header, ps) =
+                //let header = ({ LineNumber=h.LineNumber; Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
+                let toPosting (p : ParsedPosting) =
                     ({
-                        Header=header; 
-                        Account=e.Account;
-                        AccountLineage=Account.getAccountLineage e.Account;
-                        EntryType=e.EntryType;
-                        Amount=e.Amount.Value;
-                        Comment=e.Comment 
-                    } : Entry)
-                List.map toEntry es
+                        LineNumber = p.LineNumber;
+                        Header = header; 
+                        Account = p.Account;
+                        AccountLineage = Account.getAccountLineage p.Account;
+                        Amount = p.Amount.Value;
+                        AmountSource = p.AmountSource;
+                        Comment = p.Comment 
+                    } : Posting)
+                List.map toPosting ps
             List.collect transactionToJournal ts
 
 
         /// Pipelined functions applied to the AST to produce the final journal data structure
-        let extractEntries = 
+        let extractPostings = 
             transformParsedLinesToTransactions
             // >> balanceTransactions
-            >> toEntryList
+            >> toPostingList
 
 
         /// Extract the price entries from the AST
         let extractPrices lines =
             let priceOnly (line : ParsedLine) =
                 match line with
-                | Price p -> Some p
+                | PriceLine p -> Some p
                 | _ -> None
             lines
             |> List.choose priceOnly
@@ -397,9 +402,9 @@ module Parser =
         let ast = 
             runParserOnFile Combinators.parseJournal () fileName encoding
             |> extractResult
-        let entries = PostProcess.extractEntries ast
+        let postings = PostProcess.extractPostings ast
         let pricedb = PostProcess.extractPrices ast
-        (entries, pricedb)
+        (postings, pricedb)
 
     /// Run the parser against a prices file
     let parsePricesFile fileName encoding =

@@ -3,6 +3,7 @@
 open Fuchu
 open FParsec
 open Journal.Parser.Combinators
+open Journal.Parser.Types
 open Journal.Types
 
 
@@ -304,4 +305,99 @@ let amountParsers =
                         Some(Inferred, None),
                         parse amountOrInferred "")
         ]
+    ]
+
+[<Tests>]
+let postingParser =
+    testList "posting" [
+        testCase "with all components" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Savings  $45.00  ;comment",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Savings";
+                        Amount = Some {Value=45.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                        AmountSource = Provided;
+                        Comment = Some "comment"
+                    }),
+                    parse posting "Assets:Savings  $45.00  ;comment")
+
+        testCase "with all components (commodity)" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Investments  13.508 \"MUTF514\"  ;comment",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Investments";
+                        Amount = Some {Value=13.508M; Symbol={Value="MUTF514"; Quoted=true}; Format=SymbolRightWithSpace};
+                        AmountSource = Provided;
+                        Comment = Some "comment"
+                    }),
+                    parse posting "Assets:Investments  13.508 \"MUTF514\"  ;comment")
+
+        testCase "posting with whitespace but no comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Savings  $45.00  ",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Savings";
+                        Amount = Some {Value=45.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                        AmountSource = Provided;
+                        Comment = None
+                    }),
+                    parse posting "Assets:Savings  $45.00  ")
+
+        testCase "posting with no whitespace or comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Savings  $45.00",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Savings";
+                        Amount = Some {Value=45.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                        AmountSource = Provided;
+                        Comment = None
+                    }),
+                    parse posting "Assets:Savings  $45.00")
+
+        testCase "posting with inferred amount and comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Savings  ;comment",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Savings";
+                        Amount = None;
+                        AmountSource = Inferred;
+                        Comment = Some "comment"
+                    }),
+                    parse posting "Assets:Savings  ;comment")
+
+        testCase "posting with inferred amount, whitespace, and no comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Savings  ",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Savings";
+                        Amount = None;
+                        AmountSource = Inferred;
+                        Comment = None
+                    }),
+                    parse posting "Assets:Savings  ")
+
+        testCase "posting with inferred amount, no whitespace, no comment" <|
+            fun _ ->
+                Assert.Equal(
+                    "posting: Assets:Savings",
+                    Some(PostingLine {
+                        LineNumber = 1L;
+                        Account = "Assets:Savings";
+                        Amount = None;
+                        AmountSource = Inferred;
+                        Comment = None
+                    }),
+                    parse posting "Assets:Savings")
     ]

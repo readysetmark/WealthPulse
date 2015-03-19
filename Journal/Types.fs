@@ -154,13 +154,6 @@ type Status =
     | Cleared
     | Uncleared
 
-/// Entry type.
-type EntryType =
-    | Balanced
-    | VirtualBalanced
-    | VirtualUnbalanced
-
-
 /// Transaction header.
 type Header = {
     LineNumber: int64;
@@ -178,19 +171,20 @@ module Header =
         {LineNumber=lineNum; Date=date; Status=status; Code=code; Payee=payee; Comment=comment}
 
 
-/// Transaction entry line.
-type Entry = {
+/// Transaction posting.
+type Posting = {
+    LineNumber: int64;
     Header: Header;
     Account: string;
     AccountLineage: string list;
-    EntryType: EntryType;
     Amount: Amount;
+    AmountSource: AmountSource;
     Comment: string option;
 }
 
-/// Journal with all entries and accounts.
+/// Journal with all postings and accounts.
 type Journal = {
-    Entries: Entry list;
+    Postings: Posting list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
     JournalPriceDB: SymbolPriceDB;
@@ -199,11 +193,11 @@ type Journal = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Journal = 
     
-    /// Given a list of journal entries, returns a Journal record
-    let create entries pricedb =
-        let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
-        let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
-        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
+    /// Given a list of journal postings, returns a Journal record
+    let create postings pricedb =
+        let mainAccounts = Set.ofList <| List.map (fun (posting : Posting) -> posting.Account) postings
+        let allAccounts = Set.ofList <| List.collect (fun posting -> posting.AccountLineage) postings
+        { Postings=postings; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
 
 
 // Symbol Usage Types
