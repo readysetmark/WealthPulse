@@ -20,6 +20,7 @@ module Parser =
         type ParsedEntry = {
             Account: string;
             EntryType: EntryType;
+            AmountSource: AmountSource;
             Amount: Amount option;
             Comment: string option
         }
@@ -44,8 +45,13 @@ module Parser =
             a |> System.String.Concat |> System.Int32.Parse
     
 
+    module Terminals =
+        let isWhitespace c = c = ' ' || c = '\t'
+
+
     /// Parsing combinator functions
     module Combinators =
+        open Terminals
         open Types
         open Utilities
         
@@ -53,8 +59,10 @@ module Parser =
 
         /// Skip whitespace as spaces and tabs
         let skipWS : Parser<unit> = 
-            let whitespace c = c = ' ' || c = '\t'
-            skipManySatisfy whitespace
+            skipManySatisfy isWhitespace
+
+        let whitespace : Parser<string> =
+            many1Satisfy isWhitespace
 
 
         // Line number
@@ -158,7 +166,6 @@ module Parser =
                     | None, None       -> intPart
                 System.Decimal.Parse(qty)
             pipe3 (opt negativeSign) integerPart (opt fractionPart) createDecimal
-            .>> skipWS
 
 
         // Symbol Parsers
@@ -170,35 +177,47 @@ module Parser =
             let unquotedSymbolChar = noneOf "-0123456789., @;\r\n\""
             (attempt (between quote quote (many1Chars quotedSymbolChar)) |>> Symbol.create true)
             <|> (many1Chars unquotedSymbolChar |>> Symbol.create false)
-            .>> skipWS
+
+
+        // Amount Parsers
+
+        let amount : Parser<Amount> =
+            let amountSymbolThenQuantity =
+                let createAmount symbol ws qty =
+                    match ws with
+                    | Some(_) -> Amount.create qty symbol SymbolLeftWithSpace
+                    | None    -> Amount.create qty symbol SymbolLeftNoSpace
+                pipe3 symbol (opt whitespace) quantity createAmount
+            let amountQuantityThenSymbol =
+                let createAmount qty ws symbol =
+                    match ws with
+                    | Some(_) -> Amount.create qty symbol SymbolRightWithSpace
+                    | None    -> Amount.create qty symbol SymbolRightNoSpace
+                pipe3 quantity (opt whitespace) symbol createAmount
+            (amountSymbolThenQuantity <|> amountQuantityThenSymbol) .>> skipWS
+
+        let amountOrInferred : Parser<AmountSource * Amount option> =
+            let computeSource amount =
+                match amount with
+                | Some(a) -> (Provided, amount)
+                | None    -> (Inferred, None)
+            opt amount
+            |>> computeSource
 
 
 
-        /// Parse an amount that includes the numerical value and an optional symbol.
-        /// The symbol can come before or after the amount. If the symbol contains
-        /// numbers or a space, it must be quoted.
-        let parseAmount =
-            let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
-            let amountTuple amount = (amount, None)
-            let reverse (a,b) = (b,a)
-            attempt (quantity .>>. (symbol |>> Some) |>> createAmount)
-            <|> attempt (quantity |>> amountTuple |>> createAmount)
-            <|> ((symbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
-
-        /// Parse an amount that includes the numerical value and a symbol.
-        /// The symbol can come before or after the amount. If the symbol contains
-        /// numbers or a space, it must be quoted.
-        let parseAmountWithSymbol =
-            let createAmount (amount, symbol) = {Amount = amount; Symbol = symbol}
-            let reverse (a,b) = (b,a)
-            attempt (quantity .>>. (symbol |>> Some) |>> createAmount)
-            <|> ((symbol |>> Some) .>>. quantity |>> reverse |>> createAmount)
 
         /// Parse a complete transaction entry
         let parseTransactionEntry =
-            let createEntry account amount comment =
-                {Account=String.concat ":" account; EntryType=Balanced; Amount=amount; Comment=comment}
-            pipe3 account (opt parseAmount) (opt comment) createEntry |>> Entry
+            let createEntry account (amountSource, amount) comment =
+                {
+                    Account = String.concat ":" account;
+                    EntryType = Balanced;
+                    AmountSource = amountSource
+                    Amount = amount;
+                    Comment = comment
+                }
+            pipe3 account amountOrInferred (opt comment) createEntry |>> Entry
 
         /// Parse a journal comment line
         let commentLine = comment |>> Comment
@@ -211,7 +230,7 @@ module Parser =
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date symbol parseAmountWithSymbol SymbolPrice.create |>> Price
+            parseP >>. pipe3 date symbol amount SymbolPrice.create |>> Price
 
         /// Parse a complete ledger journal
         let parseJournal =
@@ -223,7 +242,7 @@ module Parser =
         /// Parse a price entry in a price file. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePriceFilePrice =
             let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date symbol parseAmountWithSymbol SymbolPrice.create
+            parseP >>. pipe3 date symbol amount SymbolPrice.create
 
         /// Parse a prices file
         let parsePriceFilePrices =
@@ -275,6 +294,9 @@ module Parser =
         /// Verifies that transactions balance for all entry types and autobalances
         /// transactions if one amount is missing.
         /// TODO: The possibility of different symbols for amounts is completely ignored right now.
+        (* This will have to be totally re-worked. No longer going to have virtual or virtual unbalanced.
+            Also need to account for different commodities.
+
         let balanceTransactions transactions =
             // Virtual Unbalanced transactions must have an amount (since they are unbalanced)
             let verifyVirtualUnbalanced entries =
@@ -290,13 +312,13 @@ module Parser =
                 let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
                 let symbol =
                     balancedEntries
-                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && entry.Amount.Value.Symbol.IsSome 
-                                                  then entry.Amount.Value.Symbol
+                    |> List.tryPick (fun entry -> if entry.Amount.IsSome
+                                                  then Some <| entry.Amount.Value.Symbol
                                                   else None)
                 let sum =
                     balancedEntries
                     |> List.fold (fun sum entry -> if entry.Amount.IsSome
-                                                   then sum + entry.Amount.Value.Amount
+                                                   then sum + entry.Amount.Value.Value
                                                    else sum)
                                  0M
                 let numMissing =
@@ -312,7 +334,7 @@ module Parser =
                 | sum, symbol, numMissing when numMissing = 1 ->
                     entries
                     |> List.map (fun entry -> if entry.Amount.IsNone
-                                              then { entry with Amount = Some {Amount = -sum; Symbol = symbol} }
+                                              then { entry with Amount = Some {Value = -sum; Symbol = symbol; Format = SymbolLeftNoSpace} }
                                               else entry)
                 | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
                 | otherwise -> entries
@@ -325,6 +347,7 @@ module Parser =
 
             transactions
             |> List.map (fun (header, entries) -> (header, balanceEntries entries))
+        *)
             
 
         /// Convert to a list of journal entries (transaction entries)
@@ -346,7 +369,9 @@ module Parser =
 
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let extractEntries = 
-            transformParsedLinesToTransactions >> balanceTransactions >> toEntryList
+            transformParsedLinesToTransactions
+            // >> balanceTransactions
+            >> toEntryList
 
 
         /// Extract the price entries from the AST

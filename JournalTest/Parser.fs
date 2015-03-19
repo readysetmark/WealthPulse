@@ -255,3 +255,53 @@ let symbolParser =
                     Some({Value = "US$"; Quoted = false}),
                     parse symbol "US$")
     ]
+
+[<Tests>]
+let amountParsers =
+    testList "amountParsers" [
+        testList "amount" [
+            testCase "symbol then quantity with whitespace" <|
+                fun _ ->
+                    Assert.Equal(
+                        "amount: $ 13,245.00",
+                        Some({Value = 13245.00M; Symbol = {Value = "$"; Quoted = false}; Format = SymbolLeftWithSpace}),
+                        parse amount "$ 13,245.00")
+
+            testCase "symbol then quantity no whitespace" <|
+                fun _ ->
+                    Assert.Equal(
+                        "amount: $13,245.00",
+                        Some({Value = 13245.00M; Symbol = {Value = "$"; Quoted = false}; Format = SymbolLeftNoSpace}),
+                        parse amount "$13,245.00")
+
+            testCase "quantity then symbol with whitespace" <|
+                fun _ ->
+                    Assert.Equal(
+                        "amount: 13,245.463 AAPL",
+                        Some({Value = 13245.463M; Symbol = {Value = "AAPL"; Quoted = false}; Format = SymbolRightWithSpace}),
+                        parse amount "13,245.463 AAPL")
+
+            testCase "quantity then symbol no whitespace" <|
+                fun _ ->
+                    Assert.Equal(
+                        "amount: -13,245.463\"MUTF803\"",
+                        Some({Value = -13245.463M; Symbol = {Value = "MUTF803"; Quoted = true}; Format = SymbolRightNoSpace}),
+                        parse amount "-13,245.463\"MUTF803\"")
+        ]
+
+        testList "amountOrInferred" [
+            testCase "has amount" <|
+                fun _ ->
+                    Assert.Equal(
+                        "amountOrInferred: $13,245.00",
+                        Some(Provided, Some {Value = 13245.00M; Symbol = {Value = "$"; Quoted = false}; Format = SymbolLeftNoSpace}),
+                        parse amountOrInferred "$13,245.00")
+
+            testCase "inferred amount" <|
+                fun _ ->
+                    Assert.Equal(
+                        "amountOrInferred: <empty>",
+                        Some(Inferred, None),
+                        parse amountOrInferred "")
+        ]
+    ]

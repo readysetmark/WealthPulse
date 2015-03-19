@@ -4,7 +4,7 @@ open System
 open Journal.Types
 open Journal.SymbolPrices
 
-type SymbolAmountMap = System.Collections.Generic.Dictionary<Symbol option,Amount>
+type SymbolAmountMap = System.Collections.Generic.Dictionary<Symbol,Amount>
 
 type QueryFilters = {
     AccountsWith: string list option;
@@ -43,8 +43,9 @@ module private Support =
     let addAmountForCommodity (map : SymbolAmountMap) (amount : Amount) =
         match map.ContainsKey(amount.Symbol) with
         | true -> 
-            map.[amount.Symbol] <- {Amount = map.[amount.Symbol].Amount + amount.Amount;
-                                    Symbol = amount.Symbol}
+            map.[amount.Symbol] <- {Value = map.[amount.Symbol].Value + amount.Value;
+                                    Symbol = amount.Symbol;
+                                    Format = SymbolLeftWithSpace;}
         | false -> 
             map.[amount.Symbol] <- amount
 
@@ -181,9 +182,9 @@ module private Support =
         let basisAmount = 
             journal
             |> filterEntries basisFilter
-            |> List.filter (fun (e:Entry) -> e.Amount.Symbol.Value.Value = "$")
-            |> List.sumBy (fun (e:Entry) -> e.Amount.Amount)
-        Amount.create basisAmount (Some {Value = "$"; Quoted = false})
+            |> List.filter (fun (e:Entry) -> e.Amount.Symbol.Value = "$")
+            |> List.sumBy (fun (e:Entry) -> e.Amount.Value)
+        Amount.create basisAmount ({Value = "$"; Quoted = false}) SymbolLeftWithSpace
 
 
     // TODO: Review this for handling multiple commodities in an account.. and hard coded 1 to find these accounts is horrible
@@ -193,10 +194,10 @@ module private Support =
             | 1 -> 
                 let first = List.head accountBalance.Balance
                 match first.Symbol with
-                | Some s when s.Value <> "$" -> 
+                | s when s.Value <> "$" -> 
                     match lookupPricePoint s filters.PeriodEnd priceDB journal.JournalPriceDB with
                     | Some pricePoint ->
-                        let realBalance = Amount.create (pricePoint.Price.Amount * first.Amount) pricePoint.Price.Symbol
+                        let realBalance = Amount.create (pricePoint.Price.Value * first.Value) pricePoint.Price.Symbol SymbolLeftWithSpace
                         let basisBalance = computeBasis s filters journal
                         { accountBalance with Balance = [realBalance]; Basis = [basisBalance]; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
                     | None -> accountBalance
@@ -212,8 +213,8 @@ module private Support =
         // return (account, amount, total) for an entry
         // using localized side-effects here to simplify computation of running total
         let calculateEntryLine (entry : Entry) =
-            runningTotal := !runningTotal + entry.Amount.Amount
-            (entry.Account, entry.Amount.Amount, !runningTotal)
+            runningTotal := !runningTotal + entry.Amount.Value
+            (entry.Account, entry.Amount.Value, !runningTotal)
         entries
         |> Seq.groupBy (fun entry -> entry.Header)
         |> Seq.map (fun (header, entries) -> header.Date, header.Payee, Seq.map calculateEntryLine entries |> Seq.toList |> List.rev)
@@ -232,7 +233,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
     let accountBalances =
         filteredEntries
         |> sumEntriesByAccount
-        |> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Amount <> 0M) accountBalance.Balance})
+        |> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance})
         |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
         //|> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
         
@@ -313,7 +314,7 @@ let outstandingPayees (journal : Journal) =
         if entry.Account.StartsWith("Assets:Receivables:") || entry.Account.StartsWith("Liabilities:Payables:") then 
             let payee = entry.Account.Replace("Assets:Receivables:", "").Replace("Liabilities:Payables:", "")
             let currentAmount = if payees.ContainsKey(payee) then payees.[payee] else 0M
-            Map.add payee (currentAmount + entry.Amount.Amount) payees
+            Map.add payee (currentAmount + entry.Amount.Value) payees
         else payees
     journal.Entries
     |> List.fold calculatePayeeAmounts Map.empty

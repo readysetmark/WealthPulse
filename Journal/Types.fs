@@ -42,24 +42,37 @@ module Symbol =
 
 
 
+/// An amount may be provided or inferred in a transaction
+type AmountSource = 
+    | Provided
+    | Inferred
+
+/// How an amount is formatted when rendered or in the source file
+type AmountFormat =
+    | SymbolLeftWithSpace
+    | SymbolLeftNoSpace
+    | SymbolRightWithSpace
+    | SymbolRightNoSpace
+
 /// An amount is a quantity and an optional symbol.
 type Amount = {
-    Amount: decimal;
-    Symbol: Symbol option;
+    Value: decimal;
+    Symbol: Symbol;
+    Format: AmountFormat;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Amount =
 
-    let create amount symbol =
-        {Amount = amount; Symbol = symbol;}
+    let create quantity symbol format =
+        {Value = quantity; Symbol = symbol; Format = format;}
 
     let serialize (amount : Amount) =
-        match amount.Symbol with
-        | Some symbol ->
-            let symbol = Symbol.serialize symbol
-            if symbol.StartsWith("\"") then amount.Amount.ToString() + " " + symbol else symbol + amount.Amount.ToString()
-        | None -> amount.Amount.ToString()
+        match amount.Format with
+        | SymbolLeftWithSpace  -> (Symbol.serialize amount.Symbol) + " " + amount.Value.ToString()
+        | SymbolLeftNoSpace    -> (Symbol.serialize amount.Symbol) + amount.Value.ToString()
+        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.serialize amount.Symbol)
+        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.serialize amount.Symbol)
 
 
 /// Symbol price as of a certain date.
