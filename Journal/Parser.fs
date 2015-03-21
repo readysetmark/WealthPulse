@@ -37,16 +37,17 @@ module Parser =
     module Utilities =
 
         /// Call Trim() on a string
-        let trim (s : string) = 
+        let trim (s : string) : string = 
             s.Trim()
 
         /// Convert a char array of digits to an Int32
-        let charArrayToInt32 (a : char[]) =
+        let charArrayToInt32 (a : char[]) : int32 =
             a |> System.String.Concat |> System.Int32.Parse
     
 
     module Terminals =
-        let isWhitespace c = c = ' ' || c = '\t'
+        let isWhitespace (c : char) : bool = 
+            c = ' ' || c = '\t'
 
 
     /// Parsing combinator functions
@@ -262,7 +263,7 @@ module Parser =
         
     // Module PostProcess contains post-parsing transformations
 
-    module private PostProcess =
+    module PostProcess =
         open Types
 
         /// Transforms the ParseTree tree data structure into a list of (Header, ParsedPosting list) tuples

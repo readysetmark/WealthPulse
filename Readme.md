@@ -262,7 +262,6 @@ Types
 - [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
 - [ ] Review all types
 
-
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
 - [x] Parse price lines from journal file
@@ -287,6 +286,10 @@ Balance Report
 		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 - [ ] Can I use LINQ for querying?
+
+DevOps
+- [ ] FAKE build scripts
+- [ ] Setup CI (TravisCI?)
 
 Documentation
 - [ ] Use of commodities within file
