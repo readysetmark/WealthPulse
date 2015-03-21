@@ -77,6 +77,7 @@ module Amount =
 
 /// Symbol price as of a certain date.
 type SymbolPrice = {
+    LineNumber: int64
     Date: System.DateTime;
     Symbol: Symbol;
     Price: Amount;
@@ -85,8 +86,8 @@ type SymbolPrice = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPrice =
 
-    let create date symbol price =
-        {Date = date; Symbol = symbol; Price = price;}
+    let create lineNum date symbol price =
+        {LineNumber = lineNum; Date = date; Symbol = symbol; Price = price;}
 
     let serialize (sp : SymbolPrice) =
         let dateFormat = "yyyy-MM-dd"

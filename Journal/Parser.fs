@@ -233,28 +233,27 @@ module Parser =
             header .>> newline .>>. many parsePosting |>> Transaction
 
 
-
+        // Price Parsers
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
-        let parsePrice =
-            let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date symbol amount SymbolPrice.create |>> PriceLine
+        let price : Parser<SymbolPrice> =
+            let priceLeader = pchar 'P' .>> skipWS
+            priceLeader >>. pipe4 lineNumber date (symbol .>> skipWS) amount SymbolPrice.create
+
+        /// Parse a price line within a journal file
+        let priceLine : Parser<ParseTree> =
+            price |>> PriceLine
+
+
 
         /// Parse a complete ledger journal
         let parseJournal =
-            sepEndBy (commentLine <|> transaction <|> parsePrice) (many (skipWS >>. newline))
+            sepEndBy (commentLine <|> transaction <|> priceLine) (many1 (skipWS >>. newline))
 
-
-        /// Price file parsing combinators
-
-        /// Parse a price entry in a price file. e.g. "P 2014/12/14 AAPL $23.44"
-        let parsePriceFilePrice =
-            let parseP = pchar 'P' .>> skipWS
-            parseP >>. pipe3 date symbol amount SymbolPrice.create
 
         /// Parse a prices file
         let parsePriceFilePrices =
-            sepEndBy parsePriceFilePrice (many (skipWS >>. newline))
+            sepEndBy price (many1 (skipWS >>. newline))
 
 
         

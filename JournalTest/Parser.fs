@@ -453,3 +453,33 @@ let transactionParser =
                          Liabilities:Credit\r\n\
                       ")
     ]
+
+[<Tests>]
+let priceParsers =
+    testList "price parsers" [
+        testList "price" [
+            testCase "entry" <| fun _ ->
+                Assert.Equal(
+                    "price: P 2015-03-20 \"MUTF514\" $5.42",
+                    Some {
+                        LineNumber = 1L;
+                        Date = new System.DateTime(2015,3,20);
+                        Symbol = {Value = "MUTF514"; Quoted = true};
+                        Price = {Value = 5.42M; Symbol = {Value = "$"; Quoted = false}; Format = SymbolLeftNoSpace}
+                    },
+                    parse price "P 2015-03-20 \"MUTF514\" $5.42")
+        ]
+
+        testList "price line" [
+            testCase "entry" <| fun _ ->
+                Assert.Equal(
+                    "priceLine: P 2015-03-20 \"MUTF514\" $5.42",
+                    Some(PriceLine {
+                        LineNumber = 1L;
+                        Date = new System.DateTime(2015,3,20);
+                        Symbol = {Value = "MUTF514"; Quoted = true};
+                        Price = {Value = 5.42M; Symbol = {Value = "$"; Quoted = false}; Format = SymbolLeftNoSpace}
+                    }),
+                    parse priceLine "P 2015-03-20 \"MUTF514\" $5.42")
+        ]
+    ]
