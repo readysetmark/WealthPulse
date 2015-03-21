@@ -47,15 +47,26 @@ let lineNumberParsers =
 
 [<Tests>]
 let commentParsers =
-    testList "comment" [
-        testCase "with leading space" <|
-            fun _ -> Assert.Equal("comment: ; Hi", Some("Hi"), parse comment "; Hi")
+    testList "commentParsers" [
+        testList "comment" [
+            testCase "with leading space" <|
+                fun _ -> Assert.Equal("comment: ; Hi", Some("Hi"), parse comment "; Hi")
 
-        testCase "no leading space" <|
-            fun _ -> Assert.Equal("comment: ;Hi", Some("Hi"), parse comment ";Hi")
+            testCase "no leading space" <|
+                fun _ -> Assert.Equal("comment: ;Hi", Some("Hi"), parse comment ";Hi")
 
-        testCase "empty" <|
-            fun _ -> Assert.Equal("comment: <empty>", Some(""), parse comment ";")
+            testCase "empty" <|
+                fun _ -> Assert.Equal("comment: <empty>", Some(""), parse comment ";")
+        ]
+
+        testList "comment line" [
+            testCase "comment line" <|
+                fun _ ->
+                    Assert.Equal(
+                        "commentLine: ;comment",
+                        Some(CommentLine "comment"),
+                        parse commentLine ";comment")
+        ]
     ]
 
 [<Tests>]

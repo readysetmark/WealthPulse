@@ -26,10 +26,10 @@ module Parser =
         }
 
         /// A parsed line will be one of these types
-        type ParsedLine =
+        type ParseTree =
             | CommentLine of Journal.Types.Comment
             | PriceLine of SymbolPrice
-            | TransactionLine of Header * ParsedLine list
+            | Transaction of Header * ParseTree list
             | PostingLine of ParsedPosting
 
 
@@ -79,6 +79,10 @@ module Parser =
         let comment : Parser<Comment> =
             let commentChar = noneOf "\r\n"
             pchar ';' >>. manyChars commentChar |>> trim
+
+        /// Parse a journal comment line
+        let commentLine : Parser<ParseTree> =
+            comment |>> CommentLine
 
 
         // Date Parsers
@@ -208,7 +212,7 @@ module Parser =
         // Posting Parser
 
         /// Parse a transaction posting
-        let posting : Parser<ParsedLine> =
+        let posting : Parser<ParseTree> =
             let createParsedPosting lineNum account (amountSource, amount) comment =
                 {
                     LineNumber = lineNum;
@@ -221,15 +225,14 @@ module Parser =
             |>> PostingLine
 
 
+        
 
 
-        /// Parse a journal comment line
-        let commentLine = comment |>> CommentLine
 
         /// Parse a complete transaction
         let parseTransaction =
             let parsePosting = attempt (skipWS >>. (posting <|> commentLine) .>> newline)
-            header .>> newline .>>. many parsePosting |>> TransactionLine
+            header .>> newline .>>. many parsePosting |>> Transaction
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
@@ -259,25 +262,25 @@ module Parser =
     module private PostProcess =
         open Types
 
-        /// Transforms the ParsedLine tree data structure into a list of (Header, ParsedPosting list) tuples
+        /// Transforms the ParseTree tree data structure into a list of (Header, ParsedPosting list) tuples
         /// Basically, we're dropping all the comment nodes
-        let transformParsedLinesToTransactions lines =
-            let transactionFilter (line: ParsedLine) =
+        let transformParseTreeToTransactions lines =
+            let transactionFilter (line: ParseTree) =
                 match line with
-                | TransactionLine(_,_) -> true
+                | Transaction(_,_) -> true
                 | _ -> false
 
-            let getTransactionHeader (line: ParsedLine) =
+            let getTransactionHeader (line: ParseTree) =
                 match line with
-                | TransactionLine(header, lines) -> (header, lines)
+                | Transaction(header, lines) -> (header, lines)
                 | _ -> failwith "Unexpected AST value in getTransactionHeader"
 
-            let transactionPostingFilter (line: ParsedLine) =
+            let transactionPostingFilter (line: ParseTree) =
                 match line with
                 | PostingLine(_) -> true
                 | _ -> false
 
-            let getTransactionPosting (line: ParsedLine) =
+            let getTransactionPosting (line: ParseTree) =
                 match line with
                 | PostingLine(p) -> p
                 | _ -> failwith "Unexpected AST value in getTransactionPosting"
@@ -374,14 +377,14 @@ module Parser =
 
         /// Pipelined functions applied to the AST to produce the final journal data structure
         let extractPostings = 
-            transformParsedLinesToTransactions
+            transformParseTreeToTransactions
             // >> balanceTransactions
             >> toPostingList
 
 
         /// Extract the price entries from the AST
         let extractPrices lines =
-            let priceOnly (line : ParsedLine) =
+            let priceOnly (line : ParseTree) =
                 match line with
                 | PriceLine p -> Some p
                 | _ -> None
