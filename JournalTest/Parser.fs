@@ -417,8 +417,16 @@ let postingParser =
 let transactionParser =
     testList "transaction" [
         testCase "basic" <| fun _ ->
+            let tx =
+                [
+                    "2015-03-20 * Basic transaction ;comment";
+                    "  Expenses:Groceries    $45.00";
+                    "  Liabilities:Credit";
+                    "";
+                ] |> String.concat "\r\n"
+
             Assert.Equal(
-                "transaction: basic",
+                "transaction:\r\n" + tx,
                 Some(
                     Transaction (
                         {
@@ -447,11 +455,7 @@ let transactionParser =
                         ]
                     )
                 ),
-                parse transaction
-                      "2015-03-20 * Basic transaction ;comment\r\n  \
-                         Expenses:Groceries    $45.00\r\n  \
-                         Liabilities:Credit\r\n\
-                      ")
+                parse transaction tx)
     ]
 
 [<Tests>]
@@ -470,7 +474,7 @@ let priceParsers =
                     parse price "P 2015-03-20 \"MUTF514\" $5.42")
         ]
 
-        testList "price line" [
+        testList "priceLine" [
             testCase "entry" <| fun _ ->
                 Assert.Equal(
                     "priceLine: P 2015-03-20 \"MUTF514\" $5.42",
@@ -482,4 +486,59 @@ let priceParsers =
                     }),
                     parse priceLine "P 2015-03-20 \"MUTF514\" $5.42")
         ]
+    ]
+
+[<Tests>]
+let priceDBParser =
+    testList "priceDB" [
+        testCase "empty db" <| fun _ ->
+            Assert.Equal(
+                "priceDB: <empty>",
+                Some [],
+                parse priceDB "")
+
+        testCase "one record" <| fun _ ->
+            Assert.Equal(
+                "priceDB: P 2015-03-07 \"MUTF514\" $5.42",
+                Some [
+                    {
+                        LineNumber = 1L;
+                        Date = new System.DateTime(2015,3,7);
+                        Symbol = {Value="MUTF514"; Quoted=true};
+                        Price = {Value=5.42M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace}
+                    }
+                ],
+                parse priceDB "P 2015-03-07 \"MUTF514\" $5.42")
+
+        testCase "multiple records" <| fun _ ->
+            let prices = 
+                [
+                    "P 2015-03-07 \"MUTF514\" $5.42";
+                    "P 2015-03-07 \"MUTF803\" $15.98";
+                    "P 2015-03-07 AAPL $313.38";
+                ] |> String.concat "\r\n"
+
+            Assert.Equal(
+                "priceDB:\r\n" + prices,
+                Some [
+                    {
+                        LineNumber = 1L;
+                        Date = new System.DateTime(2015,3,7);
+                        Symbol = {Value="MUTF514"; Quoted=true};
+                        Price = {Value=5.42M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace}
+                    };
+                    {
+                        LineNumber = 2L;
+                        Date = new System.DateTime(2015,3,7);
+                        Symbol = {Value="MUTF803"; Quoted=true};
+                        Price = {Value=15.98M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace}
+                    };
+                    {
+                        LineNumber = 3L;
+                        Date = new System.DateTime(2015,3,7);
+                        Symbol = {Value="AAPL"; Quoted=false};
+                        Price = {Value=313.38M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace}
+                    }
+                ],
+                parse priceDB prices)
     ]

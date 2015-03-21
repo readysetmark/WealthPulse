@@ -245,14 +245,17 @@ module Parser =
             price |>> PriceLine
 
 
+        // Journal Parser
 
         /// Parse a complete ledger journal
-        let parseJournal =
+        let journal : Parser<ParseTree list> =
             sepEndBy (commentLine <|> transaction <|> priceLine) (many1 (skipWS >>. newline))
 
 
+        // Price DB Parser
+
         /// Parse a prices file
-        let parsePriceFilePrices =
+        let priceDB : Parser<SymbolPrice list> =
             sepEndBy price (many1 (skipWS >>. newline))
 
 
@@ -403,7 +406,7 @@ module Parser =
     /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =
         let ast = 
-            runParserOnFile Combinators.parseJournal () fileName encoding
+            runParserOnFile Combinators.journal () fileName encoding
             |> extractResult
         let postings = PostProcess.extractPostings ast
         let pricedb = PostProcess.extractPrices ast
@@ -411,5 +414,5 @@ module Parser =
 
     /// Run the parser against a prices file
     let parsePricesFile fileName encoding =
-        runParserOnFile Combinators.parsePriceFilePrices () fileName encoding
+        runParserOnFile Combinators.priceDB () fileName encoding
         |> extractResult
