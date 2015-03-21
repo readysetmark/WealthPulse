@@ -1,9 +1,27 @@
 ﻿
-#I "../Journal/bin/Debug"
+// for fsharpi
+
+#I "Journal/bin/Debug";;
+#r "FSharp.Core.dll";;
+#r "FParsec.dll";;
+#r "FParsecCS.dll";;
+#r "Journal.dll";;
+
+open Journal;;
+open FParsec;;
+
+runParserOnFile Parser.Combinators.journal () "/Users/mark/Nexus/Documents/finances/ledger/test_investments_penny.dat" System.Text.Encoding.ASCII;;
+
+
+
+// for visual f#
+
+#I "Journal/bin/Debug"
 #r "FSharp.Core.dll"
 #r "FParsec.dll"
 #r "FParsecCS.dll"
 #r "Journal.dll"
+
 
 FParsec.CharParsers.run Journal.Parser.Combinators.parsePrice "P 2014/12/14 AAPL $13.33"
 open Journal

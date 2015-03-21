@@ -1,4 +1,4 @@
-﻿module Journal.Tests.Parser
+﻿module Journal.Tests.Parser.Combinators
 
 open Fuchu
 open FParsec

@@ -387,7 +387,7 @@ module Parser =
 
 
         /// Extract the price entries from the AST
-        let extractPrices lines =
+        let extractPrices (lines : ParseTree list) : SymbolPriceDB =
             let priceOnly (line : ParseTree) =
                 match line with
                 | PriceLine p -> Some p
@@ -401,8 +401,8 @@ module Parser =
     
     let private extractResult result =
         match result with
-            | Success(ast, _, _) -> ast
-            | Failure(errorMsg, _, _) -> failwith errorMsg
+        | Success(ast, _, _) -> ast
+        | Failure(errorMsg, _, _) -> failwith errorMsg
 
     /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =

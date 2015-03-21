@@ -22,9 +22,11 @@ module Account =
         |> List.rev
 
 
+type SymbolValue = string
+
 /// A commodity symbol. e.g. "$", "AAPL", "MSFT"
 type Symbol = {
-    Value: string;
+    Value: SymbolValue;
     Quoted: bool;
 }
 
@@ -105,14 +107,15 @@ type SymbolPriceCollection = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceCollection =
 
-    let create (s : Symbol, prices : seq<SymbolPrice>) =
+    let create (s : SymbolValue, prices : seq<SymbolPrice>) =
         let sortedPrices = 
             prices
             |> Seq.toList
             |> List.sortBy (fun sp -> sp.Date)
+        let symbol = (List.head sortedPrices).Symbol
         let firstDate = (List.head sortedPrices).Date
         let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
-        (s, {Symbol = s; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
+        (s, {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
 
     let prettyPrint spc =
         let dateFormat = "yyyy-MM-dd"
@@ -126,14 +129,14 @@ module SymbolPriceCollection =
 
 
 /// Symbol Price DB is a map of symbols to symbol price collections
-type SymbolPriceDB = Map<Symbol, SymbolPriceCollection>
+type SymbolPriceDB = Map<SymbolValue, SymbolPriceCollection>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
 
     let createFromSymbolPriceList (prices : list<SymbolPrice>) : SymbolPriceDB =
         prices
-        |> Seq.groupBy (fun sp -> sp.Symbol)
+        |> Seq.groupBy (fun sp -> sp.Symbol.Value)
         |> Seq.map SymbolPriceCollection.create
         |> Map.ofSeq
 

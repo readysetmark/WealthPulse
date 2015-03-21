@@ -160,7 +160,7 @@ module private Support =
     *)
 
 
-    let lookupPricePoint (symbol : Symbol) (periodEnd : option<DateTime>) priceDB journalPriceDB =
+    let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
         let selectPricePointByDate symbolData =
             symbolData.Prices
             |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
@@ -195,7 +195,7 @@ module private Support =
                 let first = List.head accountBalance.Balance
                 match first.Symbol with
                 | s when s.Value <> "$" -> 
-                    match lookupPricePoint s filters.PeriodEnd priceDB journal.JournalPriceDB with
+                    match lookupPricePoint s.Value filters.PeriodEnd priceDB journal.JournalPriceDB with
                     | Some pricePoint ->
                         let realBalance = Amount.create (pricePoint.Price.Value * first.Value) pricePoint.Price.Symbol SymbolLeftWithSpace
                         let basisBalance = computeBasis s filters journal
