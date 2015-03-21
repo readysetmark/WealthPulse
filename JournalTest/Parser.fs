@@ -412,3 +412,44 @@ let postingParser =
                     }),
                     parse posting "Assets:Savings")
     ]
+
+[<Tests>]
+let transactionParser =
+    testList "transaction" [
+        testCase "basic" <| fun _ ->
+            Assert.Equal(
+                "transaction: basic",
+                Some(
+                    Transaction (
+                        {
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,3,20);
+                            Status = Cleared;
+                            Code = None;
+                            Payee = "Basic transaction";
+                            Comment = Some "comment"
+                        },
+                        [
+                            PostingLine {
+                                LineNumber = 2L;
+                                Account = "Expenses:Groceries";
+                                Amount = Some {Value=45.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            };
+                            PostingLine {
+                                LineNumber = 3L;
+                                Account = "Liabilities:Credit";
+                                Amount = None;
+                                AmountSource = Inferred;
+                                Comment = None
+                            }
+                        ]
+                    )
+                ),
+                parse transaction
+                      "2015-03-20 * Basic transaction ;comment\r\n  \
+                         Expenses:Groceries    $45.00\r\n  \
+                         Liabilities:Credit\r\n\
+                      ")
+    ]

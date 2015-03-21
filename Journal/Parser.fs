@@ -225,14 +225,15 @@ module Parser =
             |>> PostingLine
 
 
-        
-
-
+        // Transaction Parser
 
         /// Parse a complete transaction
-        let parseTransaction =
+        let transaction : Parser<ParseTree> =
             let parsePosting = attempt (skipWS >>. (posting <|> commentLine) .>> newline)
             header .>> newline .>>. many parsePosting |>> Transaction
+
+
+
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
         let parsePrice =
@@ -241,7 +242,7 @@ module Parser =
 
         /// Parse a complete ledger journal
         let parseJournal =
-            sepEndBy (commentLine <|> parseTransaction <|> parsePrice) (many (skipWS >>. newline))
+            sepEndBy (commentLine <|> transaction <|> parsePrice) (many (skipWS >>. newline))
 
 
         /// Price file parsing combinators
