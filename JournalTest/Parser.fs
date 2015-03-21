@@ -10,7 +10,7 @@ open Journal.Types
 let parse parser text =
     match run parser text with
     | Success(result, _, _) -> Some(result)
-    | Failure(_, _, _)      -> None
+    | Failure(error, _, _)  -> failwith error
 
 
 [<Tests>]
@@ -200,6 +200,12 @@ let accountParsers =
                     "may start with a digit",
                     Some("123abcABC"),
                     parse subaccount "123abcABC")
+
+            testCase "date" <| fun _ ->
+                Assert.Equal(
+                    "subaccount: 2015-03-20",
+                    Some("2015-03-20"),
+                    parse subaccount "2015-03-20")
         ]
 
         testList "account" [
@@ -460,6 +466,178 @@ let priceParsers =
                     }),
                     parse priceLine "P 2015-03-20 \"MUTF514\" $5.42")
         ]
+    ]
+
+[<Tests>]
+let journalParser =
+    testList "journal" [
+        testCase "empty" <| fun _ ->
+            Assert.Equal(
+                "journal: <empty>",
+                Some [],
+                parse journal "")
+
+        testCase "one transaction" <| fun _ ->
+            let lines =
+                [
+                    "2015-03-20 * Basic transaction ;comment";
+                    "  Expenses:Groceries    $45.00";
+                    "  Liabilities:Credit";
+                    "";
+                ] |> String.concat "\r\n"
+
+            Assert.Equal(
+                "journal:\r\n" + lines,
+                Some [
+                    Transaction (
+                        {
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,3,20);
+                            Status = Cleared;
+                            Code = None;
+                            Payee = "Basic transaction";
+                            Comment = Some "comment"
+                        },
+                        [
+                            PostingLine {
+                                LineNumber = 2L;
+                                Account = "Expenses:Groceries";
+                                Amount = Some {Value=45.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            };
+                            PostingLine {
+                                LineNumber = 3L;
+                                Account = "Liabilities:Credit";
+                                Amount = None;
+                                AmountSource = Inferred;
+                                Comment = None
+                            }
+                        ]
+                    )
+                ],
+                parse journal lines)
+        
+        testCase "one price" <| fun _ ->
+            Assert.Equal(
+                "journal: P 2015-03-07 \"MUTF514\" $5.42",
+                Some [
+                    PriceLine (
+                        {
+                            LineNumber = 1L;
+                            Date = new System.DateTime(2015,3,7);
+                            Symbol = {Value="MUTF514"; Quoted=true};
+                            Price = {Value=5.42M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace}
+                        }
+                    )
+                ],
+                parse journal "P 2015-03-07 \"MUTF514\" $5.42")
+
+        testCase "one comment" <| fun _ ->
+            Assert.Equal(
+                "journal: ;comment",
+                Some [CommentLine "comment"],
+                parse journal ";comment")
+
+        testCase "multiple mixed lines" <| fun _ ->
+            let lines =
+                [
+                    "; first comment";
+                    "";
+                    "2015-03-20 * Basic transaction ;comment";
+                    "  Expenses:Groceries    $45.00";
+                    "  Liabilities:Credit";
+                    "";
+                    "2015-03-20 * Buy stocks";
+                    "  Assets:Investments:Stocks    33.245 \"MUTF514\"";
+                    "  Assets:Savings               $-250.00";
+                    "  Basis:MUTF514:2015-03-20     -33.245 \"MUTF514\"";
+                    "  Basis:MUTF514:2015-03-20     $250.00";
+                    "";
+                    "P 2015-03-20 \"MUTF514\" $7.52";
+                    "";
+                ] |> String.concat "\r\n"
+
+            Assert.Equal(
+                "journal:\r\n" + lines,
+                Some [
+                    CommentLine "first comment";
+                    Transaction (
+                        {
+                            LineNumber = 3L;
+                            Date = new System.DateTime(2015,3,20);
+                            Status = Cleared;
+                            Code = None;
+                            Payee = "Basic transaction";
+                            Comment = Some "comment"
+                        },
+                        [
+                            PostingLine {
+                                LineNumber = 4L;
+                                Account = "Expenses:Groceries";
+                                Amount = Some {Value=45.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            };
+                            PostingLine {
+                                LineNumber = 5L;
+                                Account = "Liabilities:Credit";
+                                Amount = None;
+                                AmountSource = Inferred;
+                                Comment = None
+                            }
+                        ]
+                    );
+                    Transaction (
+                        {
+                            LineNumber = 7L;
+                            Date = new System.DateTime(2015,3,20);
+                            Status = Cleared;
+                            Code = None;
+                            Payee = "Buy stocks";
+                            Comment = None;
+                        },
+                        [
+                            PostingLine {
+                                LineNumber = 8L;
+                                Account = "Assets:Investments:Stocks";
+                                Amount = Some {Value=33.245M; Symbol={Value="MUTF514"; Quoted=true}; Format=SymbolRightWithSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            };
+                            PostingLine {
+                                LineNumber = 9L;
+                                Account = "Assets:Savings";
+                                Amount = Some {Value= -250.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            };
+                            PostingLine {
+                                LineNumber = 10L;
+                                Account = "Basis:MUTF514:2015-03-20";
+                                Amount = Some {Value= -33.245M; Symbol={Value="MUTF514"; Quoted=true}; Format=SymbolRightWithSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            };
+                            PostingLine {
+                                LineNumber = 11L;
+                                Account = "Basis:MUTF514:2015-03-20";
+                                Amount = Some {Value=250.00M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace};
+                                AmountSource = Provided;
+                                Comment = None
+                            }
+                        ]
+                    );
+                    PriceLine (
+                        {
+                            LineNumber = 13L;
+                            Date = new System.DateTime(2015,3,20);
+                            Symbol = {Value="MUTF514"; Quoted=true};
+                            Price = {Value=7.52M; Symbol={Value="$"; Quoted=false}; Format=SymbolLeftNoSpace}
+                        }
+                    )
+                ],
+                parse journal lines)
     ]
 
 [<Tests>]

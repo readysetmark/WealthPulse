@@ -139,10 +139,10 @@ module Parser =
 
         // Account Parsers
 
-        /// Parse a subaccount, which can be any alphanumeric character sequence
+        /// Parse a subaccount
         let subaccount : Parser<Account> =
-            let isAlphanumeric c = isDigit(c) || isLetter(c)
-            many1Satisfy isAlphanumeric
+            let subaccountChar = noneOf ";: \t\r\n\""
+            many1Chars subaccountChar
 
         /// Parse an account
         let account : Parser<Account list> =
