@@ -1,5 +1,7 @@
 ﻿module Journal.SymbolPrices
 
+(* Will need to be reviewed after performing type changes
+
 open System
 open System.Net
 open System.IO
@@ -226,4 +228,5 @@ let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB) =
     priceDB
     |> Map.iter (fun _ commodityPriceDB -> serializeSymbolPriceList sw commodityPriceDB.Prices)
     sw.Close()
-    
+
+*)

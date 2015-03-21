@@ -23,38 +23,61 @@ module Account =
 
 
 /// A commodity symbol. e.g. "$", "AAPL", "MSFT"
-type Symbol = string
+type Symbol = {
+    Value: string;
+    Quoted: bool;
+}
+
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Symbol =
 
-    let serialize (symbol : Symbol) =
-        let quoteSymbol = String.exists (fun c -> "-0123456789., @;".IndexOf(c) >= 0) symbol
-        if quoteSymbol then "\"" + symbol + "\"" else symbol
+    let create quoted symbol =
+        {Value=symbol; Quoted=quoted}
 
+    let serialize (symbol : Symbol) =
+        match symbol.Quoted with
+        | true -> "\"" + symbol.Value + "\""
+        | _    -> symbol.Value
+
+
+
+/// An amount may be provided or inferred in a transaction
+type AmountSource = 
+    | Provided
+    | Inferred
+
+/// How an amount is formatted when rendered or in the source file
+type AmountFormat =
+    | SymbolLeftWithSpace
+    | SymbolLeftNoSpace
+    | SymbolRightWithSpace
+    | SymbolRightNoSpace
 
 /// An amount is a quantity and an optional symbol.
 type Amount = {
-    Amount: decimal;
-    Symbol: Symbol option;
+    Value: decimal;
+    Symbol: Symbol;
+    Format: AmountFormat;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Amount =
 
-    let create amount symbol =
-        {Amount = amount; Symbol = symbol;}
+    let create quantity symbol format =
+        {Value = quantity; Symbol = symbol; Format = format;}
 
     let serialize (amount : Amount) =
-        match amount.Symbol with
-        | Some symbol ->
-            let symbol = Symbol.serialize symbol
-            if symbol.StartsWith("\"") then amount.Amount.ToString() + " " + symbol else symbol + amount.Amount.ToString()
-        | None -> amount.Amount.ToString()
+        match amount.Format with
+        | SymbolLeftWithSpace  -> (Symbol.serialize amount.Symbol) + " " + amount.Value.ToString()
+        | SymbolLeftNoSpace    -> (Symbol.serialize amount.Symbol) + amount.Value.ToString()
+        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.serialize amount.Symbol)
+        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.serialize amount.Symbol)
 
 
 /// Symbol price as of a certain date.
 type SymbolPrice = {
+    LineNumber: int64
     Date: System.DateTime;
     Symbol: Symbol;
     Price: Amount;
@@ -63,8 +86,8 @@ type SymbolPrice = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPrice =
 
-    let create date symbol price =
-        {Date = date; Symbol = symbol; Price = price;}
+    let create lineNum date symbol price =
+        {LineNumber = lineNum; Date = date; Symbol = symbol; Price = price;}
 
     let serialize (sp : SymbolPrice) =
         let dateFormat = "yyyy-MM-dd"
@@ -95,7 +118,7 @@ module SymbolPriceCollection =
         let dateFormat = "yyyy-MM-dd"
         let printPrice (price : SymbolPrice) =
             do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.serialize price.Price)
-        do printfn "Symbol:  %s" spc.Symbol
+        do printfn "Symbol:  %s" spc.Symbol.Value
         do printfn "First Date: %s" (spc.FirstDate.ToString(dateFormat))
         do printfn "Last Date:  %s" (spc.LastDate.ToString(dateFormat))
         do printfn "Price History:"
@@ -123,39 +146,46 @@ module SymbolPriceDB =
         |> Map.iter printSymbolPrices
 
 
+type Code = string
+type Payee = string
+type Comment = string
+
 /// Transaction status.
 type Status =
     | Cleared
     | Uncleared
 
-/// Entry type.
-type EntryType =
-    | Balanced
-    | VirtualBalanced
-    | VirtualUnbalanced
-
 /// Transaction header.
 type Header = {
+    LineNumber: int64;
     Date: System.DateTime;
     Status: Status;
-    Code: string option;
-    Description: string;
-    Comment: string option
+    Code: Code option;
+    Payee: Payee;
+    Comment: Comment option
 }
 
-/// Transaction entry line.
-type Entry = {
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Header =
+
+    let create lineNum date status code payee comment =
+        {LineNumber=lineNum; Date=date; Status=status; Code=code; Payee=payee; Comment=comment}
+
+
+/// Transaction posting.
+type Posting = {
+    LineNumber: int64;
     Header: Header;
     Account: string;
     AccountLineage: string list;
-    EntryType: EntryType;
     Amount: Amount;
+    AmountSource: AmountSource;
     Comment: string option;
 }
 
-/// Journal with all entries and accounts.
+/// Journal with all postings and accounts.
 type Journal = {
-    Entries: Entry list;
+    Postings: Posting list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
     JournalPriceDB: SymbolPriceDB;
@@ -164,11 +194,11 @@ type Journal = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Journal = 
     
-    /// Given a list of journal entries, returns a Journal record
-    let create entries pricedb =
-        let mainAccounts = Set.ofList <| List.map (fun (entry : Entry) -> entry.Account) entries
-        let allAccounts = Set.ofList <| List.collect (fun entry -> entry.AccountLineage) entries
-        { Entries=entries; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
+    /// Given a list of journal postings, returns a Journal record
+    let create postings pricedb =
+        let mainAccounts = Set.ofList <| List.map (fun (posting : Posting) -> posting.Account) postings
+        let allAccounts = Set.ofList <| List.collect (fun posting -> posting.AccountLineage) postings
+        { Postings=postings; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
 
 
 // Symbol Usage Types

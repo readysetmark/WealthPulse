@@ -21,7 +21,8 @@ module JournalService =
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
         //let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
-        let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments_penny.dat"
+        //let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments_penny.dat"
+        let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/test_investments_penny.dat"
         let configFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_CONFIG_FILE")
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
@@ -31,7 +32,7 @@ module JournalService =
         let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
         let configEnabled = configFilePath <> null && File.Exists(configFilePath)
-        let mutable symbolConfig = Map.empty : SymbolConfigs //loadSymbolConfig configFilePath
+        //let mutable symbolConfig = Map.empty : SymbolConfigs //loadSymbolConfig configFilePath
         let mutable configLastModified = DateTime.MinValue
         let pricesEnabled = pricesFilePath <> null
         let mutable symbolPriceDB = Map.empty : SymbolPriceDB //loadSymbolPriceDB pricesFilePath
@@ -67,6 +68,8 @@ module JournalService =
 
         let loadConfig () =
             if configEnabled then
+                ignore 1
+                (* commenting out 'cause it needs to be reviewed
                 let lastModified = File.GetLastWriteTime(configFilePath)
                 do printfn "Parsing config file: %s" configFilePath
                 try
@@ -87,10 +90,13 @@ module JournalService =
                             configLastModified <- lastModified
                         finally
                             rwlock.ReleaseWriterLock()
+                *)
 
 
         let loadSymbolPriceDB () =
             if pricesEnabled then
+                ignore 1
+                (* commenting out 'cause it needs to be reviewed
                 do printfn "Parsing prices file: %s" pricesFilePath
                 try
                     let (priceDB, parseTime) = time <| fun () -> loadSymbolPriceDB pricesFilePath
@@ -103,10 +109,13 @@ module JournalService =
                 with
                     ex -> 
                         do printfn "Error parsing prices: %s" ex.Message
+                *)
 
         
         let fetchSymbolPrices () =
             if pricesEnabled then
+                ignore 1
+                (* commenting out 'cause it needs to be reviewed
                 do printfn "Fetching new symbol prices..."
                 try
                     let symbolUsage = Query.identifySymbolUsage journal
@@ -127,6 +136,7 @@ module JournalService =
                             symbolPricesLastFetched <- DateTime.Now
                         finally
                             rwlock.ReleaseWriterLock()
+                *)
         
 
         let backgroundTasks () =

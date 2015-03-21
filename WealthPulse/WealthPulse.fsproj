@@ -71,11 +71,9 @@
     <Reference Include="mscorlib" />
     <Reference Include="Nancy, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
-      <HintPath>..\packages\Nancy.0.21.1\lib\net40\Nancy.dll</HintPath>
     </Reference>
     <Reference Include="Nancy.Hosting.Self, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
-      <HintPath>..\packages\Nancy.Hosting.Self.0.21.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -113,5 +111,4 @@ xcopy $(ProjectDir)content content /S</PostBuildEvent>
     <Copy SourceFiles="@(Content)" DestinationFolder="$(TargetDir)\content\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(Views)" DestinationFolder="$(TargetDir)\views\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
-  
 </Project>

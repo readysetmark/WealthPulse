@@ -253,7 +253,15 @@ lookup, check the downloaded prices file first, and the ledger file if no price 
 Types
 - [x] Update Entry type -- will only have one amount, no commodity field
 - [x] Price on SymbolPrice record should be an Amount, not just a decimal
+- [x] Symbol type should be value + quoted or format
 - [ ] Move price DBs into Journal record
+- [ ] Rename Entry to Posting
+- [ ] Include a list of account levels field on Posting?
+	- Also change Account to a Subaccount list and Subaccount = String
+- [ ] Remove EntryType field from Posting (no longer supporting "virtual" accounts)
+- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
+- [ ] Review all types
+
 
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
@@ -261,11 +269,16 @@ Journal Parsing
 	- [x] Get initial parsing working
 	- [x] Should fix parsing up to be more precise (amount MUST have symbol)
 	- [x] Create price db from parsed prices
+- [x] Get line numbers for headers, postings, prices
+- [x] Add unit tests for parsers
+- [ ] Rework post-parse processing
 
 PriceDB
 - [x] Fix pricedb parsing and serialization
 	- [x] Use FParsec parser instead of regex
 	- [x] Price should be an Amount with a symbol
+- [ ] Pricedb and Journal should use the same parser combinator
+- [ ] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
@@ -273,6 +286,7 @@ Balance Report
 		- calculate basis total -- not sure how to do this cleanly right now
 		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
+- [ ] Can I use LINQ for querying?
 
 Documentation
 - [ ] Use of commodities within file
