@@ -269,8 +269,8 @@ Journal Parsing
 	- [x] Get initial parsing working
 	- [x] Should fix parsing up to be more precise (amount MUST have symbol)
 	- [x] Create price db from parsed prices
-- [ ] Get line numbers for headers, postings, prices and comment lines
-- [ ] Add unit tests
+- [x] Get line numbers for headers, postings, prices
+- [x] Add unit tests for parsers
 - [ ] Rework post-parse processing
 
 PriceDB
