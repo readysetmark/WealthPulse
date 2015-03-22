@@ -270,7 +270,7 @@ Journal Parsing
 	- [x] Create price db from parsed prices
 - [x] Get line numbers for headers, postings, prices
 - [x] Add unit tests for parsers
-- [ ] Rework post-parse processing
+- [x] Rework post-parse processing
 
 PriceDB
 - [x] Fix pricedb parsing and serialization
@@ -318,10 +318,9 @@ Nav
 - [ ] Display indicator when ajax call is happening
 
 Parsing Ledger File
-- [ ] Review / revise parsing & post-processing:
-	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
-	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely), or does things in parallel
-	- [ ] Improve error reporting during parsing and balance checking
+- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
+- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely), or does things in parallel
+- [ ] Improve error reporting during parsing and balance checking
 
 Balance Report
 - [ ] Can I improve the entry filtering code?
