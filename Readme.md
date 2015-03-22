@@ -262,7 +262,6 @@ Types
 - [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
 - [ ] Review all types
 
-
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
 - [x] Parse price lines from journal file
@@ -271,7 +270,7 @@ Journal Parsing
 	- [x] Create price db from parsed prices
 - [x] Get line numbers for headers, postings, prices
 - [x] Add unit tests for parsers
-- [ ] Rework post-parse processing
+- [x] Rework post-parse processing
 
 PriceDB
 - [x] Fix pricedb parsing and serialization
@@ -287,6 +286,10 @@ Balance Report
 		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 - [ ] Can I use LINQ for querying?
+
+Tooling
+- [ ] FAKE build scripts
+- [ ] Setup CI (TravisCI?)
 
 Documentation
 - [ ] Use of commodities within file
@@ -314,20 +317,10 @@ Nav
 - [ ] Default report?
 - [ ] Display indicator when ajax call is happening
 
-Tooling
-- [ ] Research how to handle references cross-platform (sln on mac is different from windows??)
-- [ ] Write a FAKE script for building / running?
-- [ ] Add unit tests
-
 Parsing Ledger File
-- [ ] Review / revise parsing & post-processing:
-	- [x] Remove mutable fields
-	- [x] Make Amount a record type instead of a tuple
-	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
-	- [ ] Make specifying a commodity mandatory? Cleans up some code and I always do it...
-	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
-	- [ ] Improve error reporting
-	- [ ] Consider removing the virtual transaction types once commodity support is complete
+- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
+- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely), or does things in parallel
+- [ ] Improve error reporting during parsing and balance checking
 
 Balance Report
 - [ ] Can I improve the entry filtering code?

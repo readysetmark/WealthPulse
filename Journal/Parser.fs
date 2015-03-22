@@ -37,16 +37,17 @@ module Parser =
     module Utilities =
 
         /// Call Trim() on a string
-        let trim (s : string) = 
+        let trim (s : string) : string = 
             s.Trim()
 
         /// Convert a char array of digits to an Int32
-        let charArrayToInt32 (a : char[]) =
+        let charArrayToInt32 (a : char[]) : int32 =
             a |> System.String.Concat |> System.Int32.Parse
     
 
     module Terminals =
-        let isWhitespace c = c = ' ' || c = '\t'
+        let isWhitespace (c : char) : bool = 
+            c = ' ' || c = '\t'
 
 
     /// Parsing combinator functions
@@ -262,110 +263,99 @@ module Parser =
         
     // Module PostProcess contains post-parsing transformations
 
-    module private PostProcess =
+    module PostProcess =
         open Types
 
         /// Transforms the ParseTree tree data structure into a list of (Header, ParsedPosting list) tuples
         /// Basically, we're dropping all the comment nodes
-        let transformParseTreeToTransactions lines =
-            let transactionFilter (line: ParseTree) =
+        let mapToHeaderParsedPostingTuples (lines : ParseTree list) : (Header * ParsedPosting list) list =
+            let isTransaction (line : ParseTree) =
                 match line with
                 | Transaction(_,_) -> true
                 | _ -> false
 
-            let getTransactionHeader (line: ParseTree) =
-                match line with
-                | Transaction(header, lines) -> (header, lines)
-                | _ -> failwith "Unexpected AST value in getTransactionHeader"
-
-            let transactionPostingFilter (line: ParseTree) =
+            let isParsedPosting (line : ParseTree) =
                 match line with
                 | PostingLine(_) -> true
                 | _ -> false
 
-            let getTransactionPosting (line: ParseTree) =
+            let toParsedPosting (line : ParseTree) =
                 match line with
                 | PostingLine(p) -> p
-                | _ -> failwith "Unexpected AST value in getTransactionPosting"
+                | _ -> failwith "Unexpected ParseTree value in toParsedPosting"
 
-            let getTransactionPostings (header, lines) =
-                let postings = 
-                    lines
-                    |> List.filter transactionPostingFilter
-                    |> List.map getTransactionPosting
-                (header, postings)
-
+            let toHeaderPostingsTuple (line : ParseTree) =
+                match line with
+                | Transaction(header, lines) ->
+                    let postings = 
+                        lines
+                        |> List.filter isParsedPosting
+                        |> List.map toParsedPosting
+                    (header, postings)    
+                | _ -> failwith "Unexpected ParseTree value in toHeaderPostingsTuple"
+            
             lines
-            |> List.filter transactionFilter
-            |> List.map getTransactionHeader
-            |> List.map getTransactionPostings
+            |> List.filter isTransaction
+            |> List.map toHeaderPostingsTuple
 
 
-        /// Verifies that transactions balance and autobalances transactions if
+        /// Verifies that transactions balance and autobalances transactions if 
         /// one amount is missing.
-        /// TODO: The possibility of different symbols for amounts is completely ignored right now.
-        (* This will have to be totally re-worked. No longer going to have virtual or virtual unbalanced.
-            Also need to account for different commodities.
+        let balanceTransactions (transactions : (Header * ParsedPosting list) list) : (Header * ParsedPosting list) list =
+            // Calculates balances by symbol for a transaction. Returns any non-zero balances by symbol
+            // and the number of postings with Inferred amounts.
+            let postingsBalance (postings : ParsedPosting list) =
+                let sumPostingsBySymbol (balance : Map<SymbolValue, Amount>) (posting : ParsedPosting) =
+                    let symbol = posting.Amount.Value.Symbol.Value
+                    match balance.ContainsKey symbol with
+                    | true  ->
+                        let amount = balance.[symbol]
+                        balance.Add(symbol, {amount with Value = amount.Value + posting.Amount.Value.Value})
+                    | false ->
+                        balance.Add(symbol, posting.Amount.Value)
 
-        let balanceTransactions transactions =
-            // Virtual Unbalanced transactions must have an amount (since they are unbalanced)
-            let verifyVirtualUnbalanced entries =
-                let virtualUnbalancedMissingAmount =
-                    List.filter (fun entry -> entry.EntryType = VirtualUnbalanced && entry.Amount.IsNone) entries
-                match List.length virtualUnbalancedMissingAmount with
-                | 0 -> entries
-                | otherwise -> failwith "Encountered virtual unbalanced entry missing an amount."
+                let symbolBalances =
+                    postings
+                    |> List.filter (fun posting -> posting.AmountSource = Provided)
+                    |> List.fold sumPostingsBySymbol Map.empty
+                    |> Map.filter (fun symbol amount -> amount.Value <> 0M)
 
-            // Generic balance checker for balanced entry types. Balanced entries should sum 0 or have only 1
-            // amount missing (which can be auto-balanced).
-            let verifyBalanced entryType entries =
-                let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
-                let symbol =
-                    balancedEntries
-                    |> List.tryPick (fun entry -> if entry.Amount.IsSome
-                                                  then Some <| entry.Amount.Value.Symbol
-                                                  else None)
-                let sum =
-                    balancedEntries
-                    |> List.fold (fun sum entry -> if entry.Amount.IsSome
-                                                   then sum + entry.Amount.Value.Value
-                                                   else sum)
-                                 0M
-                let numMissing =
-                    balancedEntries
-                    |> List.filter (fun entry -> entry.Amount.IsNone)
+                let numInferredPostings =
+                    postings
+                    |> List.filter (fun posting -> posting.AmountSource = Inferred)
                     |> List.length
-                (sum, symbol, numMissing)
 
-            // Balanced entry types can be autobalanced as long as there is only 1 amount missing.
-            let autobalance entryType entries =
-                match verifyBalanced entryType entries with
-                | _, _, numMissing when numMissing > 1 -> failwith "Encountered balanced transaction with more than one amount missing."
-                | sum, symbol, numMissing when numMissing = 1 ->
-                    entries
-                    |> List.map (fun entry -> if entry.Amount.IsNone
-                                              then { entry with Amount = Some {Value = -sum; Symbol = symbol; Format = SymbolLeftNoSpace} }
-                                              else entry)
-                | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
-                | otherwise -> entries
+                (symbolBalances, numInferredPostings)
 
-            // Transform pipeline to balance transaction entries
-            let balanceEntries =
-               verifyVirtualUnbalanced
-               >> autobalance VirtualBalanced
-               >> autobalance Balanced
+            // Postings can be autobalanced as long as there is only 1 amount missing
+            // and only one symbol out of balance.
+            let autobalance postings =
+                let symbolBalances, numInferredPostings = postingsBalance postings
+
+                match numInferredPostings, (Seq.length symbolBalances) with
+                | numMissing, _ when numMissing > 1 ->
+                    failwith "Encountered transaction with more than one amount missing."
+                | numMissing, numUnbalancedSymbols when numUnbalancedSymbols > numMissing ->
+                    failwith "Encountered transaction with one or more symbols out of balance."
+                | numMissing, numUnbalancedSymbols when numMissing = 1 && numUnbalancedSymbols = 1 ->
+                    let balance = (Seq.nth 0 symbolBalances).Value
+                    postings
+                    |> List.map (fun posting ->
+                        if posting.AmountSource = Inferred
+                        then {posting with Amount = Some {balance with Value = -balance.Value}}
+                        else posting)
+                | otherwise ->
+                    postings
 
             transactions
-            |> List.map (fun (header, entries) -> (header, balanceEntries entries))
-        *)
+            |> List.map (fun (header, postings) -> (header, autobalance postings))
             
 
         /// Convert to a list of journal postings (transaction postings)
-        let toPostingList ts =
-            let transactionToJournal (header, ps) =
-                //let header = ({ LineNumber=h.LineNumber; Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
+        let toPostingList (txs : (Header * ParsedPosting list) list) : Posting list =
+            let transactionToPostings (header, ps) =
                 let toPosting (p : ParsedPosting) =
-                    ({
+                    {
                         LineNumber = p.LineNumber;
                         Header = header; 
                         Account = p.Account;
@@ -373,20 +363,21 @@ module Parser =
                         Amount = p.Amount.Value;
                         AmountSource = p.AmountSource;
                         Comment = p.Comment 
-                    } : Posting)
+                    }
                 List.map toPosting ps
-            List.collect transactionToJournal ts
+            List.collect transactionToPostings txs
 
 
-        /// Pipelined functions applied to the AST to produce the final journal data structure
+        /// Pipelined functions applied to the ParseTree to produce the final
+        /// journal data structure
         let extractPostings = 
-            transformParseTreeToTransactions
-            // >> balanceTransactions
+            mapToHeaderParsedPostingTuples
+            >> balanceTransactions
             >> toPostingList
 
 
         /// Extract the price entries from the AST
-        let extractPrices lines =
+        let extractPrices (lines : ParseTree list) : SymbolPriceDB =
             let priceOnly (line : ParseTree) =
                 match line with
                 | PriceLine p -> Some p
@@ -400,8 +391,8 @@ module Parser =
     
     let private extractResult result =
         match result with
-            | Success(ast, _, _) -> ast
-            | Failure(errorMsg, _, _) -> failwith errorMsg
+        | Success(ast, _, _) -> ast
+        | Failure(errorMsg, _, _) -> failwith errorMsg
 
     /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =
