@@ -359,11 +359,10 @@ module Parser =
             
 
         /// Convert to a list of journal postings (transaction postings)
-        let toPostingList ts =
-            let transactionToJournal (header, ps) =
-                //let header = ({ LineNumber=h.LineNumber; Date=h.Date; Status=h.Status; Code=h.Code; Payee=h.Payee; Comment=h.Comment; } : Header)
+        let toPostingList (txs : (Header * ParsedPosting list) list) : Posting list =
+            let transactionToPostings (header, ps) =
                 let toPosting (p : ParsedPosting) =
-                    ({
+                    {
                         LineNumber = p.LineNumber;
                         Header = header; 
                         Account = p.Account;
@@ -371,9 +370,9 @@ module Parser =
                         Amount = p.Amount.Value;
                         AmountSource = p.AmountSource;
                         Comment = p.Comment 
-                    } : Posting)
+                    }
                 List.map toPosting ps
-            List.collect transactionToJournal ts
+            List.collect transactionToPostings txs
 
 
         /// Pipelined functions applied to the ParseTree to produce the final
