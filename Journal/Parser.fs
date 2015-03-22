@@ -299,63 +299,56 @@ module Parser =
             |> List.map toHeaderPostingsTuple
 
 
-        /// Verifies that transactions balance and autobalances transactions if
+        /// Verifies that transactions balance and autobalances transactions if 
         /// one amount is missing.
-        /// TODO: The possibility of different symbols for amounts is completely ignored right now.
-        (* This will have to be totally re-worked. No longer going to have virtual or virtual unbalanced.
-            Also need to account for different commodities.
+        let balanceTransactions (transactions : (Header * ParsedPosting list) list) : (Header * ParsedPosting list) list =
+            // Calculates balances by symbol for a transaction. Returns any non-zero balances by symbol
+            // and the number of postings with Inferred amounts.
+            let postingsBalance (postings : ParsedPosting list) =
+                let sumPostingsBySymbol (balance : Map<SymbolValue, Amount>) (posting : ParsedPosting) =
+                    let symbol = posting.Amount.Value.Symbol.Value
+                    match balance.ContainsKey symbol with
+                    | true  ->
+                        let amount = balance.[symbol]
+                        balance.Add(symbol, {amount with Value = amount.Value + posting.Amount.Value.Value})
+                    | false ->
+                        balance.Add(symbol, posting.Amount.Value)
 
-        let balanceTransactions transactions =
-            // Virtual Unbalanced transactions must have an amount (since they are unbalanced)
-            let verifyVirtualUnbalanced entries =
-                let virtualUnbalancedMissingAmount =
-                    List.filter (fun entry -> entry.EntryType = VirtualUnbalanced && entry.Amount.IsNone) entries
-                match List.length virtualUnbalancedMissingAmount with
-                | 0 -> entries
-                | otherwise -> failwith "Encountered virtual unbalanced entry missing an amount."
+                let symbolBalances =
+                    postings
+                    |> List.filter (fun posting -> posting.AmountSource = Provided)
+                    |> List.fold sumPostingsBySymbol Map.empty
+                    |> Map.filter (fun symbol amount -> amount.Value <> 0M)
 
-            // Generic balance checker for balanced entry types. Balanced entries should sum 0 or have only 1
-            // amount missing (which can be auto-balanced).
-            let verifyBalanced entryType entries =
-                let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
-                let symbol =
-                    balancedEntries
-                    |> List.tryPick (fun entry -> if entry.Amount.IsSome
-                                                  then Some <| entry.Amount.Value.Symbol
-                                                  else None)
-                let sum =
-                    balancedEntries
-                    |> List.fold (fun sum entry -> if entry.Amount.IsSome
-                                                   then sum + entry.Amount.Value.Value
-                                                   else sum)
-                                 0M
-                let numMissing =
-                    balancedEntries
-                    |> List.filter (fun entry -> entry.Amount.IsNone)
+                let numInferredPostings =
+                    postings
+                    |> List.filter (fun posting -> posting.AmountSource = Inferred)
                     |> List.length
-                (sum, symbol, numMissing)
 
-            // Balanced entry types can be autobalanced as long as there is only 1 amount missing.
-            let autobalance entryType entries =
-                match verifyBalanced entryType entries with
-                | _, _, numMissing when numMissing > 1 -> failwith "Encountered balanced transaction with more than one amount missing."
-                | sum, symbol, numMissing when numMissing = 1 ->
-                    entries
-                    |> List.map (fun entry -> if entry.Amount.IsNone
-                                              then { entry with Amount = Some {Value = -sum; Symbol = symbol; Format = SymbolLeftNoSpace} }
-                                              else entry)
-                | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
-                | otherwise -> entries
+                (symbolBalances, numInferredPostings)
 
-            // Transform pipeline to balance transaction entries
-            let balanceEntries =
-               verifyVirtualUnbalanced
-               >> autobalance VirtualBalanced
-               >> autobalance Balanced
+            // Postings can be autobalanced as long as there is only 1 amount missing
+            // and only one symbol out of balance.
+            let autobalance postings =
+                let symbolBalances, numInferredPostings = postingsBalance postings
+
+                match numInferredPostings, (Seq.length symbolBalances) with
+                | numMissing, _ when numMissing > 1 ->
+                    failwith "Encountered transaction with more than one amount missing."
+                | numMissing, numUnbalancedSymbols when numUnbalancedSymbols > numMissing ->
+                    failwith "Encountered transaction with one or more symbols out of balance."
+                | numMissing, numUnbalancedSymbols when numMissing = 1 && numUnbalancedSymbols = 1 ->
+                    let balance = (Seq.nth 0 symbolBalances).Value
+                    postings
+                    |> List.map (fun posting ->
+                        if posting.AmountSource = Inferred
+                        then {posting with Amount = Some {balance with Value = -balance.Value}}
+                        else posting)
+                | otherwise ->
+                    postings
 
             transactions
-            |> List.map (fun (header, entries) -> (header, balanceEntries entries))
-        *)
+            |> List.map (fun (header, postings) -> (header, autobalance postings))
             
 
         /// Convert to a list of journal postings (transaction postings)
@@ -379,7 +372,7 @@ module Parser =
         /// journal data structure
         let extractPostings = 
             mapToHeaderParsedPostingTuples
-            // >> balanceTransactions
+            >> balanceTransactions
             >> toPostingList
 
 

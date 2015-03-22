@@ -287,7 +287,7 @@ Balance Report
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 - [ ] Can I use LINQ for querying?
 
-DevOps
+Tooling
 - [ ] FAKE build scripts
 - [ ] Setup CI (TravisCI?)
 
@@ -317,20 +317,11 @@ Nav
 - [ ] Default report?
 - [ ] Display indicator when ajax call is happening
 
-Tooling
-- [ ] Research how to handle references cross-platform (sln on mac is different from windows??)
-- [ ] Write a FAKE script for building / running?
-- [ ] Add unit tests
-
 Parsing Ledger File
 - [ ] Review / revise parsing & post-processing:
-	- [x] Remove mutable fields
-	- [x] Make Amount a record type instead of a tuple
 	- [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
-	- [ ] Make specifying a commodity mandatory? Cleans up some code and I always do it...
-	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely)
-	- [ ] Improve error reporting
-	- [ ] Consider removing the virtual transaction types once commodity support is complete
+	- [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely), or does things in parallel
+	- [ ] Improve error reporting during parsing and balance checking
 
 Balance Report
 - [ ] Can I improve the entry filtering code?
