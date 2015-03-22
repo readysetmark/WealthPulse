@@ -10,7 +10,8 @@
 open Journal;;
 open FParsec;;
 
-runParserOnFile Parser.Combinators.journal () "/Users/mark/Nexus/Documents/finances/ledger/test_investments_penny.dat" System.Text.Encoding.ASCII;;
+runParserOnFile Parser.Combinators.journal () "/Users/mark/Nexus/Documents/finances/ledger/test_investments_penny.dat" System.Text.Encoding.UTF8;;
+runParserOnFile Parser.Combinators.journal () "JournalTest/testfiles/simple.dat" System.Text.Encoding.UTF8;;
 
 
 

@@ -268,38 +268,35 @@ module Parser =
 
         /// Transforms the ParseTree tree data structure into a list of (Header, ParsedPosting list) tuples
         /// Basically, we're dropping all the comment nodes
-        let transformParseTreeToTransactions lines =
-            let transactionFilter (line: ParseTree) =
+        let mapToHeaderParsedPostingTuples (lines : ParseTree list) : (Header * ParsedPosting list) list =
+            let isTransaction (line : ParseTree) =
                 match line with
                 | Transaction(_,_) -> true
                 | _ -> false
 
-            let getTransactionHeader (line: ParseTree) =
-                match line with
-                | Transaction(header, lines) -> (header, lines)
-                | _ -> failwith "Unexpected AST value in getTransactionHeader"
-
-            let transactionPostingFilter (line: ParseTree) =
+            let isParsedPosting (line : ParseTree) =
                 match line with
                 | PostingLine(_) -> true
                 | _ -> false
 
-            let getTransactionPosting (line: ParseTree) =
+            let toParsedPosting (line : ParseTree) =
                 match line with
                 | PostingLine(p) -> p
-                | _ -> failwith "Unexpected AST value in getTransactionPosting"
+                | _ -> failwith "Unexpected ParseTree value in toParsedPosting"
 
-            let getTransactionPostings (header, lines) =
-                let postings = 
-                    lines
-                    |> List.filter transactionPostingFilter
-                    |> List.map getTransactionPosting
-                (header, postings)
-
+            let toHeaderPostingsTuple (line : ParseTree) =
+                match line with
+                | Transaction(header, lines) ->
+                    let postings = 
+                        lines
+                        |> List.filter isParsedPosting
+                        |> List.map toParsedPosting
+                    (header, postings)    
+                | _ -> failwith "Unexpected ParseTree value in toHeaderPostingsTuple"
+            
             lines
-            |> List.filter transactionFilter
-            |> List.map getTransactionHeader
-            |> List.map getTransactionPostings
+            |> List.filter isTransaction
+            |> List.map toHeaderPostingsTuple
 
 
         /// Verifies that transactions balance and autobalances transactions if
@@ -379,9 +376,10 @@ module Parser =
             List.collect transactionToJournal ts
 
 
-        /// Pipelined functions applied to the AST to produce the final journal data structure
+        /// Pipelined functions applied to the ParseTree to produce the final
+        /// journal data structure
         let extractPostings = 
-            transformParseTreeToTransactions
+            mapToHeaderParsedPostingTuples
             // >> balanceTransactions
             >> toPostingList
 
