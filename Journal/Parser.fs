@@ -401,7 +401,7 @@ module Parser =
                 | _ -> None
             lines
             |> List.choose priceOnly
-            |> SymbolPriceDB.createFromSymbolPriceList
+            |> SymbolPriceDB.fromList
             
             
 

@@ -134,7 +134,7 @@ type SymbolPriceDB = Map<SymbolValue, SymbolPriceCollection>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
 
-    let createFromSymbolPriceList (prices : list<SymbolPrice>) : SymbolPriceDB =
+    let fromList (prices : list<SymbolPrice>) : SymbolPriceDB =
         prices
         |> Seq.groupBy (fun sp -> sp.Symbol.Value)
         |> Seq.map SymbolPriceCollection.create
