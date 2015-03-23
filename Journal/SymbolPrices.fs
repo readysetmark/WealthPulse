@@ -1,7 +1,6 @@
 ﻿module Journal.SymbolPrices
 
-(* Will need to be reviewed after performing type changes
-
+(*
 open System
 open System.Net
 open System.IO
@@ -11,13 +10,6 @@ open Journal.Types
 //
 // Types
 //
-
-type SymbolConfig = {
-    Symbol: Symbol;
-    GoogleFinanceSearchSymbol: string;
-}
-
-type SymbolConfigs = Map<Symbol, SymbolConfig>
 
 type Pagination = {
     Start: int;

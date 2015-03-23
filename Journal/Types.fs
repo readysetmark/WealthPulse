@@ -149,6 +149,29 @@ module SymbolPriceDB =
         |> Map.iter printSymbolPrices
 
 
+type SymbolConfig = {
+    Symbol: Symbol;
+    GoogleFinanceSearchSymbol: string;
+}
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolConfig =
+
+    let create symbol googleFinanceSymbol =
+        {Symbol = symbol; GoogleFinanceSearchSymbol = googleFinanceSymbol}
+
+
+type SymbolConfigCollection = Map<SymbolValue, SymbolConfig>
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolConfigCollection =
+    
+    let fromList symbolConfigs =
+        let buildCollection collection config =
+            Map.add config.Symbol.Value config collection
+        List.fold buildCollection Map.empty symbolConfigs
+
+
 type Code = string
 type Payee = string
 type Comment = string

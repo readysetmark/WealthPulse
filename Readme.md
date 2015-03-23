@@ -278,6 +278,7 @@ PriceDB
 	- [x] Use FParsec parser instead of regex
 	- [x] Price should be an Amount with a symbol
 - [x] Pricedb and Journal should use the same parser combinator
+- [ ] Parse config file using FParsec
 - [ ] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report

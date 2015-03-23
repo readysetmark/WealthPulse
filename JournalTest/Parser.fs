@@ -469,6 +469,20 @@ let priceParsers =
     ]
 
 [<Tests>]
+let symbolConfigParser =
+    testList "symbolConfigParser" [
+        testCase "symbol config" <| fun _ ->
+            let text = "SC \"MUTF514\" MUTF_CA:MUTF514"
+            Assert.Equal(
+                "symbolConfig: "+ text,
+                Some {
+                    Symbol = {Value = "MUTF514"; Quoted = true};
+                    GoogleFinanceSearchSymbol="MUTF_CA:MUTF514"
+                },
+                parse symbolConfig text)
+    ]
+
+[<Tests>]
 let journalParser =
     testList "journal" [
         testCase "empty" <| fun _ ->
@@ -693,4 +707,48 @@ let priceDBParser =
                     }
                 ],
                 parse priceDB prices)
+    ]
+
+[<Tests>]
+let configParser =
+    testList "config" [
+        testCase "empty file" <| fun _ ->
+            Assert.Equal(
+                "config: <empty>",
+                Some [],
+                parse config "")
+
+        testCase "one record" <| fun _ ->
+            let text = "SC \"MUTF514\" MUTF_CA:MUTF514"
+            Assert.Equal(
+                "config: " + text,
+                Some [
+                    {
+                        Symbol = {Value = "MUTF514"; Quoted = true};
+                        GoogleFinanceSearchSymbol = "MUTF_CA:MUTF514"
+                    }
+                ],
+                parse config text)
+
+        testCase "multiple records" <| fun _ ->
+            let text =
+                [
+                    "SC \"MUTF514\" MUTF_CA:MUTF514";
+                    "SC \"MUTF803\" MUTF_CA:MUTF803";
+                ] |> String.concat "\r\n"
+
+            Assert.Equal(
+                "config:\r\n" + text,
+                Some [
+                    {
+                        Symbol = {Value = "MUTF514"; Quoted = true};
+                        GoogleFinanceSearchSymbol = "MUTF_CA:MUTF514"
+                    };
+                    {
+                        Symbol = {Value = "MUTF803"; Quoted = true};
+                        GoogleFinanceSearchSymbol = "MUTF_CA:MUTF803"
+                    };
+                ],
+                parse config text)
+
     ]
