@@ -37,7 +37,7 @@ module Symbol =
     let create quoted symbol =
         {Value=symbol; Quoted=quoted}
 
-    let serialize (symbol : Symbol) =
+    let render (symbol : Symbol) =
         match symbol.Quoted with
         | true -> "\"" + symbol.Value + "\""
         | _    -> symbol.Value
@@ -71,10 +71,10 @@ module Amount =
 
     let serialize (amount : Amount) =
         match amount.Format with
-        | SymbolLeftWithSpace  -> (Symbol.serialize amount.Symbol) + " " + amount.Value.ToString()
-        | SymbolLeftNoSpace    -> (Symbol.serialize amount.Symbol) + amount.Value.ToString()
-        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.serialize amount.Symbol)
-        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.serialize amount.Symbol)
+        | SymbolLeftWithSpace  -> (Symbol.render amount.Symbol) + " " + amount.Value.ToString()
+        | SymbolLeftNoSpace    -> (Symbol.render amount.Symbol) + amount.Value.ToString()
+        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.render amount.Symbol)
+        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.render amount.Symbol)
 
 
 /// Symbol price as of a certain date.
@@ -93,7 +93,7 @@ module SymbolPrice =
 
     let serialize (sp : SymbolPrice) =
         let dateFormat = "yyyy-MM-dd"
-        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.serialize sp.Symbol) (Amount.serialize sp.Price)
+        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.render sp.Symbol) (Amount.serialize sp.Price)
 
 
 /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
@@ -167,9 +167,9 @@ type SymbolConfigCollection = Map<SymbolValue, SymbolConfig>
 module SymbolConfigCollection =
     
     let fromList symbolConfigs =
-        let buildCollection collection config =
-            Map.add config.Symbol.Value config collection
-        List.fold buildCollection Map.empty symbolConfigs
+        symbolConfigs
+        |> List.map (fun sc -> sc.Symbol.Value, sc)
+        |> Map.ofList
 
 
 type Code = string

@@ -1,6 +1,5 @@
 ﻿module Journal.SymbolPrices
 
-(*
 open System
 open System.Net
 open System.IO
@@ -22,33 +21,17 @@ type Pagination = {
 // SymbolConfig functions
 //
 
-let deserializeSymbolConfigs (path : string) =
-    let toSymbolConfig (regexMatch : Match) =
-        let symbol = regexMatch.Groups.[1].Value
-        let searchSymbol = regexMatch.Groups.[2].Value
-        {Symbol = symbol; GoogleFinanceSearchSymbol = searchSymbol}
+let loadSymbolConfig (path : string) : SymbolConfigCollection =
     match File.Exists(path) with
     | true ->
-        use sr = new StreamReader(path)
-        let contents = sr.ReadToEnd()
-        sr.Close()
-        // parsing: SC Commodity GoogleFinanceSearchSymbol
-        let regex = new Regex("SC (\w+) ([\w:]+)")
-        regex.Matches(contents)
-        |> Seq.cast<Match>
-        |> Seq.map toSymbolConfig
-        |> Seq.toList
-    | false -> 
-        List.Empty
+        Parser.parseConfigFile path System.Text.Encoding.UTF8
+    | false ->
+        List.empty
+    |> SymbolConfigCollection.fromList
 
-let loadSymbolConfig (path : string) : SymbolConfigs =
-    deserializeSymbolConfigs path
-    |> List.map (fun s -> s.Symbol, s)
-    |> Map.ofList
-
-let printSymbolConfigs (configs : SymbolConfigs) =
+let printSymbolConfigs (configs : SymbolConfigCollection) =
     let printSymbolConfig (_symbol : string) (config : SymbolConfig) =
-        printfn "%s %s" config.Symbol config.GoogleFinanceSearchSymbol
+        printfn "%s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
     printfn "Symbol Config:"
     Map.iter printSymbolConfig configs
 
@@ -57,18 +40,16 @@ let printSymbolConfigs (configs : SymbolConfigs) =
 // Load Symbol Prices
 //
 
-let deserializePrices (path : string) =
+let loadSymbolPriceDB (path : string) : SymbolPriceDB =
     match File.Exists(path) with
     | true ->
         Parser.parsePricesFile path System.Text.Encoding.ASCII
     | false ->
         List.Empty
+    |> SymbolPriceDB.fromList
 
 
-let loadSymbolPriceDB (path : string) : SymbolPriceDB =
-    deserializePrices path
-    |> SymbolPriceDB.createFromSymbolPriceList
-
+(*
 
 //
 // Update Symbol Prices

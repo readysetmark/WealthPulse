@@ -429,5 +429,3 @@ module Parser =
     let parseConfigFile fileName encoding =
         runParserOnFile Combinators.config () fileName encoding
         |> extractResult
-        |> SymbolConfigCollection.fromList
-
