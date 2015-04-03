@@ -160,6 +160,9 @@ module SymbolConfig =
     let create symbol googleFinanceSymbol =
         {Symbol = symbol; GoogleFinanceSearchSymbol = googleFinanceSymbol}
 
+    let render (config : SymbolConfig) : string =
+        sprintf "SC %s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
+
 
 type SymbolConfigCollection = Map<SymbolValue, SymbolConfig>
 
@@ -170,6 +173,11 @@ module SymbolConfigCollection =
         symbolConfigs
         |> List.map (fun sc -> sc.Symbol.Value, sc)
         |> Map.ofList
+
+    let prettyPrint (configs : SymbolConfigCollection) : unit =
+        printfn "Symbol Configs:"
+        configs
+        |> Map.iter (fun sym config -> printfn "%s" <| SymbolConfig.render config)
 
 
 type Code = string

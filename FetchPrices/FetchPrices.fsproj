@@ -4,8 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>4af69a4f-f10e-4fab-9f37-1d3dd28bbe7f</ProjectGuid>
+    <ProjectGuid>{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>FetchPrices</RootNamespace>
     <AssemblyName>FetchPrices</AssemblyName>
@@ -33,14 +32,14 @@
     <DocumentationFile>bin\Release\FetchPrices.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
-    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net" />
     <Reference Include="System.Numerics" />
+    <Reference Include="FSharp.Core">
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="main.fs" />

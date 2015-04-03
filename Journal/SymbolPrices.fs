@@ -29,12 +29,6 @@ let loadSymbolConfig (path : string) : SymbolConfigCollection =
         List.empty
     |> SymbolConfigCollection.fromList
 
-let printSymbolConfigs (configs : SymbolConfigCollection) =
-    let printSymbolConfig (_symbol : string) (config : SymbolConfig) =
-        printfn "%s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
-    printfn "Symbol Config:"
-    Map.iter printSymbolConfig configs
-
 
 //
 // Load Symbol Prices
