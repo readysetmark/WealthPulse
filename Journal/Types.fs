@@ -91,7 +91,7 @@ module SymbolPrice =
     let create lineNum date symbol price =
         {LineNumber = lineNum; Date = date; Symbol = symbol; Price = price;}
 
-    let serialize (sp : SymbolPrice) =
+    let render (sp : SymbolPrice) : string =
         let dateFormat = "yyyy-MM-dd"
         sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.render sp.Symbol) (Amount.serialize sp.Price)
 
@@ -107,7 +107,7 @@ type SymbolPriceCollection = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceCollection =
 
-    let create (s : SymbolValue, prices : seq<SymbolPrice>) =
+    let fromList (prices : seq<SymbolPrice>) =
         let sortedPrices = 
             prices
             |> Seq.toList
@@ -115,7 +115,7 @@ module SymbolPriceCollection =
         let symbol = (List.head sortedPrices).Symbol
         let firstDate = (List.head sortedPrices).Date
         let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
-        (s, {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
+        {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;}
 
     let prettyPrint spc =
         let dateFormat = "yyyy-MM-dd"
@@ -137,7 +137,7 @@ module SymbolPriceDB =
     let fromList (prices : list<SymbolPrice>) : SymbolPriceDB =
         prices
         |> Seq.groupBy (fun sp -> sp.Symbol.Value)
-        |> Seq.map SymbolPriceCollection.create
+        |> Seq.map (fun (symbolValue, symbolPrices) -> symbolValue, SymbolPriceCollection.fromList symbolPrices)
         |> Map.ofSeq
 
     let prettyPrint (priceDB : SymbolPriceDB) =

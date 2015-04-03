@@ -43,13 +43,11 @@ let loadSymbolPriceDB (path : string) : SymbolPriceDB =
     |> SymbolPriceDB.fromList
 
 
-(*
-
 //
 // Update Symbol Prices
 //
 
-let fetch (url : string) =
+let fetch (url : string) : string =
     //printfn "Fetching URL: %s" url
     let req = WebRequest.Create(url) :?> HttpWebRequest
     req.Method <- "GET"
@@ -58,22 +56,24 @@ let fetch (url : string) =
     use stream = resp.GetResponseStream()
     use reader = new StreamReader(stream)
     reader.ReadToEnd()
-    
 
-let scrapePrices (symbol : Symbol) (html : string) =
-    let toSymbolPrice (regexMatch : Match) =
+
+let scrapePrices (symbol : Symbol) (html : string) : SymbolPrice list =
+    let matchToSymbolPrice (regexMatch : Match) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
-        let price = Amount.create <| System.Decimal.Parse(regexMatch.Groups.[2].Value) <| Some "$"
-        SymbolPrice.create date symbol price
+        let amount = System.Decimal.Parse(regexMatch.Groups.[2].Value)
+        let priceSymbol = { Value = "$"; Quoted = false; }
+        let price = Amount.create amount priceSymbol SymbolLeftNoSpace
+        SymbolPrice.create -1L date symbol price
 
     let regex = new Regex("<td class=\"lm\">(\w+ \d{1,2}, \d{4})\s<td class=\"rgt rm\">(\d+\.\d+)")
     regex.Matches(html)
     |> Seq.cast<Match>
-    |> Seq.map toSymbolPrice
+    |> Seq.map matchToSymbolPrice
     |> Seq.toList
 
 
-let scrapePagination (html : string) =
+let scrapePagination (html : string) : Pagination =
     let regex = new Regex("google.finance.applyPagination\(\s(\d+),\s(\d+),\s(\d+),")
     let matches = regex.Matches(html)
     {
@@ -82,8 +82,8 @@ let scrapePagination (html : string) =
         TotalRecords = System.Int32.Parse(matches.[0].Groups.[3].Value);
     }
 
-    
-let rec getPrices (baseURL : string) (startAtRecord : int) (symbol : Symbol) =
+
+let rec getPrices (baseURL : string) (startAtRecord : int) (symbol : Symbol) : SymbolPrice list =
     let url = sprintf "%s&start=%s" baseURL (startAtRecord.ToString())
     let html = fetch url
     let prices = scrapePrices symbol html
@@ -93,9 +93,9 @@ let rec getPrices (baseURL : string) (startAtRecord : int) (symbol : Symbol) =
         let startAt = pagination.Start + pagination.RecordsPerPage
         prices @ getPrices baseURL startAt symbol
     | otherwise -> prices
-    
 
-let generateBaseURL (searchKey : string) (startDate : System.DateTime) (endDate : option<System.DateTime>) =
+
+let generateBaseURL (searchKey : string) (startDate : System.DateTime) (endDate : option<System.DateTime>) : string =
     let dateFormat = "MMM d, yyyy"
     let query = System.Net.WebUtility.UrlEncode(searchKey)
     let startDate = System.Net.WebUtility.UrlEncode(startDate.ToString(dateFormat))
@@ -107,26 +107,25 @@ let generateBaseURL (searchKey : string) (startDate : System.DateTime) (endDate 
     baseURL
 
 
-let printNewPrices (prices : list<SymbolPrice>) =
-    let printMatch (price : SymbolPrice) =
-        do printfn "%s - %s - %s" price.Symbol (price.Date.ToString("yyyy-MM-dd")) (price.Price.ToString())
+let printNewPrices (prices : SymbolPrice list) : unit =
     match List.length prices with
     | length when length = 0 -> do printfn "No new prices to add."
     | length when length = 1 -> do printfn "Adding %d price:" length
-    | otherwise              -> do printfn "Adding %d prices:" <| List.length prices
+    | length                 -> do printfn "Adding %d prices:" length
+
     prices
-    |> List.iter printMatch
+    |> List.iter (fun sp -> printfn "%s" <| SymbolPrice.render sp)
 
 
-let getPricesForNewSymbol (usage: SymbolUsage) (config : SymbolConfig) =
+let getPricesForNewSymbol (usage: SymbolUsage) (config : SymbolConfig) : SymbolPriceCollection option =
     let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared usage.ZeroBalanceDate
     let prices = getPrices baseURL 0 usage.Symbol
     match List.length prices with
     | 0         -> None
-    | otherwise -> Some <| SymbolPriceCollection.create (usage.Symbol, prices)
-        
+    | otherwise -> Some <| SymbolPriceCollection.fromList prices
 
-let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) = 
+
+let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) : SymbolPriceCollection =
     let getEarlierMissingPrices (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) =
         match usage.FirstAppeared, symbolData.FirstDate with
         | firstAppeared, firstDate when firstAppeared < firstDate ->
@@ -134,7 +133,7 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolDa
             let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared (Some endDate)
             getPrices baseURL 0 usage.Symbol
         | otherwise -> List.Empty
-        
+
     let getLaterMissingPrices (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection) =
         match usage.ZeroBalanceDate, symbolData.LastDate with
         | None, lastDate when lastDate < System.DateTime.Today ->
@@ -151,49 +150,46 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolDa
     let laterPrices = getLaterMissingPrices usage config symbolData
     printNewPrices (earlierPrices @ laterPrices)
     let allPrices = earlierPrices @ symbolData.Prices @ laterPrices
-    SymbolPriceCollection.create (symbolData.Symbol, allPrices)
+    SymbolPriceCollection.fromList allPrices
 
 
-let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : option<SymbolPriceCollection>) =
-    printfn "Fetching prices for: %s" usage.Symbol
+let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolData : SymbolPriceCollection option) : SymbolPriceCollection option =
+    printfn "Fetching prices for: %s" <| Symbol.render usage.Symbol
     match usage, symbolData with
     | usage, Some symbolData -> Some <| updatePricesForSymbol usage config symbolData
     | usage, None            -> getPricesForNewSymbol usage config
-    
 
-let updateSymbolPriceDB (usages : list<SymbolUsage>) (configs : SymbolConfigs) (priceDB : SymbolPriceDB) =
+
+let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigCollection) (priceDB : SymbolPriceDB) : SymbolPriceDB =
     let symbolsWithConfig (usage : SymbolUsage) =
-        Map.containsKey usage.Symbol configs
-    let getUpdatedSymbolPriceDB (usage : SymbolUsage) =
-        let config = Map.find usage.Symbol configs
-        let symbolData = Map.tryFind config.Symbol priceDB
+        Map.containsKey usage.Symbol.Value configs
+    let getUpdatedSymbolPriceCollection (usage : SymbolUsage) =
+        let config = Map.find usage.Symbol.Value configs
+        let symbolData = Map.tryFind config.Symbol.Value priceDB
         fetchPricesForSymbol usage config symbolData
-    let updateDB (priceDB : SymbolPriceDB) ((commodity : string), (cpDB : SymbolPriceCollection)) =
-        Map.add commodity cpDB priceDB
+    let updateDB (priceDB : SymbolPriceDB) (symbolPriceCollection : SymbolPriceCollection) =
+        Map.add symbolPriceCollection.Symbol.Value symbolPriceCollection priceDB
 
     usages
     |> List.filter symbolsWithConfig
-    |> List.map getUpdatedSymbolPriceDB
+    |> List.map getUpdatedSymbolPriceCollection
     |> List.choose id
     |> List.fold updateDB priceDB
-    
+
 
 //
 // Save Symbol Prices
 //
 
-let serializeSymbolPriceList (sw : StreamWriter) (prices : list<SymbolPrice>) =
-    let toPriceString (price : SymbolPrice) =
-        // format is "P DATE SYMBOL PRICE"
-        sprintf "P %s %s %s" (price.Date.ToString("yyyy-MM-dd")) price.Symbol (price.Price.Amount.ToString())
+let serializeSymbolPriceList (sw : StreamWriter) (prices : SymbolPrice list) : unit =
     prices
-    |> List.iter (fun price -> sw.WriteLine(SymbolPrice.serialize price))
+    |> List.iter (fun price -> sw.WriteLine(SymbolPrice.render price))
 
 
-let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB) =
+let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB) : unit =
     use sw = new StreamWriter(path, false)
+
     priceDB
     |> Map.iter (fun _ commodityPriceDB -> serializeSymbolPriceList sw commodityPriceDB.Prices)
-    sw.Close()
 
-*)
+    sw.Close()

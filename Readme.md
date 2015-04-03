@@ -278,8 +278,8 @@ PriceDB
 	- [x] Use FParsec parser instead of regex
 	- [x] Price should be an Amount with a symbol
 - [x] Pricedb and Journal should use the same parser combinator
-- [ ] Parse config file using FParsec
-- [ ] Review & restore commented code in symbolprices.cs and journalservice.cs
+- [x] Parse config file using FParsec
+- [x] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
@@ -292,6 +292,7 @@ Balance Report
 Tooling
 - [ ] FAKE build scripts
 - [ ] Setup CI (TravisCI?)
+- [ ] Add a real logger
 
 Documentation
 - [ ] Use of commodities within file
