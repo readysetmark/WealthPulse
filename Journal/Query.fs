@@ -95,6 +95,14 @@ module private Support =
             })
         |> Seq.toList
 
+    /// Filters out accounts with 0 balances
+    let discardAccountsWithZeroBalance (accountBalances : AccountBalance list) : AccountBalance list =
+        accountBalances
+        |> List.map (fun accountBalance ->
+            let nonZeroBalances = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance
+            { accountBalance with Balance = nonZeroBalances })
+        |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
+
 (*
     let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
         let selectPricePointByDate symbolData =
@@ -170,10 +178,7 @@ let balance (filters : QueryFilters) (journal : Journal) =
     //let accountBalances =
     filteredPostings
     |> sumPostingsByAccount
-        //|> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance})
-        //|> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
-        
-        //|> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
+    |> discardAccountsWithZeroBalance
 
     (*
     // Calculate real value, price, and price date for commodities
