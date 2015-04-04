@@ -65,6 +65,14 @@ module private Support =
             | None           -> amount
         Map.add amount.Symbol updatedAmount symbolAmounts
 
+    /// Convert a SymbolAmountMap to a list of Amounts sorted by Symbol
+    let symbolAmountMapToSortedAmounts (symbolAmounts: SymbolAmountMap) : Amount list =
+        symbolAmounts
+        |> Map.toSeq
+        |> Seq.map snd
+        |> Seq.sortBy (fun amount -> amount.Symbol.Value)
+        |> Seq.toList
+
     /// Sums a list of postings by account and returns a list of AccountBalance records
     let sumPostingsByAccount (postings : Posting list) : AccountBalance list =
         let buildAccountAmountsMap (accountAmounts : AccountAmountsMap) (posting : Posting) =
@@ -79,12 +87,7 @@ module private Support =
         accountAmounts
         |> Map.toSeq
         |> Seq.map (fun (account, symbolAmounts) ->
-            let amounts =
-                symbolAmounts
-                |> Map.toSeq
-                |> Seq.map snd
-                |> Seq.sortBy (fun amount -> amount.Symbol.Value)
-                |> Seq.toList
+            let amounts = symbolAmountMapToSortedAmounts symbolAmounts
             {
                 Account = account; 
                 Balance = amounts;
@@ -102,6 +105,25 @@ module private Support =
             let nonZeroBalances = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance
             { accountBalance with Balance = nonZeroBalances })
         |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
+
+    /// Calculate total balance (sum of all account balances)
+    let calculateTotalBalance (accountBalances: AccountBalance List) : AccountBalance =
+        let sumBalances (balances : SymbolAmountMap) (accountBalance : AccountBalance) =
+            List.fold addAmountForSymbol balances accountBalance.Balance
+
+        let totalBalance =
+            accountBalances
+            |> List.fold sumBalances Map.empty
+            |> symbolAmountMapToSortedAmounts
+
+        {
+            Account = "";
+            Balance = totalBalance;
+            Basis = None;
+            Commodity = None;
+            Price = None;
+            PriceDate = None;
+        }
 
 (*
     let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
@@ -169,62 +191,21 @@ module private Support =
 open Support
 
 
-/// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
-/// where accountBalances has type AccountBalance and totalBalance is a pair: (total balance, option<real balance>)
-let balance (filters : QueryFilters) (journal : Journal) =
+/// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters
+let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list * AccountBalance) =
     let filteredPostings = filterPostings filters journal
 
     // sum to get account balances, discard accounts with 0 balance
-    //let accountBalances =
-    filteredPostings
-    |> sumPostingsByAccount
-    |> discardAccountsWithZeroBalance
+    let accountBalances =
+        filteredPostings
+        |> sumPostingsByAccount
+        |> discardAccountsWithZeroBalance
 
-    (*
     // Calculate real value, price, and price date for commodities
-    let accountBalances = computeCommodityValues accountBalances priceDB filters journal
+    //let accountBalances = computeCommodityValues accountBalances priceDB filters journal
 
     // calculate (total balance, real balance) pair
-    let totalBalance, totalBasisBalance =
-        let sumBalances balances =
-            let map = new SymbolAmountMap()
-            balances
-            |> List.collect id
-            |> List.iter (addAmountForCommodity map)
-            map.Values
-            |> Seq.toList
-            |> List.sort
-        let balances, basisBalances = 
-            accountBalances
-            |> List.map (fun accountBalance -> (accountBalance.Balance, accountBalance.Basis))
-            |> List.unzip
-        (sumBalances balances, sumBalances basisBalances)
-
-
-    //let totalBalances = (totalBalance, totalBasisBalance)
-    let totalBalances = (totalBalance, totalBasisBalance)
-    *)
-    (*
-    let totalBalances = 
-        accountBalances
-        |> List.filter (fun accountBalance -> Set.contains accountBalance.Account journal.MainAccounts)
-        |> List.map (fun accountBalance ->
-                            let realBalance = match accountBalance.RealBalance with
-                                                | Some balance -> balance
-                                                | None -> accountBalance.Balance
-                            (accountBalance.Balance, realBalance))
-        |> List.fold (fun (totalBalance : Amount, totalRealBalance : Amount) (balance, realBalance) -> 
-                            let newTotalBalance = {totalBalance with Amount = totalBalance.Amount + balance.Amount}
-                            let newTotalRealBalance = {totalRealBalance with Amount = totalRealBalance.Amount + realBalance.Amount}
-                            (newTotalBalance, newTotalRealBalance))
-                        ({Amount = 0.0M; Symbol = Some "$"}, {Amount = 0.0M; Symbol = Some "$"})
-
-    // if total balance = real balance, omit real balance
-    let totalBalances =
-        match totalBalances with
-        | totalBalance, totalRealBalance when totalBalance = totalRealBalance -> totalBalance, None
-        | totalBalance, totalRealBalance -> totalBalance, Some totalRealBalance
-    *)
+    let totalBalance = calculateTotalBalance accountBalances
 
     (*
     // filter parent accounts where amount is the same as the (assumed) single child
@@ -240,9 +221,10 @@ let balance (filters : QueryFilters) (journal : Journal) =
             |> not
         accountBalances
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
-
-    (accountBalances, totalBalances)
     *)
+
+    (accountBalances, totalBalance)
+
 
 
 /// Returns a list of (date, payee, postings) tuples that match the filters,
