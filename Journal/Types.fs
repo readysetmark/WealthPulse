@@ -12,7 +12,7 @@ module Account =
 
     /// Calculate full account lineage for a particular account. This will return
     /// a list of all parent accounts and the account itself.
-    /// e.g. given "a:b:c", returns ["a:b:c"; "a:b"; "a"]
+    /// e.g. given "a:b:c", returns ["a"; "a:b"; "a:b:c"]
     let getAccountLineage (account: string) =
         /// Use with fold to get all combinations.
         let combinator (s: string list) (t: string) =

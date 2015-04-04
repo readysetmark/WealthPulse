@@ -24,7 +24,35 @@ type AccountBalance = {
 module private Support =
 
     type SymbolAmountMap = Map<Symbol, Amount>
+
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module SymbolAmountMap =
+
+        /// Add an amount to a SymbolAmountMap by adding the value to the existing amount
+        /// for a particular symbol, or create a new symbol entry for the amount if there is none
+        let add (symbolAmounts : SymbolAmountMap) (amount : Amount) : SymbolAmountMap =
+            let updatedAmount =
+                match Map.tryFind amount.Symbol symbolAmounts with
+                | Some mapAmount -> { mapAmount with Value = mapAmount.Value + amount.Value }
+                | None           -> amount
+            Map.add amount.Symbol updatedAmount symbolAmounts
+
+        /// Convert a SymbolAmountMap to a list of Amounts sorted by Symbol
+        let toSortedAmountList (symbolAmounts: SymbolAmountMap) : Amount list =
+            symbolAmounts
+            |> Map.toSeq
+            |> Seq.map snd
+            |> Seq.sortBy (fun amount -> amount.Symbol.Value)
+            |> Seq.toList
+
     type AccountAmountsMap = Map<Account, SymbolAmountMap>
+
+    type ParentAccountAmounts = {
+        Balance: SymbolAmountMap;
+        Basis: SymbolAmountMap;
+    }
+
+    type ParentAccountAmountsMap = Map<Account, ParentAccountAmounts>
 
     /// Account contains one of "termsOption" if "termsOption" provided, otherwise defaultValue
     let containsOneOf (defaultValue : bool) (termsOption : string list option) (account : string) : bool =
@@ -57,37 +85,20 @@ module private Support =
         |> List.filter (fun posting -> (Set.contains posting.Account accounts) 
                                         && (withinPeriod posting.Header.Date filters.PeriodStart filters.PeriodEnd))
 
-    /// Add an amount to a SymbolAmountMap
-    let addAmountForSymbol (symbolAmounts : SymbolAmountMap) (amount : Amount) : SymbolAmountMap =
-        let updatedAmount =
-            match Map.tryFind amount.Symbol symbolAmounts with
-            | Some mapAmount -> { mapAmount with Value = mapAmount.Value + amount.Value }
-            | None           -> amount
-        Map.add amount.Symbol updatedAmount symbolAmounts
-
-    /// Convert a SymbolAmountMap to a list of Amounts sorted by Symbol
-    let symbolAmountMapToSortedAmounts (symbolAmounts: SymbolAmountMap) : Amount list =
-        symbolAmounts
-        |> Map.toSeq
-        |> Seq.map snd
-        |> Seq.sortBy (fun amount -> amount.Symbol.Value)
-        |> Seq.toList
-
     /// Sums a list of postings by account and returns a list of AccountBalance records
     let sumPostingsByAccount (postings : Posting list) : AccountBalance list =
         let buildAccountAmountsMap (accountAmounts : AccountAmountsMap) (posting : Posting) =
             let updatedSymbolAmounts =
                 match Map.tryFind posting.Account accountAmounts with
-                | Some symbolAmounts -> addAmountForSymbol symbolAmounts posting.Amount
-                | None               -> addAmountForSymbol Map.empty posting.Amount
+                | Some symbolAmounts -> SymbolAmountMap.add symbolAmounts posting.Amount
+                | None               -> SymbolAmountMap.add Map.empty posting.Amount
             Map.add posting.Account updatedSymbolAmounts accountAmounts
 
-        let accountAmounts = List.fold buildAccountAmountsMap Map.empty postings
-
-        accountAmounts
+        postings
+        |> List.fold buildAccountAmountsMap Map.empty 
         |> Map.toSeq
         |> Seq.map (fun (account, symbolAmounts) ->
-            let amounts = symbolAmountMapToSortedAmounts symbolAmounts
+            let amounts = SymbolAmountMap.toSortedAmountList symbolAmounts
             {
                 Account = account; 
                 Balance = amounts;
@@ -107,14 +118,14 @@ module private Support =
         |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
 
     /// Calculate total balance (sum of all account balances)
-    let calculateTotalBalance (accountBalances: AccountBalance List) : AccountBalance =
+    let calculateTotalBalance (accountBalances : AccountBalance List) : AccountBalance =
         let sumBalances (balances : SymbolAmountMap) (accountBalance : AccountBalance) =
-            List.fold addAmountForSymbol balances accountBalance.Balance
+            List.fold SymbolAmountMap.add balances accountBalance.Balance
 
         let totalBalance =
             accountBalances
             |> List.fold sumBalances Map.empty
-            |> symbolAmountMapToSortedAmounts
+            |> SymbolAmountMap.toSortedAmountList
 
         {
             Account = "";
@@ -124,6 +135,45 @@ module private Support =
             Price = None;
             PriceDate = None;
         }
+
+    /// Calculate parent account balances
+    let calculateParentAccountBalances (accountBalances : AccountBalance List) : AccountBalance list =
+        let addBalancesForParentAccount (accountBalance : AccountBalance) (parentAccountBalances : ParentAccountAmountsMap) (account : Account) =
+            let updatedParentAmounts =
+                match Map.tryFind account parentAccountBalances with
+                | Some parentAccountAmounts ->
+                    let balances = List.fold SymbolAmountMap.add parentAccountAmounts.Balance accountBalance.Balance
+                    { parentAccountAmounts with Balance = balances }
+                | None ->
+                    let balances = List.fold SymbolAmountMap.add Map.empty accountBalance.Balance
+                    { Balance = balances; Basis = Map.empty; }
+            Map.add account updatedParentAmounts parentAccountBalances
+
+        let buildParentAccountAmounts (parentAccountBalances : ParentAccountAmountsMap) (accountBalance: AccountBalance) =
+            accountBalance.Account
+            |> Account.getAccountLineage 
+            |> List.rev
+            |> Seq.skip 1
+            |> Seq.fold (addBalancesForParentAccount accountBalance) parentAccountBalances
+
+        accountBalances
+        |> List.fold buildParentAccountAmounts Map.empty
+        |> Map.toSeq
+        |> Seq.map (fun (account, amounts) ->
+            let balance = SymbolAmountMap.toSortedAmountList amounts.Balance
+            let basis = 
+                match Map.isEmpty amounts.Basis with
+                | true  -> None
+                | false -> Some <| SymbolAmountMap.toSortedAmountList amounts.Basis
+            {
+                Account = account;
+                Balance = balance;
+                Basis = basis;
+                Commodity = None;
+                Price = None;
+                PriceDate = None;
+            })
+        |> Seq.toList
 
 (*
     let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
@@ -207,6 +257,8 @@ let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list 
     // calculate (total balance, real balance) pair
     let totalBalance = calculateTotalBalance accountBalances
 
+    let parentAccountBalances = calculateParentAccountBalances accountBalances
+
     (*
     // filter parent accounts where amount is the same as the (assumed) single child
     let accountBalances =
@@ -223,7 +275,7 @@ let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list 
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
     *)
 
-    (accountBalances, totalBalance)
+    (accountBalances @ parentAccountBalances, totalBalance)
 
 
 
