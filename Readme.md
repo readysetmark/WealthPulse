@@ -194,17 +194,17 @@ This way I can avoid having to propogate up the account hierarchy all the differ
 
 Commodity Prices
 - [ ] Update functions to consider amount commodities
-	- [p] Query.balance
-	- [p] NancyRunner.presentBalanceData
-	- [p] Balance Report JS
+	- [x] Parser.balanceTransactions
+	- [ ] Query.balance
+	- [ ] NancyRunner.presentBalanceData
+	- [ ] Balance Report JS
 	- [ ] NancyRunner.generateNetWorthData
 	- [ ] Net Worth JS
 	- [ ] Query.register
 	- [ ] NancyRunner.presentRegisterData
-	- [ ] Register Reprot JS
+	- [ ] Register Report JS
 	- [ ] Query.outstandingPayees
 	- [ ] Oustanding Payees JS
-	- [ ] Parser.balanceTransactions	
 
 
 ### First Milestone
@@ -288,6 +288,9 @@ Balance Report
 		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 - [ ] Can I use LINQ for querying?
+
+Selloff
+- [ ] Will need to write this function
 
 Tooling
 - [ ] FAKE build scripts

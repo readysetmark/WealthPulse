@@ -222,17 +222,24 @@ type Journal = {
     Postings: Posting list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
-    JournalPriceDB: SymbolPriceDB;
+    PriceDB: SymbolPriceDB;
+    DownloadedPriceDB : SymbolPriceDB;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Journal = 
     
     /// Given a list of journal postings, returns a Journal record
-    let create postings pricedb =
+    let create postings priceDB downloadedPriceDB =
         let mainAccounts = Set.ofList <| List.map (fun (posting : Posting) -> posting.Account) postings
         let allAccounts = Set.ofList <| List.collect (fun posting -> posting.AccountLineage) postings
-        { Postings=postings; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
+        {
+            Postings = postings;
+            MainAccounts = mainAccounts;
+            AllAccounts = allAccounts;
+            PriceDB = priceDB;
+            DownloadedPriceDB = downloadedPriceDB;
+        }
 
 
 // Symbol Usage Types

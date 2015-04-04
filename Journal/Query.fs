@@ -4,8 +4,6 @@ open System
 open Journal.Types
 open Journal.SymbolPrices
 
-type SymbolAmountMap = System.Collections.Generic.Dictionary<Symbol,Amount>
-
 type QueryFilters = {
     AccountsWith: string list option;
     ExcludeAccountsWith: string list option;
@@ -16,41 +14,36 @@ type QueryFilters = {
 type AccountBalance = {
     Account: string;
     Balance: Amount list;
-    Basis: Amount list;
+    Basis: Amount list option;
     Commodity: Amount option;
     Price: Amount option;
     PriceDate: DateTime option;
 }
 
-    
+
 module private Support =
-        
-    // account contains one of "terms" if "terms" provided, otherwise defaultValue
-    let containsOneOf defaultValue termsOption (account :string) =
+
+    type SymbolAmountMap = Map<Symbol, Amount>
+    type AccountAmountsMap = Map<Account, SymbolAmountMap>
+
+    /// Account contains one of "termsOption" if "termsOption" provided, otherwise defaultValue
+    let containsOneOf (defaultValue : bool) (termsOption : string list option) (account : string) : bool =
         match termsOption with
-        | Some terms -> List.exists (fun (token :string) -> (account.ToLower().Contains(token.ToLower()))) terms
+        | Some terms ->
+            terms
+            |> List.exists (fun (token : string) -> account.ToLower().Contains(token.ToLower()))
         | None       -> defaultValue
 
-        
-    let withinPeriod date periodStartOption periodEndOption =
+    /// Is date within periodStartOption and periodEndOption?
+    let withinPeriod (date : DateTime) (periodStartOption : DateTime option) (periodEndOption : DateTime option) : bool =
         match periodStartOption, periodEndOption with
         | Some periodStart, Some periodEnd -> periodStart <= date && date <= periodEnd
-        | Some periodStart, None -> periodStart <= date
-        | None, Some periodEnd -> date <= periodEnd
-        | _, _ -> true
-
-    /// Add an amount to a SymbolAmountMap
-    let addAmountForCommodity (map : SymbolAmountMap) (amount : Amount) =
-        match map.ContainsKey(amount.Symbol) with
-        | true -> 
-            map.[amount.Symbol] <- {Value = map.[amount.Symbol].Value + amount.Value;
-                                    Symbol = amount.Symbol;
-                                    Format = SymbolLeftWithSpace;}
-        | false -> 
-            map.[amount.Symbol] <- amount
+        | Some periodStart, None           -> periodStart <= date
+        | None, Some periodEnd             -> date <= periodEnd
+        | _, _                             -> true
 
     /// Apply filters to retrieve journal postings
-    let filterPostings (filters : QueryFilters) (journal : Journal) =
+    let filterPostings (filters : QueryFilters) (journal : Journal) : Posting list =
         // apply account filters to construct a set of accounts
         // TODO: Not fond of the call to "containsOneOf" needing the default parameter, there must be a better way...
         let accounts = 
@@ -64,102 +57,45 @@ module private Support =
         |> List.filter (fun posting -> (Set.contains posting.Account accounts) 
                                         && (withinPeriod posting.Header.Date filters.PeriodStart filters.PeriodEnd))
 
-    
+    /// Add an amount to a SymbolAmountMap
+    let addAmountForSymbol (symbolAmounts : SymbolAmountMap) (amount : Amount) : SymbolAmountMap =
+        let updatedAmount =
+            match Map.tryFind amount.Symbol symbolAmounts with
+            | Some mapAmount -> { mapAmount with Value = mapAmount.Value + amount.Value }
+            | None           -> amount
+        Map.add amount.Symbol updatedAmount symbolAmounts
+
     /// Sums a list of postings by account and returns a list of AccountBalance records
-    let sumPostingsByAccount (postings : list<Posting>) =
-        let accountBalanceMap = new System.Collections.Generic.Dictionary<Account,SymbolAmountMap>()
-        let addAmountForAccount (posting : Posting) =
-            match accountBalanceMap.ContainsKey(posting.Account) with
-            | true -> addAmountForCommodity accountBalanceMap.[posting.Account] posting.Amount
-            | false -> accountBalanceMap.[posting.Account] <- new SymbolAmountMap()
-                       addAmountForCommodity accountBalanceMap.[posting.Account] posting.Amount
-        do List.iter addAmountForAccount postings
-        accountBalanceMap.Keys
-        |> Seq.map (fun key -> {Account = key; 
-                                Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values;
-                                Basis = List.sort <| Seq.toList accountBalanceMap.[key].Values;
-                                Commodity = None;
-                                Price = None;
-                                PriceDate = None;})
+    let sumPostingsByAccount (postings : Posting list) : AccountBalance list =
+        let buildAccountAmountsMap (accountAmounts : AccountAmountsMap) (posting : Posting) =
+            let updatedSymbolAmounts =
+                match Map.tryFind posting.Account accountAmounts with
+                | Some symbolAmounts -> addAmountForSymbol symbolAmounts posting.Amount
+                | None               -> addAmountForSymbol Map.empty posting.Amount
+            Map.add posting.Account updatedSymbolAmounts accountAmounts
+
+        let accountAmounts = List.fold buildAccountAmountsMap Map.empty postings
+
+        accountAmounts
+        |> Map.toSeq
+        |> Seq.map (fun (account, symbolAmounts) ->
+            let amounts =
+                symbolAmounts
+                |> Map.toSeq
+                |> Seq.map snd
+                |> Seq.sortBy (fun amount -> amount.Symbol.Value)
+                |> Seq.toList
+            {
+                Account = account; 
+                Balance = amounts;
+                Basis = None;
+                Commodity = None;
+                Price = None;
+                PriceDate = None;
+            })
         |> Seq.toList
 
-
-    /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each posting in postings
-    (* commenting this out. was replaced by sumEntriesByAccount, but might want/need some of this logic
-       for generating parent accounts later in a later step of the balance report
-    let xcalculateAccountBalances entries =
-        let accountBalanceMap = new System.Collections.Generic.Dictionary<Account,SymbolAmountMap>()
-        let addAmountForAccounts entry =
-            fun account ->
-                match accountBalanceMap.ContainsKey(account) with
-                | true -> addAmountForCommodity accountBalanceMap.[account] entry.Amount
-                | false -> accountBalanceMap.[account] <- new SymbolAmountMap()
-                           addAmountForCommodity accountBalanceMap.[account] entry.Amount
-        let forEachAccountInLineageAddAmount entry =
-            List.iter (addAmountForAccounts entry) entry.AccountLineage
-        do List.iter forEachAccountInLineageAddAmount entries
-        accountBalanceMap.Keys
-        |> Seq.map (fun key -> {Account = key; 
-                                Balance = List.sort <| Seq.toList accountBalanceMap.[key].Values;
-                                Basis = None;
-                                Commodity = None;
-                                Price = None;
-                                PriceDate = None;})
-        |> Seq.toList
-    *)
-
-    /// Returns a list of AccountBalance records summed for all accounts in the account lineage for each posting in postings.
-    /// For accounts with commodities, we also calculate the total number of units, which is not propagated to parent accounts.
-    (* commenting out for now as this version need a complete overhaul
-    let calculateAccountBalances entries =
-        let accountBalanceMap = new System.Collections.Generic.Dictionary<string, AccountBalance>()
-        let ensureSymbolsMatch (amount1 : Amount) (amount2 : Amount) =
-            match amount1.Symbol, amount2.Symbol with
-            | Some s1, Some s2 when s1 <> s2 -> failwith (sprintf "Symbols do not match: %s and %s" s1 s2)
-            | Some s1, None                  -> failwith (sprintf "Symbols do not match: %s and <no symbol>" s1)
-            | None, Some s2                  -> failwith (sprintf "Symbols do not match: <no symbol> and %s" s2)
-            | otherwise                      -> ()
-        let createAccountBalanceForAccount (account : string) (entry : Entry) =
-            match account = entry.Account with
-            | true  ->  {
-                            Account = account;
-                            Balance = entry.Amount;
-                            RealBalance = None;
-                            Commodity = None; //entry.Commodity; -- TODO review
-                            Price = None;
-                            PriceDate = None;
-                        }
-            | false ->  {
-                            Account = account;
-                            Balance = entry.Amount;
-                            RealBalance = None;
-                            Commodity = None;
-                            Price = None;
-                            PriceDate = None;
-                        }
-        let updateAccountBalanceForAccount (account : string) (balance : AccountBalance) (entry : Entry) =
-            do ensureSymbolsMatch balance.Balance entry.Amount
-            // TODO review
-//            match account = entry.Account, entry.Commodity with
-//            | true, Some _  ->  do ensureSymbolsMatch balance.Commodity.Value entry.Commodity.Value
-//                                { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount };
-//                                                Commodity = Some { balance.Commodity.Value with Amount = balance.Commodity.Value.Amount + entry.Commodity.Value.Amount } }
-//            | otherwise     ->  { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount } }
-            { balance with Balance = { balance.Balance with Amount = balance.Balance.Amount + entry.Amount.Amount } }
-        let addAmountForAccounts entry = 
-            fun account -> 
-                match accountBalanceMap.ContainsKey(account) with
-                | true  -> accountBalanceMap.[account] <- updateAccountBalanceForAccount account accountBalanceMap.[account] entry
-                | false -> accountBalanceMap.[account] <- createAccountBalanceForAccount account entry
-        let forEachAccountInLineageAddAmount entry =
-            List.iter (addAmountForAccounts entry) entry.AccountLineage
-        do List.iter forEachAccountInLineageAddAmount entries
-        accountBalanceMap.Keys
-        |> Seq.map (fun key -> accountBalanceMap.[key])
-        |> Seq.toList
-    *)
-
-
+(*
     let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
         let selectPricePointByDate symbolData =
             symbolData.Prices
@@ -206,6 +142,7 @@ module private Support =
         accountBalances
         |> List.map computeRealBalance
 
+*)
 
     /// Groups postings by header and returns (date, payee, postings) tuples
     let calculateRegisterLines postings =
@@ -219,24 +156,26 @@ module private Support =
         |> Seq.groupBy (fun posting -> posting.Header)
         |> Seq.map (fun (header, postings) -> header.Date, header.Payee, Seq.map calculatePostingLine postings |> Seq.toList |> List.rev)
 
-            
+
 
 open Support
 
 
 /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters,
 /// where accountBalances has type AccountBalance and totalBalance is a pair: (total balance, option<real balance>)
-let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceDB) =
+let balance (filters : QueryFilters) (journal : Journal) =
     let filteredPostings = filterPostings filters journal
 
     // sum to get account balances, discard accounts with 0 balance
-    let accountBalances =
-        filteredPostings
-        |> sumPostingsByAccount
-        |> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance})
-        |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
-        //|> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
+    //let accountBalances =
+    filteredPostings
+    |> sumPostingsByAccount
+        //|> List.map (fun accountBalance -> {accountBalance with Balance = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance})
+        //|> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
         
+        //|> List.filter (fun accountBalance -> accountBalance.Balance.Amount <> 0M)
+
+    (*
     // Calculate real value, price, and price date for commodities
     let accountBalances = computeCommodityValues accountBalances priceDB filters journal
 
@@ -259,6 +198,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
 
     //let totalBalances = (totalBalance, totalBasisBalance)
     let totalBalances = (totalBalance, totalBasisBalance)
+    *)
     (*
     let totalBalances = 
         accountBalances
@@ -281,6 +221,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
         | totalBalance, totalRealBalance -> totalBalance, Some totalRealBalance
     *)
 
+    (*
     // filter parent accounts where amount is the same as the (assumed) single child
     let accountBalances =
         let amountsEqual a b =
@@ -296,6 +237,7 @@ let balance (filters : QueryFilters) (journal : Journal) (priceDB : SymbolPriceD
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     (accountBalances, totalBalances)
+    *)
 
 
 /// Returns a list of (date, payee, postings) tuples that match the filters,
