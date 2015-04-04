@@ -17,14 +17,12 @@ runParserOnFile Parser.Combinators.journal () "JournalTest/testfiles/simple.dat"
 
 // for visual f#
 
-#I "Journal/bin/Debug"
+#I "../Journal/bin/Debug"
 #r "FSharp.Core.dll"
 #r "FParsec.dll"
 #r "FParsecCS.dll"
 #r "Journal.dll"
 
-
-FParsec.CharParsers.run Journal.Parser.Combinators.parsePrice "P 2014/12/14 AAPL $13.33"
 open Journal
 
 //let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\ledger.dat"
@@ -32,10 +30,14 @@ let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_invest
 let configPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.config"
 let pricesPath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\.pricedb"
 
-let prices = Parser.parsePricesFile pricesPath System.Text.Encoding.ASCII
+//let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/ledger.dat"
+let ledgerFilePath = @"/Users/Mark/Nexus/Documents/finances/ledger/test_investments_penny.dat"
+let configPath = @"/Users/Mark/Nexus/Documents/finances/ledger/.config"
+let pricesPath = @"/Users/Mark/Nexus/Documents/finances/ledger/.pricedb"
 
-let entries = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.ASCII
-let journal = Journal.createJournal entries
+
+let postings, priceDB = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.UTF8
+let journal = Types.Journal.create postings priceDB
 
 
 (*
@@ -43,7 +45,7 @@ let journal = Journal.createJournal entries
 *)
 
 let symbolConfigs = SymbolPrices.loadSymbolConfig configPath
-SymbolPrices.printSymbolConfigs symbolConfigs
+Types.SymbolConfigCollection.prettyPrint symbolConfigs
 
 
 (*
@@ -51,7 +53,7 @@ SymbolPrices.printSymbolConfigs symbolConfigs
 *)
 
 let priceDB = SymbolPrices.loadSymbolPriceDB pricesPath
-SymbolPrices.printSymbolPriceDB priceDB
+Types.SymbolPriceDB.prettyPrint priceDB
 
 
 (*

@@ -278,7 +278,8 @@ PriceDB
 	- [x] Use FParsec parser instead of regex
 	- [x] Price should be an Amount with a symbol
 - [x] Pricedb and Journal should use the same parser combinator
-- [ ] Review & restore commented code in symbolprices.cs and journalservice.cs
+- [x] Parse config file using FParsec
+- [x] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report
 - [ ] Update logic for calculating basis and real value for commodities
@@ -291,6 +292,7 @@ Balance Report
 Tooling
 - [ ] FAKE build scripts
 - [ ] Setup CI (TravisCI?)
+- [ ] Add a real logger
 
 Documentation
 - [ ] Use of commodities within file
@@ -322,6 +324,9 @@ Parsing Ledger File
 - [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
 - [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely), or does things in parallel
 - [ ] Improve error reporting during parsing and balance checking
+
+Symbol Price
+- [ ] Hard-coded line number to -1 -- feels like a hack
 
 Balance Report
 - [ ] Can I improve the entry filtering code?

@@ -7,11 +7,12 @@ open Journal.Parser.PostProcess
 open Journal.Parser.Types
 open Journal.Types
 
-let simpleFile = "JournalTest/testfiles/simple.dat"
-let balancedFile = "JournalTest/testfiles/balanced.dat"
-let unbalancedFile = "JournalTest/testfiles/unbalanced.dat"
-let inferredFile = "JournalTest/testfiles/inferred.dat"
-let missingAmountsFile = "JournalTest/testfiles/missingamounts.dat"
+let testfilesPath = "../../testfiles"
+let simpleFile = testfilesPath + "/simple.dat"
+let balancedFile = testfilesPath + "/balanced.dat"
+let unbalancedFile = testfilesPath + "/unbalanced.dat"
+let inferredFile = testfilesPath + "/inferred.dat"
+let missingAmountsFile = testfilesPath + "/missingamounts.dat"
 
 let parseFile parser filepath =
     match runParserOnFile parser () filepath System.Text.Encoding.UTF8 with

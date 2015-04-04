@@ -37,7 +37,7 @@ module Symbol =
     let create quoted symbol =
         {Value=symbol; Quoted=quoted}
 
-    let serialize (symbol : Symbol) =
+    let render (symbol : Symbol) =
         match symbol.Quoted with
         | true -> "\"" + symbol.Value + "\""
         | _    -> symbol.Value
@@ -71,10 +71,10 @@ module Amount =
 
     let serialize (amount : Amount) =
         match amount.Format with
-        | SymbolLeftWithSpace  -> (Symbol.serialize amount.Symbol) + " " + amount.Value.ToString()
-        | SymbolLeftNoSpace    -> (Symbol.serialize amount.Symbol) + amount.Value.ToString()
-        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.serialize amount.Symbol)
-        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.serialize amount.Symbol)
+        | SymbolLeftWithSpace  -> (Symbol.render amount.Symbol) + " " + amount.Value.ToString()
+        | SymbolLeftNoSpace    -> (Symbol.render amount.Symbol) + amount.Value.ToString()
+        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.render amount.Symbol)
+        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.render amount.Symbol)
 
 
 /// Symbol price as of a certain date.
@@ -91,9 +91,9 @@ module SymbolPrice =
     let create lineNum date symbol price =
         {LineNumber = lineNum; Date = date; Symbol = symbol; Price = price;}
 
-    let serialize (sp : SymbolPrice) =
+    let render (sp : SymbolPrice) : string =
         let dateFormat = "yyyy-MM-dd"
-        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.serialize sp.Symbol) (Amount.serialize sp.Price)
+        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.render sp.Symbol) (Amount.serialize sp.Price)
 
 
 /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
@@ -107,7 +107,7 @@ type SymbolPriceCollection = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceCollection =
 
-    let create (s : SymbolValue, prices : seq<SymbolPrice>) =
+    let fromList (prices : seq<SymbolPrice>) =
         let sortedPrices = 
             prices
             |> Seq.toList
@@ -115,7 +115,7 @@ module SymbolPriceCollection =
         let symbol = (List.head sortedPrices).Symbol
         let firstDate = (List.head sortedPrices).Date
         let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
-        (s, {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;})
+        {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;}
 
     let prettyPrint spc =
         let dateFormat = "yyyy-MM-dd"
@@ -134,10 +134,10 @@ type SymbolPriceDB = Map<SymbolValue, SymbolPriceCollection>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
 
-    let createFromSymbolPriceList (prices : list<SymbolPrice>) : SymbolPriceDB =
+    let fromList (prices : list<SymbolPrice>) : SymbolPriceDB =
         prices
         |> Seq.groupBy (fun sp -> sp.Symbol.Value)
-        |> Seq.map SymbolPriceCollection.create
+        |> Seq.map (fun (symbolValue, symbolPrices) -> symbolValue, SymbolPriceCollection.fromList symbolPrices)
         |> Map.ofSeq
 
     let prettyPrint (priceDB : SymbolPriceDB) =
@@ -147,6 +147,37 @@ module SymbolPriceDB =
             do SymbolPriceCollection.prettyPrint spc
         priceDB
         |> Map.iter printSymbolPrices
+
+
+type SymbolConfig = {
+    Symbol: Symbol;
+    GoogleFinanceSearchSymbol: string;
+}
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolConfig =
+
+    let create symbol googleFinanceSymbol =
+        {Symbol = symbol; GoogleFinanceSearchSymbol = googleFinanceSymbol}
+
+    let render (config : SymbolConfig) : string =
+        sprintf "SC %s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
+
+
+type SymbolConfigCollection = Map<SymbolValue, SymbolConfig>
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolConfigCollection =
+    
+    let fromList symbolConfigs =
+        symbolConfigs
+        |> List.map (fun sc -> sc.Symbol.Value, sc)
+        |> Map.ofList
+
+    let prettyPrint (configs : SymbolConfigCollection) : unit =
+        printfn "Symbol Configs:"
+        configs
+        |> Map.iter (fun sym config -> printfn "%s" <| SymbolConfig.render config)
 
 
 type Code = string

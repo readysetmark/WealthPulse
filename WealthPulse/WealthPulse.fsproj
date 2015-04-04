@@ -4,8 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>d394ee0a-e293-49d0-9982-4ef6a3007f41</ProjectGuid>
+    <ProjectGuid>{D394EE0A-E293-49D0-9982-4EF6A3007F41}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>webledger</RootNamespace>
     <AssemblyName>wealthpulse</AssemblyName>
@@ -65,9 +64,6 @@
     <Reference Include="FParsecCS, Version=1.0.0.0, Culture=neutral, PublicKeyToken=40ccfc0a09edbb5d">
       <Private>True</Private>
     </Reference>
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
-    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="Nancy, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
@@ -80,12 +76,14 @@
     <Reference Include="System.Numerics" />
     <ProjectReference Include="..\Journal\Journal.fsproj">
       <Name>Journal</Name>
-      <Project>{3f76b8d5-0b39-42f0-9d72-fb1cd77e0cc3}</Project>
-      <Private>True</Private>
+      <Project>{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}</Project>
     </ProjectReference>
     <Reference Include="System.Web.Extensions" />
+    <Reference Include="FSharp.Core">
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
-<!--
+  <!--
   <PropertyGroup>
     <PostBuildEvent>rmdir /Q /S views
 mkdir views

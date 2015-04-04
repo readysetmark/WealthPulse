@@ -325,34 +325,35 @@ let outstandingPayees (journal : Journal) =
 /// Returns a list of symbols used in the journal
 let identifySymbolUsage (journal : Journal) =
     let buildSymbolMap map (posting : Posting) =
-        // TODO review
-//        match posting.Commodity with
-//        | Some commodity -> 
-//            match commodity.Symbol with
-//            | Some symbol -> match Map.tryFind symbol map with
-//                                | Some su -> match su.FirstAppeared > posting.Header.Date with
-//                                             | true -> Map.add symbol {su with FirstAppeared = posting.Header.Date} map
-//                                             | false -> map 
-//                                | otherwise -> Map.add symbol {Symbol = symbol; FirstAppeared = posting.Header.Date; ZeroBalanceDate = None;} map
-//            | otherwise -> map
-//        | otherwise -> map
-        map
-    let determineZeroBalanceDate postings symbol (su : SymbolUsage) =
-        // TODO revew
-//        let postingsWithSymbol = postings
-//                                |> List.filter (fun (e : Entry) -> match e.Commodity with
-//                                                                    | Some c ->
-//                                                                        match c.Symbol with
-//                                                                        | Some s when s = symbol -> true
-//                                                                        | otherwise -> false
-//                                                                    | otherwise -> false)
-//        let balance = postingsWithSymbol |> List.fold (fun balance entry -> balance + entry.Commodity.Value.Amount) 0M
-//        let lastDate = postingsWithSymbol 
-//                        |> List.fold (fun date entry -> if entry.Header.Date > date then entry.Header.Date else date) (List.head postingsWithSymbol).Header.Date
-//        match balance with
-//        | 0M -> {su with ZeroBalanceDate = Some lastDate}
-//        | otherwise -> su
-        su
+        let symbol = posting.Amount.Symbol.Value
+        match Map.tryFind symbol map with
+        | Some symbolUsage when symbolUsage.FirstAppeared > posting.Header.Date ->
+            Map.add symbol {symbolUsage with FirstAppeared = posting.Header.Date} map
+        | Some symbolUsage ->
+            map
+        | otherwise ->
+            Map.add symbol {Symbol = posting.Amount.Symbol; FirstAppeared = posting.Header.Date; ZeroBalanceDate = None;} map
+
+    let determineZeroBalanceDate (postings : Posting list) (symbol : SymbolValue) (symbolUsage : SymbolUsage) =
+        let assetPostingsWithSymbol =
+            postings 
+            |> List.filter (fun (p : Posting) -> 
+                p.Amount.Symbol.Value = symbol 
+                && p.AccountLineage.Head.ToLower() = "assets")
+        let balance =
+            assetPostingsWithSymbol
+            |> List.fold (fun balance posting -> balance + posting.Amount.Value) 0M
+        let lastDate =
+            assetPostingsWithSymbol
+            |> List.fold
+                (fun date posting ->
+                    if posting.Header.Date > date then posting.Header.Date 
+                    else date)
+                (List.head assetPostingsWithSymbol).Header.Date
+        match balance with
+        | 0M        -> {symbolUsage with ZeroBalanceDate = Some lastDate}
+        | otherwise -> symbolUsage
+
     journal.Postings
     |> List.fold buildSymbolMap Map.empty
     |> Map.map (determineZeroBalanceDate journal.Postings)

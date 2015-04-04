@@ -246,6 +246,16 @@ module Parser =
             price |>> PriceLine
 
 
+        // Symbol Configuration Parser
+
+        /// Parse a symbol configuration entry.
+        /// e.g. "SC <symbol> <google finance search symbol>"
+        let symbolConfig : Parser<SymbolConfig> =
+            let symbolConfigLeader = pstring "SC" .>> skipWS
+            let googleSymbolChar = noneOf "; \t\r\n\""
+            symbolConfigLeader >>. pipe2 (symbol .>> skipWS) (many1Chars googleSymbolChar) SymbolConfig.create
+
+
         // Journal Parser
 
         /// Parse a complete ledger journal
@@ -258,6 +268,13 @@ module Parser =
         /// Parse a prices file
         let priceDB : Parser<SymbolPrice list> =
             sepEndBy price (many1 (skipWS >>. newline))
+
+
+        // Config File Parser
+
+        /// Parse a config file
+        let config : Parser<SymbolConfig list> =
+            sepEndBy symbolConfig (many1 (skipWS >>. newline))
 
 
         
@@ -384,26 +401,31 @@ module Parser =
                 | _ -> None
             lines
             |> List.choose priceOnly
-            |> SymbolPriceDB.createFromSymbolPriceList
+            |> SymbolPriceDB.fromList
             
             
 
     
     let private extractResult result =
         match result with
-        | Success(ast, _, _) -> ast
+        | Success(r, _, _)        -> r
         | Failure(errorMsg, _, _) -> failwith errorMsg
 
     /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =
-        let ast = 
+        let parseTree = 
             runParserOnFile Combinators.journal () fileName encoding
             |> extractResult
-        let postings = PostProcess.extractPostings ast
-        let pricedb = PostProcess.extractPrices ast
+        let postings = PostProcess.extractPostings parseTree
+        let pricedb = PostProcess.extractPrices parseTree
         (postings, pricedb)
 
     /// Run the parser against a prices file
     let parsePricesFile fileName encoding =
         runParserOnFile Combinators.priceDB () fileName encoding
+        |> extractResult
+
+    /// Run the parser against a config file
+    let parseConfigFile fileName encoding =
+        runParserOnFile Combinators.config () fileName encoding
         |> extractResult
