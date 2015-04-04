@@ -325,6 +325,9 @@ Parsing Ledger File
 - [ ] Transform post-processing to a pipeline that deals with one transaction at a time (completely), or does things in parallel
 - [ ] Improve error reporting during parsing and balance checking
 
+Symbol Price
+- [ ] Hard-coded line number to -1 -- feels like a hack
+
 Balance Report
 - [ ] Can I improve the entry filtering code?
 - [x] Can I get rid of the list comprehension?
