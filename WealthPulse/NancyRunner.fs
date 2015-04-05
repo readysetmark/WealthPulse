@@ -168,8 +168,6 @@ module NancyRunner =
                 | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
                 | _ :: t -> accountDisplay t account parentage indent
             accountDisplay accountBalances account "" 0
-        let accountBalances =
-            List.sortBy (fun a -> a.Account) accountBalances
 
         (accountBalances @ [totalBalance])
         |> List.map (fun accountBalance -> 

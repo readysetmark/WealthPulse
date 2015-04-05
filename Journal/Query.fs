@@ -175,6 +175,21 @@ module private Support =
             })
         |> Seq.toList
 
+    /// Filter parent accounts where amount is the same as the (assumed) single child
+    let filterParentAccounts (accountBalances : AccountBalance list) : AccountBalance list =
+        let amountsEqual a b =
+            (List.sort a) = (List.sort b)
+
+        let existsChildAccountWithSameAmount allBalances accountBalance =
+            allBalances
+            |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
+                                                        && otherAccountBalance.Account.Length > accountBalance.Account.Length
+                                                        && (amountsEqual otherAccountBalance.Balance accountBalance.Balance))
+            |> not
+
+        accountBalances
+        |> List.filter (existsChildAccountWithSameAmount accountBalances)
+
 (*
     let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
         let selectPricePointByDate symbolData =
@@ -257,25 +272,14 @@ let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list 
     // calculate (total balance, real balance) pair
     let totalBalance = calculateTotalBalance accountBalances
 
+    // Calculate all parent accounts and then remove the unnecessary ones and sort
     let parentAccountBalances = calculateParentAccountBalances accountBalances
-
-    (*
-    // filter parent accounts where amount is the same as the (assumed) single child
     let accountBalances =
-        let amountsEqual a b =
-            (List.sort a) = (List.sort b)
-        let existsChildAccountWithSameAmount allBalances accountBalance =
-            allBalances
-            |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
-                                                        && otherAccountBalance.Account.Length > accountBalance.Account.Length
-                                                        && (amountsEqual otherAccountBalance.Balance accountBalance.Balance))
-                                                        //&& otherAccountBalance.Balance.Amount = accountBalance.Balance.Amount)
-            |> not
-        accountBalances
-        |> List.filter (existsChildAccountWithSameAmount accountBalances)
-    *)
+        accountBalances @ parentAccountBalances
+        |> filterParentAccounts
+        |> List.sortBy (fun accountBalance -> accountBalance.Account)
 
-    (accountBalances @ parentAccountBalances, totalBalance)
+    (accountBalances, totalBalance)
 
 
 
