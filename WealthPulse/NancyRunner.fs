@@ -100,6 +100,11 @@ module NancyRunner =
             | true -> Some <| System.DateTime.Parse(dateVal.ToString())
             | otherwise -> None
 
+        let parseBoolVal (boolVal : Nancy.DynamicDictionaryValue) =
+            match boolVal.HasValue with
+            | true -> Some <| System.Boolean.Parse(boolVal.ToString())
+            | false -> None
+
         let titleVal = query?title
         let since = parseDateVal query?since
         let upto = parseDateVal query?upto
@@ -125,6 +130,10 @@ module NancyRunner =
                 | Some _, _ -> upto
                 | _, Some _ -> periodEnd
                 | _, _ -> None;
+            ConvertCommodities =
+                match parseBoolVal query?convertCommodities with
+                | Some b -> b
+                | None   -> false
         },
         match titleVal.HasValue with
         | true -> titleVal.ToString()
@@ -209,6 +218,7 @@ module NancyRunner =
                 ExcludeAccountsWith = Some ["units"];
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
+                ConvertCommodities = true;
             }
             let _, totalBalance = Query.balance parameters journalData
             let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol.Value = "$") totalBalance.Balance)

@@ -4,11 +4,12 @@ open System
 open Journal.Types
 open Journal.SymbolPrices
 
-type QueryFilters = {
+type QueryOptions = {
     AccountsWith: string list option;
     ExcludeAccountsWith: string list option;
     PeriodStart: DateTime option;
     PeriodEnd: DateTime option;
+    ConvertCommodities: bool;
 }
 
 type AccountBalance = {
@@ -71,7 +72,7 @@ module private Support =
         | _, _                             -> true
 
     /// Apply filters to retrieve journal postings
-    let filterPostings (filters : QueryFilters) (journal : Journal) : Posting list =
+    let filterPostings (filters : QueryOptions) (journal : Journal) : Posting list =
         // apply account filters to construct a set of accounts
         // TODO: Not fond of the call to "containsOneOf" needing the default parameter, there must be a better way...
         let accounts = 
@@ -209,7 +210,7 @@ module private Support =
             | None -> None
 
     /// Compute the basis amount for a symbol over a period specified by the filters.
-    let computeBasis (symbol : Symbol) (filters : QueryFilters) (journal : Journal) : Amount =
+    let computeBasis (symbol : Symbol) (filters : QueryOptions) (journal : Journal) : Amount =
         let basisAccount = "Basis:" + symbol.Value
         let basisFilter = {filters with AccountsWith = Some [basisAccount]; ExcludeAccountsWith = None;}
         let basisAmount = 
@@ -222,17 +223,17 @@ module private Support =
     // TODO: How do I handle if we're computing commodity values and an account has more than one commodity?
     /// Compute real and basis values for commodities held in an account. 
     /// Making an assumption right now that an account should only hold one type of commodity.
-    let computeCommodityValues (filters : QueryFilters) (journal : Journal) (accountBalances : AccountBalance list) : AccountBalance list =
+    let computeCommodityValues (options : QueryOptions) (journal : Journal) (accountBalances : AccountBalance list) : AccountBalance list =
         let computeRealBalance (accountBalance : AccountBalance) =
             match List.length accountBalance.Balance with
             | 1 ->
                 let nonDollarAmount (amount : Amount) = amount.Symbol.Value <> "$"
                 match List.tryFind nonDollarAmount accountBalance.Balance with
                 | Some amount -> 
-                    match tryFindSymbolPrice amount.Symbol.Value filters.PeriodEnd journal with
+                    match tryFindSymbolPrice amount.Symbol.Value options.PeriodEnd journal with
                     | Some pricePoint ->
                         let balance = { pricePoint.Price with Value = pricePoint.Price.Value * amount.Value }
-                        let basis = computeBasis amount.Symbol filters journal
+                        let basis = computeBasis amount.Symbol options journal
                         {
                             accountBalance with
                                 Balance = [balance];
@@ -245,10 +246,12 @@ module private Support =
                 | _ -> accountBalance
             | _ -> accountBalance
 
-        accountBalances
-        |> List.map computeRealBalance
-
-
+        match options.ConvertCommodities with
+        | true ->
+            accountBalances
+            |> List.map computeRealBalance
+        | false ->
+            accountBalances
 
     /// Groups postings by header and returns (date, payee, postings) tuples
     let calculateRegisterLines postings =
@@ -268,17 +271,13 @@ open Support
 
 
 /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters
-let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list * AccountBalance) =
-    let filteredPostings = filterPostings filters journal
-
-    // sum to get account balances, discard accounts with 0 balance
+let balance (options : QueryOptions) (journal : Journal) : (AccountBalance list * AccountBalance) =
     let accountBalances =
-        filteredPostings
+        journal
+        |> filterPostings options
         |> sumPostingsByAccount
         |> discardAccountsWithZeroBalance
-
-    // Calculate real value, price, and price date for commodities
-    let accountBalances = computeCommodityValues filters journal accountBalances
+        |> computeCommodityValues options journal
 
     // calculate (total balance, real balance) pair
     let totalBalance = calculateTotalBalance accountBalances
@@ -296,9 +295,9 @@ let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list 
 
 /// Returns a list of (date, payee, postings) tuples that match the filters,
 /// where lines is a list of (account, amount, total) tuples.
-let register (filters : QueryFilters) (journal : Journal) =
-    let filteredPostings = filterPostings filters journal
-    filteredPostings
+let register (options : QueryOptions) (journal : Journal) =
+    journal
+    |> filterPostings options
     |> calculateRegisterLines
     |> Seq.toList
     |> List.rev

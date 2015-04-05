@@ -575,6 +575,14 @@ var WealthPulseApp = React.createClass({
       if (value[0] === ':') {
         // keyword changes parse mode
         var newMode = value.substring(1);
+
+        if (newMode === "convert") {
+          // :convert has no parameters
+          state.parameters["convertCommodities"] = ["true"];
+          state.mode = "convertCommodities";
+          return state
+        }
+
         if (newMode === "exclude") {
           newMode = "excludeAccountsWith";
         }

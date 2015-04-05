@@ -85,6 +85,8 @@ Parameters:
 
 	:title [report title]
 
+	:convert
+
 
 
 Implementation Notes
@@ -195,9 +197,9 @@ This way I can avoid having to propogate up the account hierarchy all the differ
 Commodity Prices
 - [ ] Update functions to consider amount commodities
 	- [x] Parser.balanceTransactions
-	- [ ] Query.balance
-	- [ ] NancyRunner.presentBalanceData
-	- [ ] Balance Report JS
+	- [x] Query.balance
+	- [x] NancyRunner.presentBalanceData
+	- [x] Balance Report JS
 	- [ ] NancyRunner.generateNetWorthData
 	- [ ] Net Worth JS
 	- [ ] Query.register
@@ -282,15 +284,9 @@ PriceDB
 - [x] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report
-- [ ] Update logic for calculating basis and real value for commodities
-	- I'm checking this in in a horrible state. Still to do:
-		- calculate basis total -- not sure how to do this cleanly right now
-		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
+- [x] Update logic for calculating basis and real value for commodities
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
-- [ ] Can I use LINQ for querying?
-
-Selloff
-- [ ] Will need to write this function
+- [x] Make ":convert" a report option
 
 Tooling
 - [ ] FAKE build scripts
@@ -310,6 +306,9 @@ Net Worth Report
 
 Register Report
 - [ ] Prototype... what should it look like?
+
+Selloff
+- [ ] Will need to write this function
 
 
 

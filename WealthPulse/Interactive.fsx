@@ -87,6 +87,6 @@ streamWriter.Close()
 
 open Journal.Query
 
-let filters = { AccountsWith= Some ["assets"; "liabilities"]; ExcludeAccountsWith=None; PeriodStart=None; PeriodEnd=None }
+let filters = { AccountsWith= Some ["assets"; "liabilities"]; ExcludeAccountsWith=None; PeriodStart=None; PeriodEnd=None; ConvertCommodities=false }
 
 balance filters journal
