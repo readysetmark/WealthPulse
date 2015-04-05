@@ -211,7 +211,7 @@ module NancyRunner =
         |> List.map presentTransaction
 
 
-    let generateNetWorthData journalData symbolPriceDB =
+    let generateNetWorthData (journal : Journal) =
         let generatePeriodBalance month =
             let parameters = {
                 AccountsWith = Some ["assets"; "liabilities"];
@@ -220,8 +220,11 @@ module NancyRunner =
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
                 ConvertCommodities = true;
             }
-            let _, totalBalance = Query.balance parameters journalData
-            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol.Value = "$") totalBalance.Balance)
+            let _, totalBalance = Query.balance parameters journal
+            let dollarAmount =
+                match List.tryFind (fun (a:Amount) -> a.Symbol.Value = "$") totalBalance.Balance with
+                | Some amount -> amount
+                | None        -> { Value = 0M; Symbol = { Value = "$"; Quoted = false }; Format = SymbolLeftNoSpace }
             {
                 date = month.ToString("dd-MMM-yyyy"); 
                 amount = dollarAmount.Value.ToString();
@@ -307,7 +310,7 @@ module NancyRunner =
             fun parameters ->
                 let netWorthData = {
                     title = "Net Worth";
-                    data = generateNetWorthData journalService.Journal journalService.SymbolPriceDB;
+                    data = generateNetWorthData journalService.Journal;
                 }
                 netWorthData |> box
 

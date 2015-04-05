@@ -16,7 +16,6 @@ module JournalService =
         abstract member OutstandingPayees : (string * decimal) list
         abstract member JournalLastModified : DateTime
         abstract member GetAndClearException : string option
-        abstract member SymbolPriceDB : SymbolPriceDB
 
 
     /// Implementation of IJournalService for Nancy Dependency Injection
@@ -36,7 +35,7 @@ module JournalService =
         //let mutable symbolConfig = Map.empty : SymbolConfigs //loadSymbolConfig configFilePath
         let mutable configLastModified = DateTime.MinValue
         let pricesEnabled = pricesFilePath <> null
-        let mutable symbolPriceDB = Map.empty : SymbolPriceDB //loadSymbolPriceDB pricesFilePath
+        //let mutable symbolPriceDB = Map.empty : SymbolPriceDB //loadSymbolPriceDB pricesFilePath
         let mutable symbolPricesLastFetched = DateTime.Now.AddDays(-1.0).AddSeconds(20.0)//DateTime.Now.AddDays(-1.0).AddMinutes(10.0) // delay first fetch by 10 minutes
         
 
@@ -190,10 +189,3 @@ module JournalService =
                     msg
                 finally
                     rwlock.ReleaseWriterLock()
-
-            member this.SymbolPriceDB = 
-                rwlock.AcquireReaderLock(Timeout.Infinite)
-                try
-                    symbolPriceDB
-                finally
-                    rwlock.ReleaseReaderLock()
