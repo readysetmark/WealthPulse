@@ -12,7 +12,7 @@ module Account =
 
     /// Calculate full account lineage for a particular account. This will return
     /// a list of all parent accounts and the account itself.
-    /// e.g. given "a:b:c", returns ["a:b:c"; "a:b"; "a"]
+    /// e.g. given "a:b:c", returns ["a"; "a:b"; "a:b:c"]
     let getAccountLineage (account: string) =
         /// Use with fold to get all combinations.
         let combinator (s: string list) (t: string) =
@@ -98,10 +98,10 @@ module SymbolPrice =
 
 /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
 type SymbolPriceCollection = {
-    Symbol: Symbol;
+    Symbol:    Symbol;
     FirstDate: System.DateTime;
     LastDate:  System.DateTime;
-    Prices:    list<SymbolPrice>;
+    Prices:    SymbolPrice list;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -222,17 +222,24 @@ type Journal = {
     Postings: Posting list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
-    JournalPriceDB: SymbolPriceDB;
+    PriceDB: SymbolPriceDB;
+    DownloadedPriceDB : SymbolPriceDB;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Journal = 
     
     /// Given a list of journal postings, returns a Journal record
-    let create postings pricedb =
+    let create postings priceDB downloadedPriceDB =
         let mainAccounts = Set.ofList <| List.map (fun (posting : Posting) -> posting.Account) postings
         let allAccounts = Set.ofList <| List.collect (fun posting -> posting.AccountLineage) postings
-        { Postings=postings; MainAccounts=mainAccounts; AllAccounts=allAccounts; JournalPriceDB=pricedb}
+        {
+            Postings = postings;
+            MainAccounts = mainAccounts;
+            AllAccounts = allAccounts;
+            PriceDB = priceDB;
+            DownloadedPriceDB = downloadedPriceDB;
+        }
 
 
 // Symbol Usage Types

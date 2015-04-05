@@ -37,7 +37,7 @@ let pricesPath = @"/Users/Mark/Nexus/Documents/finances/ledger/.pricedb"
 
 
 let postings, priceDB = Parser.parseJournalFile ledgerFilePath System.Text.Encoding.UTF8
-let journal = Types.Journal.create postings priceDB
+let journal = Types.Journal.create postings priceDB Map.empty
 
 
 (*
@@ -80,3 +80,13 @@ Map.iter (displayCommodityMap streamWriter) commodityMap
 
 streamWriter.Close()
 *)
+
+(*
+    Balance Query
+*)
+
+open Journal.Query
+
+let filters = { AccountsWith= Some ["assets"; "liabilities"]; ExcludeAccountsWith=None; PeriodStart=None; PeriodEnd=None; ConvertCommodities=false }
+
+balance filters journal

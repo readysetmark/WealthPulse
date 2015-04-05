@@ -85,6 +85,8 @@ Parameters:
 
 	:title [report title]
 
+	:convert
+
 
 
 Implementation Notes
@@ -194,17 +196,17 @@ This way I can avoid having to propogate up the account hierarchy all the differ
 
 Commodity Prices
 - [ ] Update functions to consider amount commodities
-	- [p] Query.balance
-	- [p] NancyRunner.presentBalanceData
-	- [p] Balance Report JS
+	- [x] Parser.balanceTransactions
+	- [x] Query.balance
+	- [x] NancyRunner.presentBalanceData
+	- [x] Balance Report JS
 	- [ ] NancyRunner.generateNetWorthData
 	- [ ] Net Worth JS
 	- [ ] Query.register
 	- [ ] NancyRunner.presentRegisterData
-	- [ ] Register Reprot JS
+	- [ ] Register Report JS
 	- [ ] Query.outstandingPayees
 	- [ ] Oustanding Payees JS
-	- [ ] Parser.balanceTransactions	
 
 
 ### First Milestone
@@ -256,12 +258,7 @@ Types
 - [x] Symbol type should be value + quoted or format
 - [x] Rename Entry to Posting
 - [x] Remove EntryType field from Posting (no longer supporting "virtual" accounts)
-- [ ] Move price DBs into Journal record?
-	- Keep track of price source (Journal or PriceDB)?
-- [ ] Include a list of account levels field on Posting?
-	- Also change Account to a Subaccount list and Subaccount = String
-- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
-- [ ] Review all types
+- [x] Move price DBs into Journal record
 
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
@@ -282,17 +279,12 @@ PriceDB
 - [x] Review & restore commented code in symbolprices.cs and journalservice.cs
 
 Balance Report
-- [ ] Update logic for calculating basis and real value for commodities
-	- I'm checking this in in a horrible state. Still to do:
-		- calculate basis total -- not sure how to do this cleanly right now
-		- need to generate parent accounts w/ amounts (used to do this, but removed and it should be done as a later step in the balance report)
+- [x] Update logic for calculating basis and real value for commodities
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
-- [ ] Can I use LINQ for querying?
+- [x] Make ":convert" a report option
 
-Tooling
-- [ ] FAKE build scripts
-- [ ] Setup CI (TravisCI?)
-- [ ] Add a real logger
+Net Worth Report
+- [ ] Provide "real value" and "basis value" lines
 
 Documentation
 - [ ] Use of commodities within file
@@ -302,12 +294,22 @@ Documentation
 
 ### Third Milestone
 
-Net Worth Report
-- [ ] Provide "real value" and "book value" lines
+Selloff
+- [ ] Will need to write this function
 
 Register Report
 - [ ] Prototype... what should it look like?
 
+Types
+- [ ] Include a list of account levels field on Posting?
+	- Also change Account to a Subaccount list and Subaccount = String
+- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
+- [ ] Review all types
+
+Tooling
+- [ ] FAKE build scripts
+- [ ] Setup CI (TravisCI?)
+- [ ] Add a real logger
 
 
 

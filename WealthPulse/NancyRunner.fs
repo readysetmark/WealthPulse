@@ -81,7 +81,7 @@ module NancyRunner =
         data: LineChartPoint list;
     }
 
-    
+
     /// Access values out of the Nancy.DynamicDictionary
     /// see http://stackoverflow.com/questions/17640218/accessing-dynamic-property-in-f/
     let (?) (parameters:obj) param =
@@ -99,6 +99,11 @@ module NancyRunner =
             match dateVal.HasValue with
             | true -> Some <| System.DateTime.Parse(dateVal.ToString())
             | otherwise -> None
+
+        let parseBoolVal (boolVal : Nancy.DynamicDictionaryValue) =
+            match boolVal.HasValue with
+            | true -> Some <| System.Boolean.Parse(boolVal.ToString())
+            | false -> None
 
         let titleVal = query?title
         let since = parseDateVal query?since
@@ -125,6 +130,10 @@ module NancyRunner =
                 | Some _, _ -> upto
                 | _, Some _ -> periodEnd
                 | _, _ -> None;
+            ConvertCommodities =
+                match parseBoolVal query?convertCommodities with
+                | Some b -> b
+                | None   -> false
         },
         match titleVal.HasValue with
         | true -> titleVal.ToString()
@@ -158,7 +167,7 @@ module NancyRunner =
 
 
     /// Transform balance report data for presentation
-    let presentBalanceData (accountBalances, (totalBalance, totalBasisBalance)) =
+    let presentBalanceData (accountBalances, totalBalance) =
         let paddingLeftBase = 8
         let indentPadding = 20
         let getAccountDisplay account =
@@ -168,10 +177,8 @@ module NancyRunner =
                 | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
                 | _ :: t -> accountDisplay t account parentage indent
             accountDisplay accountBalances account "" 0
-        let accountBalances =
-            List.sortBy (fun a -> a.Account) accountBalances
 
-        (accountBalances @ [{Account=""; Balance=totalBalance; Basis=totalBasisBalance; Commodity=None; Price=None; PriceDate=None;}])
+        (accountBalances @ [totalBalance])
         |> List.map (fun accountBalance -> 
             let accountDisplay, indent = getAccountDisplay accountBalance.Account
             { key = accountBalance.Account;
@@ -179,7 +186,10 @@ module NancyRunner =
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
               balance = List.map (Some >> formatAmount) accountBalance.Balance//formatAmount <| Some accountBalance.Balance
               balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
-              basisBalance = List.map (Some >> formatAmount) accountBalance.Basis;
+              basisBalance = 
+                match accountBalance.Basis with
+                | Some basisList -> List.map (Some >> formatAmount) basisList
+                | None           -> List.empty;
               commodityBalance = formatAmount accountBalance.Commodity;
               price = formatAmount accountBalance.Price;
               priceDate = match accountBalance.PriceDate with
@@ -189,8 +199,8 @@ module NancyRunner =
                 match accountBalance.Account with
                 | "" -> "grand_total"
                 | otherwise -> ""; })
-    
-    
+
+
     /// Transform register report data for presentation
     let presentRegisterData transactions =
         let presentEntry (account, amount :decimal, total :decimal) = 
@@ -199,7 +209,7 @@ module NancyRunner =
             {date = date.ToString("yyyy-MM-dd"); payee = payee; entries = List.map presentEntry entries}
         transactions
         |> List.map presentTransaction
-    
+
 
     let generateNetWorthData journalData symbolPriceDB =
         let generatePeriodBalance month =
@@ -208,12 +218,13 @@ module NancyRunner =
                 ExcludeAccountsWith = Some ["units"];
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
+                ConvertCommodities = true;
             }
-            let _, (totalBalance, totalRealBalance) = Query.balance parameters journalData symbolPriceDB
-            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol = {Value="$"; Quoted=false}) totalBalance)
+            let _, totalBalance = Query.balance parameters journalData
+            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol.Value = "$") totalBalance.Balance)
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = dollarAmount.Value.ToString();//totalBalance.Value.ToString(); 
+                amount = dollarAmount.Value.ToString();
                 hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some dollarAmount);
             }
 
@@ -228,7 +239,7 @@ module NancyRunner =
         netWorthData
 
 
-    
+
     type WealthPulseModule(journalService : IJournalService) as this =
         inherit Nancy.NancyModule()
         let journalService = journalService
@@ -237,7 +248,7 @@ module NancyRunner =
             fun parameters ->
                 this.View.["index.html"] |> box
 
-        
+
         do this.Get.["/api/nav"] <-
             fun parameters ->
                 let presentPayee (payee : string, amount : decimal) =
@@ -269,18 +280,18 @@ module NancyRunner =
                 }
                 nav |> box
 
-        
+
         do this.Get.["/api/balance"] <-
             fun parameters ->
                 let queryParameters, title = parseQueryParameters this.Request.Query "Balance"
                 let balanceSheetData = {
                     title = title;
                     subtitle = generateSubtitle queryParameters;
-                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal journalService.SymbolPriceDB;
+                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal
                 }
                 balanceSheetData |> box
 
-        
+
         do this.Get.["/api/register"] <-
             fun parameters ->
                 let queryParameters, title = parseQueryParameters this.Request.Query "Register"

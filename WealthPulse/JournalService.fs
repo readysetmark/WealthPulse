@@ -18,6 +18,7 @@ module JournalService =
         abstract member GetAndClearException : string option
         abstract member SymbolPriceDB : SymbolPriceDB
 
+
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
         //let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
@@ -27,7 +28,7 @@ module JournalService =
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
 
-        let mutable journal = Journal.create List.empty Map.empty
+        let mutable journal = Journal.create List.empty Map.empty Map.empty
         let mutable outstandingPayees = List.empty
         let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
@@ -43,13 +44,13 @@ module JournalService =
             let lastModified = File.GetLastWriteTime(ledgerFilePath)
             do printfn "Parsing ledger file: %s" ledgerFilePath
             try
-                let ((entries, pricedb), parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath Text.Encoding.ASCII
+                let ((postings, pricedb), parseTime) = time <| fun () -> Parser.parseJournalFile ledgerFilePath Text.Encoding.ASCII
                 do printfn "Parsed ledger file in %A seconds." parseTime.TotalSeconds
-                do printfn "Transactions parsed: %d" <| List.length entries
+                do printfn "Postings parsed: %d" <| List.length postings
                 do printfn "Ledger last modified: %s" <| lastModified.ToString()
                 rwlock.AcquireWriterLock(Timeout.Infinite)
                 try
-                    journal <- Journal.create entries pricedb
+                    journal <- Journal.create postings pricedb Map.empty
                     outstandingPayees <- Query.outstandingPayees journal
                     journalLastModified <- lastModified
                     exceptionMessage <- None
