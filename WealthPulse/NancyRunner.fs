@@ -261,7 +261,7 @@ module NancyRunner =
                     reports = [{ key = "Balance Sheet";
                                  title = "Balance Sheet";
                                  report = "balance";
-                                 query = "accountsWith=assets+liabilities"; };
+                                 query = "accountsWith=assets+liabilities&convertCommodities=true&title=Balance+Sheet"; };
                                { key = "Net Worth";
                                  title = "Net Worth";
                                  report= "networth";
