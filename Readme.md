@@ -258,12 +258,7 @@ Types
 - [x] Symbol type should be value + quoted or format
 - [x] Rename Entry to Posting
 - [x] Remove EntryType field from Posting (no longer supporting "virtual" accounts)
-- [ ] Move price DBs into Journal record?
-	- Keep track of price source (Journal or PriceDB)?
-- [ ] Include a list of account levels field on Posting?
-	- Also change Account to a Subaccount list and Subaccount = String
-- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
-- [ ] Review all types
+- [x] Move price DBs into Journal record
 
 Journal Parsing
 - [x] Remove multiple commodity parsing logic. ie. remove @@ and @ options
@@ -288,10 +283,8 @@ Balance Report
 - [x] Need query function for latest price as of date (check .pricedb then ledger prices)
 - [x] Make ":convert" a report option
 
-Tooling
-- [ ] FAKE build scripts
-- [ ] Setup CI (TravisCI?)
-- [ ] Add a real logger
+Net Worth Report
+- [ ] Provide "real value" and "basis value" lines
 
 Documentation
 - [ ] Use of commodities within file
@@ -301,15 +294,22 @@ Documentation
 
 ### Third Milestone
 
-Net Worth Report
-- [ ] Provide "real value" and "book value" lines
+Selloff
+- [ ] Will need to write this function
 
 Register Report
 - [ ] Prototype... what should it look like?
 
-Selloff
-- [ ] Will need to write this function
+Types
+- [ ] Include a list of account levels field on Posting?
+	- Also change Account to a Subaccount list and Subaccount = String
+- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
+- [ ] Review all types
 
+Tooling
+- [ ] FAKE build scripts
+- [ ] Setup CI (TravisCI?)
+- [ ] Add a real logger
 
 
 
