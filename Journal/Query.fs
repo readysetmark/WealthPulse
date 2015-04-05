@@ -190,24 +190,26 @@ module private Support =
         accountBalances
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
-(*
-    let lookupPricePoint (symbol : SymbolValue) (periodEnd : option<DateTime>) priceDB journalPriceDB =
-        let selectPricePointByDate symbolData =
-            symbolData.Prices
+    /// Try to find a symbol price as of periodEnd or today. Return Some SymbolPrice if found or None otherwise.
+    let tryFindSymbolPrice (symbol : SymbolValue) (periodEnd : DateTime option) (journal : Journal) : SymbolPrice option =
+        let selectPricePointByDate (symbolPriceCollection : SymbolPriceCollection) =
+            symbolPriceCollection.Prices
             |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
             |> List.maxBy (fun symbolPrice -> symbolPrice.Date)
             |> Some
-        match Map.tryFind symbol priceDB with
-        | Some symbolData -> 
-            selectPricePointByDate symbolData
+
+        // try the downloaded price db first, then the prices entered in the journal file
+        match Map.tryFind symbol journal.DownloadedPriceDB with
+        | Some symbolPriceCollection -> 
+            selectPricePointByDate symbolPriceCollection
         | None ->
-            match Map.tryFind symbol journalPriceDB with
-            | Some symbolData ->
-                selectPricePointByDate symbolData
+            match Map.tryFind symbol journal.PriceDB with
+            | Some symbolPriceCollection ->
+                selectPricePointByDate symbolPriceCollection
             | None -> None
 
-
-    let computeBasis (symbol : Symbol) (filters : QueryFilters) (journal : Journal) =
+    /// Compute the basis amount for a symbol over a period specified by the filters.
+    let computeBasis (symbol : Symbol) (filters : QueryFilters) (journal : Journal) : Amount =
         let basisAccount = "Basis:" + symbol.Value
         let basisFilter = {filters with AccountsWith = Some [basisAccount]; ExcludeAccountsWith = None;}
         let basisAmount = 
@@ -215,29 +217,38 @@ module private Support =
             |> filterPostings basisFilter
             |> List.filter (fun (p:Posting) -> p.Amount.Symbol.Value = "$")
             |> List.sumBy (fun (p:Posting) -> p.Amount.Value)
-        Amount.create basisAmount ({Value = "$"; Quoted = false}) SymbolLeftWithSpace
+        Amount.create basisAmount ({Value = "$"; Quoted = false}) SymbolLeftNoSpace
 
-
-    // TODO: Review this for handling multiple commodities in an account.. and hard coded 1 to find these accounts is horrible
-    let computeCommodityValues (accountBalances : list<AccountBalance>) (priceDB : SymbolPriceDB) (filters : QueryFilters) (journal : Journal) =
+    // TODO: How do I handle if we're computing commodity values and an account has more than one commodity?
+    /// Compute real and basis values for commodities held in an account. 
+    /// Making an assumption right now that an account should only hold one type of commodity.
+    let computeCommodityValues (filters : QueryFilters) (journal : Journal) (accountBalances : AccountBalance list) : AccountBalance list =
         let computeRealBalance (accountBalance : AccountBalance) =
             match List.length accountBalance.Balance with
-            | 1 -> 
-                let first = List.head accountBalance.Balance
-                match first.Symbol with
-                | s when s.Value <> "$" -> 
-                    match lookupPricePoint s.Value filters.PeriodEnd priceDB journal.JournalPriceDB with
+            | 1 ->
+                let nonDollarAmount (amount : Amount) = amount.Symbol.Value <> "$"
+                match List.tryFind nonDollarAmount accountBalance.Balance with
+                | Some amount -> 
+                    match tryFindSymbolPrice amount.Symbol.Value filters.PeriodEnd journal with
                     | Some pricePoint ->
-                        let realBalance = Amount.create (pricePoint.Price.Value * first.Value) pricePoint.Price.Symbol SymbolLeftWithSpace
-                        let basisBalance = computeBasis s filters journal
-                        { accountBalance with Balance = [realBalance]; Basis = [basisBalance]; Commodity = Some first; Price = Some pricePoint.Price; PriceDate = Some pricePoint.Date;}
+                        let balance = { pricePoint.Price with Value = pricePoint.Price.Value * amount.Value }
+                        let basis = computeBasis amount.Symbol filters journal
+                        {
+                            accountBalance with
+                                Balance = [balance];
+                                Basis = Some [basis];
+                                Commodity = Some amount;
+                                Price = Some pricePoint.Price;
+                                PriceDate = Some pricePoint.Date;
+                        }
                     | None -> accountBalance
                 | _ -> accountBalance
             | _ -> accountBalance
+
         accountBalances
         |> List.map computeRealBalance
 
-*)
+
 
     /// Groups postings by header and returns (date, payee, postings) tuples
     let calculateRegisterLines postings =
@@ -267,7 +278,7 @@ let balance (filters : QueryFilters) (journal : Journal) : (AccountBalance list 
         |> discardAccountsWithZeroBalance
 
     // Calculate real value, price, and price date for commodities
-    //let accountBalances = computeCommodityValues accountBalances priceDB filters journal
+    let accountBalances = computeCommodityValues filters journal accountBalances
 
     // calculate (total balance, real balance) pair
     let totalBalance = calculateTotalBalance accountBalances

@@ -98,10 +98,10 @@ module SymbolPrice =
 
 /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
 type SymbolPriceCollection = {
-    Symbol: Symbol;
+    Symbol:    Symbol;
     FirstDate: System.DateTime;
     LastDate:  System.DateTime;
-    Prices:    list<SymbolPrice>;
+    Prices:    SymbolPrice list;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
