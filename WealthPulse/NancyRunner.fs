@@ -76,9 +76,14 @@ module NancyRunner =
         hover: string;
     }
 
+    type LineChartSeries = {
+        series: string;
+        values: LineChartPoint list;
+    }
+
     type LineChartReportData = {
         title: string;
-        data: LineChartPoint list;
+        data: LineChartSeries list;
     }
 
 
@@ -211,33 +216,50 @@ module NancyRunner =
         |> List.map presentTransaction
 
 
-    let generateNetWorthData journalData symbolPriceDB =
-        let generatePeriodBalance month =
+    let generateNetWorthData (journal : Journal) : LineChartSeries list =
+        let zeroBalance = { Value = 0M; Symbol = { Value = "$"; Quoted = false }; Format = SymbolLeftNoSpace }
+
+        let tryFindDollarAmount (balances : Amount list) =
+            match List.tryFind (fun (a:Amount) -> a.Symbol.Value = "$") balances with
+            | Some amount -> amount
+            | None        -> zeroBalance
+
+        let generatePeriodBalance (month : System.DateTime) : LineChartPoint * LineChartPoint =
             let parameters = {
                 AccountsWith = Some ["assets"; "liabilities"];
-                ExcludeAccountsWith = Some ["units"];
+                ExcludeAccountsWith = None;
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
                 ConvertCommodities = true;
             }
-            let _, totalBalance = Query.balance parameters journalData
-            let dollarAmount = (List.find (fun (a:Amount) -> a.Symbol.Value = "$") totalBalance.Balance)
+            let _, totalBalance = Query.balance parameters journal
+            let balanceDollarAmount = tryFindDollarAmount totalBalance.Balance
+            let basisDollarAmount =
+                match totalBalance.Basis with
+                | Some basis -> tryFindDollarAmount basis
+                | None       -> zeroBalance
+
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = dollarAmount.Value.ToString();
-                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some dollarAmount);
+                amount = balanceDollarAmount.Value.ToString();
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some balanceDollarAmount);
+            },
+            {
+                date = month.ToString("dd-MMM-yyyy"); 
+                amount = basisDollarAmount.Value.ToString();
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some basisDollarAmount);
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
         let months = seq { for i in 0 .. 25 do yield firstMonth.AddMonths(i) }
 
-        let netWorthData =
+        let balanceValues, basisValues =
             months
             |> Seq.map generatePeriodBalance
             |> Seq.toList
+            |> List.unzip
 
-        netWorthData
-
+        [{ series = "Balance"; values = balanceValues }; { series = "Basis"; values = basisValues }]
 
 
     type WealthPulseModule(journalService : IJournalService) as this =
@@ -258,7 +280,7 @@ module NancyRunner =
                     reports = [{ key = "Balance Sheet";
                                  title = "Balance Sheet";
                                  report = "balance";
-                                 query = "accountsWith=assets+liabilities"; };
+                                 query = "accountsWith=assets+liabilities&convertCommodities=true&title=Balance+Sheet"; };
                                { key = "Net Worth";
                                  title = "Net Worth";
                                  report= "networth";
@@ -307,7 +329,7 @@ module NancyRunner =
             fun parameters ->
                 let netWorthData = {
                     title = "Net Worth";
-                    data = generateNetWorthData journalService.Journal journalService.SymbolPriceDB;
+                    data = generateNetWorthData journalService.Journal;
                 }
                 netWorthData |> box
 

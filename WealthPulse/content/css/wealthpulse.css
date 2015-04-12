@@ -59,14 +59,11 @@ text {
 
 .line {
   fill: none;
-  stroke: steelblue;
   stroke-width: 1.5px;
 }
 
 .node {
   r: 5;
-  stroke: steelblue;
-  fill: steelblue;
   stroke-width: 1.5px;
 }
 

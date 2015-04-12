@@ -48,12 +48,31 @@ module private Support =
 
     type AccountAmountsMap = Map<Account, SymbolAmountMap>
 
-    type ParentAccountAmounts = {
-        Balance: SymbolAmountMap;
+    type RealAndBasisAmounts = {
+        Real: SymbolAmountMap;
         Basis: SymbolAmountMap;
     }
 
-    type ParentAccountAmountsMap = Map<Account, ParentAccountAmounts>
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module RealAndBasisAmounts =
+
+        let addAccountBalanceBalances (amounts : RealAndBasisAmounts) (accountBalance : AccountBalance) : RealAndBasisAmounts =
+            let realBalances = List.fold SymbolAmountMap.add amounts.Real accountBalance.Balance
+            let basisBalances =
+                match accountBalance.Basis with
+                | Some basis -> List.fold SymbolAmountMap.add amounts.Basis basis
+                | None       -> amounts.Basis
+            { amounts with Real = realBalances; Basis = basisBalances }
+
+        let toSortedAmountLists (amounts : RealAndBasisAmounts) : Amount List * (Amount List Option) =
+            let real = SymbolAmountMap.toSortedAmountList amounts.Real
+            let basis = 
+                match Map.isEmpty amounts.Basis with
+                | true  -> None
+                | false -> Some <| SymbolAmountMap.toSortedAmountList amounts.Basis
+            real, basis
+
+    type AccountRealAndBasisAmountsMap = Map<Account, RealAndBasisAmounts>
 
     /// Account contains one of "termsOption" if "termsOption" provided, otherwise defaultValue
     let containsOneOf (defaultValue : bool) (termsOption : string list option) (account : string) : bool =
@@ -120,18 +139,15 @@ module private Support =
 
     /// Calculate total balance (sum of all account balances)
     let calculateTotalBalance (accountBalances : AccountBalance List) : AccountBalance =
-        let sumBalances (balances : SymbolAmountMap) (accountBalance : AccountBalance) =
-            List.fold SymbolAmountMap.add balances accountBalance.Balance
-
-        let totalBalance =
+        let real, basis =
             accountBalances
-            |> List.fold sumBalances Map.empty
-            |> SymbolAmountMap.toSortedAmountList
+            |> List.fold RealAndBasisAmounts.addAccountBalanceBalances { Real = Map.empty; Basis = Map.empty }
+            |> RealAndBasisAmounts.toSortedAmountLists
 
         {
             Account = "";
-            Balance = totalBalance;
-            Basis = None;
+            Balance = real;
+            Basis = basis;
             Commodity = None;
             Price = None;
             PriceDate = None;
@@ -139,18 +155,16 @@ module private Support =
 
     /// Calculate parent account balances
     let calculateParentAccountBalances (accountBalances : AccountBalance List) : AccountBalance list =
-        let addBalancesForParentAccount (accountBalance : AccountBalance) (parentAccountBalances : ParentAccountAmountsMap) (account : Account) =
+        let addBalancesForParentAccount (accountBalance : AccountBalance) (parentAccountBalances : AccountRealAndBasisAmountsMap) (account : Account) =
             let updatedParentAmounts =
-                match Map.tryFind account parentAccountBalances with
-                | Some parentAccountAmounts ->
-                    let balances = List.fold SymbolAmountMap.add parentAccountAmounts.Balance accountBalance.Balance
-                    { parentAccountAmounts with Balance = balances }
-                | None ->
-                    let balances = List.fold SymbolAmountMap.add Map.empty accountBalance.Balance
-                    { Balance = balances; Basis = Map.empty; }
+                let parentAccountAmounts =
+                    match Map.tryFind account parentAccountBalances with
+                    | Some parentAccountAmounts -> parentAccountAmounts
+                    | None -> { Real = Map.empty; Basis = Map.empty }
+                RealAndBasisAmounts.addAccountBalanceBalances parentAccountAmounts accountBalance
             Map.add account updatedParentAmounts parentAccountBalances
 
-        let buildParentAccountAmounts (parentAccountBalances : ParentAccountAmountsMap) (accountBalance: AccountBalance) =
+        let buildParentAccountAmounts (parentAccountBalances : AccountRealAndBasisAmountsMap) (accountBalance: AccountBalance) =
             accountBalance.Account
             |> Account.getAccountLineage 
             |> List.rev
@@ -161,14 +175,10 @@ module private Support =
         |> List.fold buildParentAccountAmounts Map.empty
         |> Map.toSeq
         |> Seq.map (fun (account, amounts) ->
-            let balance = SymbolAmountMap.toSortedAmountList amounts.Balance
-            let basis = 
-                match Map.isEmpty amounts.Basis with
-                | true  -> None
-                | false -> Some <| SymbolAmountMap.toSortedAmountList amounts.Basis
+            let real, basis = RealAndBasisAmounts.toSortedAmountLists amounts
             {
                 Account = account;
-                Balance = balance;
+                Balance = real;
                 Basis = basis;
                 Commodity = None;
                 Price = None;
@@ -242,9 +252,9 @@ module private Support =
                                 Price = Some pricePoint.Price;
                                 PriceDate = Some pricePoint.Date;
                         }
-                    | None -> accountBalance
-                | _ -> accountBalance
-            | _ -> accountBalance
+                    | None -> { accountBalance with Basis = Some accountBalance.Balance; }
+                | _ -> { accountBalance with Basis = Some accountBalance.Balance; }
+            | _ -> { accountBalance with Basis = Some accountBalance.Balance; }
 
         match options.ConvertCommodities with
         | true ->
