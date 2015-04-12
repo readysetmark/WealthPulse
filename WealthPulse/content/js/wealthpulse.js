@@ -361,6 +361,12 @@ var NetworthReport = React.createClass({
       .style("text-anchor", "end")
       .text("Amount ($)");
 
+    svg.append("g")
+      .attr("class", "legend")
+      .append("text")
+      .attr("transform", "translate(0," + (height + margin.bottom) + ")")
+      .text("Hello from Winnipeg");
+
     var series = svg.selectAll("series")
       .data(this.props.data)
       .enter()
