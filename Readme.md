@@ -55,8 +55,20 @@ Then run ``wealthpulse.exe``.
 Wealth Pulse Config File
 ------------------------
 
-Yet to be written...
+Wealth Pulse will scrape Google Finance for prices of stocks & mutual funds.
 
+To utilize this feature, define the ``WEALTH_PULSE_CONFIG_FILE`` environment variable as the path to a config file.
+
+Within the config file, you can define a mapping of commodity symbol to Google Finance search string:
+
+	SC [symbol] [search string]
+
+For example:
+
+	SC AAPL aapl
+	SC "INI220" MUTF_CA:INI220
+
+The first will search for stock prices for Apple, the second will search for mutual fund prices for the Tangerine Balanced Portfolio.
 
 
 
@@ -86,17 +98,35 @@ Parameters:
 	:title [report title]
 
 	:convert
+		- Applies to balance report only. Converts commodities into their current value based on available price information.
 
 
 
-Implementation Notes
+Notes on Commodities
 --------------------
 
-Investments & Commodities:
-*	I'm basically ignoring these for the moment. The parser will parse them,
-but all processing after that point assumes one commodity and basically assumes
-only the "amount" field is used. I'll need to revisit this once I get around
-to adding investment/commodity support.
+I've taken the approach recommended by [Penny][2] for tracking commodities. Follow the link for some great documentation. In my case though, I'm still using a subset the [Ledger][1] syntax, instead of different syntax, as Penny does.
+
+So a purchase of a mutual fund might look like:
+
+	2015-04-12 * Bank of Olympia - Golden Fund
+		Assets:Investments:Olympia:GoldenFund		59.5856 "OGF387"
+		Assets:Savings								$-1,272.73
+		Basis:OGF387:2013-04-01						-59.5856 "OGF387"
+		Basis:OGF387:2013-04-01						$1,272.73
+	
+	P 2015-04-12 "OGF387" $21.36
+
+A sale of the same mutual fund would look like:
+
+	2015-05-12 * Bank of Olympia - Golden Fund sale
+		Assets:Savings								$1,430.05
+		Assets:Investments:Olympia:GoldenFund		-59.5856 "OGF387"
+		Basis:OGF387:2013-04-01						$-1,272.73
+		Basis:OGF387:2013-04-01						59.5856 "OGF387"
+		Income:Investments:Olympia:GoldenFund		$-157.32
+
+	P 2015-05-12 "OGF387" $24.00
 
 
 
@@ -178,8 +208,6 @@ Phase 2 Implementation (Commodities)
 
 *	Add support for investments (ie, multiple commodities) on balance and register reports
 *	Provide "real" and "book value" lines on the Net Worth chart
-*	Additional investment reports such as overall portfolio return and return by investment
-*	Additional expenses reports such as burn rate
 
 2014/06/11
 I've prototyped it out enough now that I think what I want to do is make sure I can get current prices for commodities
@@ -193,20 +221,6 @@ That would be the eventual goal. That assumes that I'm either going to merge uni
 or update the ledger file. In the mean time, I'll have to keep the "units" excluded from the main balance report.
 This way I can avoid having to propogate up the account hierarchy all the different commodities.
 
-
-Commodity Prices
-- [ ] Update functions to consider amount commodities
-	- [x] Parser.balanceTransactions
-	- [x] Query.balance
-	- [x] NancyRunner.presentBalanceData
-	- [x] Balance Report JS
-	- [ ] NancyRunner.generateNetWorthData
-	- [ ] Net Worth JS
-	- [ ] Query.register
-	- [ ] NancyRunner.presentRegisterData
-	- [ ] Register Report JS
-	- [ ] Query.outstandingPayees
-	- [ ] Oustanding Payees JS
 
 
 ### First Milestone
@@ -284,37 +298,43 @@ Balance Report
 - [x] Make ":convert" a report option
 
 Net Worth Report
-- [ ] Provide "real value" and "basis value" lines
+- [x] Provide "real value" and "basis value" lines
 
 Documentation
-- [ ] Use of commodities within file
-- [ ] Configuration file
-	- [ ] Scraping Google Finance for prices
+- [x] Use of commodities within file
+- [x] Configuration file
+	- [x] Scraping Google Finance for prices
 
 
 ### Third Milestone
 
-Selloff
-- [ ] Will need to write this function
-
 Register Report
-- [ ] Prototype... what should it look like?
+- [ ] Handle Multiple commodities
+	- [ ] Prototype... what should it look like?
 
-Types
-- [ ] Include a list of account levels field on Posting?
-	- Also change Account to a Subaccount list and Subaccount = String
-- [ ] Symbol.Quoted or Symbol.Format = Quoted|Unquoted?
-- [ ] Review all types
+Outstanding Payees
+- [ ] Handle multiple commodities?
 
-Tooling
-- [ ] FAKE build scripts
-- [ ] Setup CI (TravisCI?)
-- [ ] Add a real logger
+Selloff
+- [ ] Will need to write this function for selling commodities
+
+
 
 
 
 Someday/Maybe/Improvements
 --------------------------
+
+Tooling
+- [ ] Add a real logger
+- [ ] FAKE build scripts
+- [ ] Setup CI (TravisCI?)
+
+Types
+- [ ] Include a list of account levels field on Posting?
+	- How am I actually using Account & AccountLineage in the app?
+	- Also change Account to a Subaccount list and Subaccount = String
+- [ ] Review all types for consistency
 
 Nav
 - [ ] Configurable nav list
@@ -333,8 +353,8 @@ Symbol Price
 Balance Report
 - [ ] Can I improve the entry filtering code?
 - [x] Can I get rid of the list comprehension?
-- [ ] Can I clean it up so the balance query function is just sub-function calls?
-- [ ] Clean up computeCommodityValues (get rid of side-effects)
+- [x] Can I clean it up so the balance query function is just sub-function calls?
+- [x] Clean up computeCommodityValues (get rid of side-effects)
 
 Portfolio
 - [ ] Overall portfolio return and per investment
@@ -360,3 +380,4 @@ Command Bar Enhancements
 
 
 [1]: http://www.ledger-cli.org/
+[2]: http://massysett.github.io/penny/
