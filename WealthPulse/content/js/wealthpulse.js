@@ -289,8 +289,8 @@ var RegisterReport = React.createClass({
 //   @data
 var NetworthReport = React.createClass({
   componentDidMount: function (root) {
-    var margin = {top: 20, right: 20, bottom: 30, left: 55},
-        width = 600 - margin.left - margin.right,
+    var margin = {top: 20, right: 75, bottom: 30, left: 55},
+        width = 800 - margin.left - margin.right,
         height = 400 - margin.top - margin.bottom;
 
     var parseDate = d3.time.format("%d-%b-%Y").parse;
@@ -300,6 +300,9 @@ var NetworthReport = React.createClass({
 
     var y = d3.scale.linear()
       .range([height, 0]);
+
+    var color = d3.scale.ordinal()
+      .range(["#1f77b4", "#2ca02c", "#d62728", "#9467bd"]);
 
     var xAxis = d3.svg.axis()
       .scale(x)
@@ -325,14 +328,23 @@ var NetworthReport = React.createClass({
       return;
     }
 
-    this.props.data.forEach(function(d) {
-      d.date = parseDate(d.date);
-      d.amount = parseFloat(d.amount);
+    this.props.data.forEach(function(s) {
+      s.values.forEach(function(d) {
+        d.date = parseDate(d.date);
+        d.amount = parseFloat(d.amount);
+        d.series = s.series;
+      });
     });
 
-    x.domain(d3.extent(this.props.data, function(d) { return d.date; }))
+    x.domain(d3.extent(this.props.data[0].values, function(d) { return d.date; }))
       .nice(d3.time.month);
-    y.domain(d3.extent(this.props.data, function(d) { return d.amount; }));
+
+    y.domain([
+      d3.min(this.props.data, function(s) { return d3.min(s.values, function(d) { return d.amount; }); }),
+      d3.max(this.props.data, function(s) { return d3.max(s.values, function(d) { return d.amount; }); })
+    ]);
+
+    color.domain(d3.map(this.props.data, function(d) { return d.series; }));
 
     svg.append("g")
       .attr("class", "x axis")
@@ -349,21 +361,36 @@ var NetworthReport = React.createClass({
       .style("text-anchor", "end")
       .text("Amount ($)");
 
-    svg.append("path")
-      .datum(this.props.data)
-      .attr("class", "line")
-      .attr("d", line);
+    var series = svg.selectAll("series")
+      .data(this.props.data)
+      .enter()
+      .append("g")
+      .attr("class", function(d) { return "series " + d.series; });
 
-    var node = svg.append("g")
+    series.append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .attr("stroke", function(d) { return color(d.series); });
+
+    series.append("text")
+      .datum(function(d) { return { series: d.series, value: d.values[d.values.length - 1] }; })
+      .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.amount) + ")"; })
+      .attr("x", 3)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.series; });
+
+    var node = series.append("g")
       .attr("class", "nodes")
       .selectAll("circle")
-      .data(this.props.data)
+      .data(function(d) { return d.values; })
       .enter()
       .append("circle")
       .attr("class", "node")
       .attr("r", 2)
       .attr("cx", function(d) { return x(d.date); })
-      .attr("cy", function(d) { return y(d.amount); });
+      .attr("cy", function(d) { return y(d.amount); })
+      .attr("stroke", function(d) { return color(d.series); })
+      .attr("fill", function(d) { return color(d.series); });
 
     var hover = svg.append("g")
       .attr("class", "node-hover")
