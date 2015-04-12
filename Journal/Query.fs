@@ -53,6 +53,25 @@ module private Support =
         Basis: SymbolAmountMap;
     }
 
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module RealAndBasisAmounts =
+
+        let addAccountBalanceBalances (amounts : RealAndBasisAmounts) (accountBalance : AccountBalance) : RealAndBasisAmounts =
+            let realBalances = List.fold SymbolAmountMap.add amounts.Real accountBalance.Balance
+            let basisBalances =
+                match accountBalance.Basis with
+                | Some basis -> List.fold SymbolAmountMap.add amounts.Basis basis
+                | None       -> amounts.Basis
+            { amounts with Real = realBalances; Basis = basisBalances }
+
+        let toSortedAmountLists (amounts : RealAndBasisAmounts) : Amount List * (Amount List Option) =
+            let real = SymbolAmountMap.toSortedAmountList amounts.Real
+            let basis = 
+                match Map.isEmpty amounts.Basis with
+                | true  -> None
+                | false -> Some <| SymbolAmountMap.toSortedAmountList amounts.Basis
+            real, basis
+
     type AccountRealAndBasisAmountsMap = Map<Account, RealAndBasisAmounts>
 
     /// Account contains one of "termsOption" if "termsOption" provided, otherwise defaultValue
@@ -120,23 +139,10 @@ module private Support =
 
     /// Calculate total balance (sum of all account balances)
     let calculateTotalBalance (accountBalances : AccountBalance List) : AccountBalance =
-        let sumBalances (balances : RealAndBasisAmounts) (accountBalance : AccountBalance) =
-            let realBalances = List.fold SymbolAmountMap.add balances.Real accountBalance.Balance
-            let basisBalances =
-                match accountBalance.Basis with
-                | Some basis -> List.fold SymbolAmountMap.add balances.Basis basis
-                | None       -> balances.Basis
-            { balances with Real = realBalances; Basis = basisBalances }
-
-        let totalBalances =
+        let real, basis =
             accountBalances
-            |> List.fold sumBalances { Real = Map.empty; Basis = Map.empty }
-
-        let real = SymbolAmountMap.toSortedAmountList totalBalances.Real
-        let basis =
-            match Map.isEmpty totalBalances.Basis with
-            | true -> None
-            | false -> Some <| SymbolAmountMap.toSortedAmountList totalBalances.Basis
+            |> List.fold RealAndBasisAmounts.addAccountBalanceBalances { Real = Map.empty; Basis = Map.empty }
+            |> RealAndBasisAmounts.toSortedAmountLists
 
         {
             Account = "";
@@ -151,21 +157,11 @@ module private Support =
     let calculateParentAccountBalances (accountBalances : AccountBalance List) : AccountBalance list =
         let addBalancesForParentAccount (accountBalance : AccountBalance) (parentAccountBalances : AccountRealAndBasisAmountsMap) (account : Account) =
             let updatedParentAmounts =
-                match Map.tryFind account parentAccountBalances with
-                | Some parentAccountAmounts ->
-                    let realBalances = List.fold SymbolAmountMap.add parentAccountAmounts.Real accountBalance.Balance
-                    let basisBalances =
-                        match accountBalance.Basis with
-                        | Some basis -> List.fold SymbolAmountMap.add parentAccountAmounts.Basis basis
-                        | None       -> parentAccountAmounts.Basis
-                    { parentAccountAmounts with Real = realBalances; Basis = basisBalances }
-                | None ->
-                    let balances = List.fold SymbolAmountMap.add Map.empty accountBalance.Balance
-                    let basisBalances =
-                        match accountBalance.Basis with
-                        | Some basis -> List.fold SymbolAmountMap.add Map.empty basis
-                        | None       -> Map.empty
-                    { Real = balances; Basis = basisBalances; }
+                let parentAccountAmounts =
+                    match Map.tryFind account parentAccountBalances with
+                    | Some parentAccountAmounts -> parentAccountAmounts
+                    | None -> { Real = Map.empty; Basis = Map.empty }
+                RealAndBasisAmounts.addAccountBalanceBalances parentAccountAmounts accountBalance
             Map.add account updatedParentAmounts parentAccountBalances
 
         let buildParentAccountAmounts (parentAccountBalances : AccountRealAndBasisAmountsMap) (accountBalance: AccountBalance) =
@@ -179,11 +175,7 @@ module private Support =
         |> List.fold buildParentAccountAmounts Map.empty
         |> Map.toSeq
         |> Seq.map (fun (account, amounts) ->
-            let real = SymbolAmountMap.toSortedAmountList amounts.Real
-            let basis = 
-                match Map.isEmpty amounts.Basis with
-                | true  -> None
-                | false -> Some <| SymbolAmountMap.toSortedAmountList amounts.Basis
+            let real, basis = RealAndBasisAmounts.toSortedAmountLists amounts
             {
                 Account = account;
                 Balance = real;
