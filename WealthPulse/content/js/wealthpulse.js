@@ -361,11 +361,19 @@ var NetworthReport = React.createClass({
       .style("text-anchor", "end")
       .text("Amount ($)");
 
-    svg.append("g")
+    svg.selectAll("legend")
+      .data(this.props.data)
+      .enter()
+      .append("g")
       .attr("class", "legend")
       .append("text")
-      .attr("transform", "translate(0," + (height + margin.bottom) + ")")
-      .text("Hello from Winnipeg");
+      .text(function(d) { return d.series; })
+      .attr("transform", function(d, index) {
+        var heightOffset = 5 + (index * 14);
+        return "translate(" + width + "," + (height - heightOffset) + ")";
+      })
+      .attr("text-anchor", "end")
+      .attr("fill", function(d) { return color(d.series); });
 
     var series = svg.selectAll("series")
       .data(this.props.data)
@@ -377,13 +385,6 @@ var NetworthReport = React.createClass({
       .attr("class", "line")
       .attr("d", function(d) { return line(d.values); })
       .attr("stroke", function(d) { return color(d.series); });
-
-    series.append("text")
-      .datum(function(d) { return { series: d.series, value: d.values[d.values.length - 1] }; })
-      .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.amount) + ")"; })
-      .attr("x", 3)
-      .attr("dy", ".35em")
-      .text(function(d) { return d.series; });
 
     var node = series.append("g")
       .attr("class", "nodes")
