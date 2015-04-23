@@ -220,8 +220,13 @@ module private Support =
             | None -> None
 
     /// Compute the basis amount for a symbol over a period specified by the filters.
-    let computeBasis (symbol : Symbol) (filters : QueryOptions) (journal : Journal) : Amount =
-        let basisAccount = "Basis:" + symbol.Value
+    let computeBasis (account : Account) (filters : QueryOptions) (journal : Journal) : Amount =
+        let basisAccountParts =
+            "Basis" :: (
+                account.Split ':'
+                |> List.ofArray
+                |> List.tail)
+        let basisAccount = String.Join(":", basisAccountParts)
         let basisFilter = {filters with AccountsWith = Some [basisAccount]; ExcludeAccountsWith = None;}
         let basisAmount = 
             journal
@@ -243,7 +248,7 @@ module private Support =
                     match tryFindSymbolPrice amount.Symbol.Value options.PeriodEnd journal with
                     | Some pricePoint ->
                         let balance = { pricePoint.Price with Value = pricePoint.Price.Value * amount.Value }
-                        let basis = computeBasis amount.Symbol options journal
+                        let basis = computeBasis accountBalance.Account options journal
                         {
                             accountBalance with
                                 Balance = [balance];
