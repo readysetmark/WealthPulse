@@ -11,6 +11,10 @@ body {
 	text-align: right;
 }
 
+.table .currency p {
+  margin: 0px 0px 0px 0px;
+}
+
 .table td.no-border-top {
 	border-top: 0px;
 }

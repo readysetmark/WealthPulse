@@ -123,6 +123,7 @@ var BalanceReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.key);
     var commodity_columns = [];
+    var balances = [];
 
     if (this.props.showCommodities) {
       commodity_columns = [React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.basisBalance),
@@ -131,10 +132,12 @@ var BalanceReportRow = React.createClass({
                            React.DOM.td(null, this.props.priceDate)]
     }
 
+    balances = _.map(this.props.balance, function(balance) { return React.DOM.p(null, balance); });
+
     var row = React.DOM.tr({className: this.props.rowClass},
                            React.DOM.td({style: this.props.accountStyle},
                                         React.DOM.a({href: link}, this.props.account)),
-                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance.join(" ")),
+                           React.DOM.td({className: "currency "+ this.props.balanceClass}, balances),
                            commodity_columns
                            );
     return row;
@@ -151,7 +154,7 @@ var BalanceReport = React.createClass({
     var table_rows = [];
     var commodity_headers = [];
     var show_commodities = false;
-    var table_span = "span4"
+    var table_span = "span6"
     var i = 0;
 
     // determine if we must show the commodity-related columns
