@@ -308,15 +308,16 @@ Documentation
 
 ### Third Milestone
 
-Register Report
-- [ ] Handle Multiple commodities
-	- [ ] Prototype... what should it look like?
+Price Fetching
+- [x] Review identifySymbolUsage
+- [x] Review and enable price fetching logic
 
 Outstanding Payees
 - [ ] Handle multiple commodities?
 
-Selloff
-- [ ] Will need to write this function for selling commodities
+Register Report
+- [ ] Handle Multiple commodities
+	- [ ] Prototype... what should it look like?
 
 
 

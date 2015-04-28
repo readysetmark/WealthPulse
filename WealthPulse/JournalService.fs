@@ -20,8 +20,8 @@ module JournalService =
 
     /// Implementation of IJournalService for Nancy Dependency Injection
     type JournalService() =
-        //let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
-        let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/ledger.dat"
+        let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
+        //let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/ledger.dat"
         //let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments.dat"
         //let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/test_investments.dat"
         let configFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_CONFIG_FILE")
@@ -33,12 +33,11 @@ module JournalService =
         let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
         let configEnabled = configFilePath <> null && File.Exists(configFilePath)
-        //let mutable symbolConfig = Map.empty : SymbolConfigs //loadSymbolConfig configFilePath
+        let mutable symbolConfig = Map.empty : SymbolConfigCollection
         let mutable configLastModified = DateTime.MinValue
         let pricesEnabled = pricesFilePath <> null
-        //let mutable symbolPriceDB = Map.empty : SymbolPriceDB //loadSymbolPriceDB pricesFilePath
-        let mutable symbolPricesLastFetched = DateTime.Now.AddDays(-1.0).AddSeconds(20.0)//DateTime.Now.AddDays(-1.0).AddMinutes(10.0) // delay first fetch by 10 minutes
-        
+        let mutable symbolPricesLastFetched = DateTime.Now.AddDays(-1.0).AddSeconds(20.0) // delay first fetch by 20 seconds
+
 
         let loadJournal () =
             let lastModified = File.GetLastWriteTime(ledgerFilePath)
@@ -50,7 +49,7 @@ module JournalService =
                 do printfn "Ledger last modified: %s" <| lastModified.ToString()
                 rwlock.AcquireWriterLock(Timeout.Infinite)
                 try
-                    journal <- Journal.create postings pricedb Map.empty
+                    journal <- Journal.create postings pricedb journal.DownloadedPriceDB
                     outstandingPayees <- Query.outstandingPayees journal
                     journalLastModified <- lastModified
                     exceptionMessage <- None
@@ -69,13 +68,12 @@ module JournalService =
 
         let loadConfig () =
             if configEnabled then
-                ignore 1
-                (* commenting out 'cause it needs to be reviewed
                 let lastModified = File.GetLastWriteTime(configFilePath)
                 do printfn "Parsing config file: %s" configFilePath
                 try
                     let (config, parseTime) = time <| fun () -> loadSymbolConfig configFilePath
                     do printfn "Parsed config file in %A seconds." parseTime.TotalSeconds
+                    do printfn "Configs parsed: %d" <| List.length (Map.toList config)
                     do printfn "Config last modified: %s" <| lastModified.ToString()
                     rwlock.AcquireWriterLock(Timeout.Infinite)
                     try
@@ -85,47 +83,41 @@ module JournalService =
                         rwlock.ReleaseWriterLock()
                 with
                     ex -> 
-                        do printfn "Error parsing ledger: %s" ex.Message
+                        do printfn "Error parsing config file: %s" ex.Message
                         rwlock.AcquireWriterLock(Timeout.Infinite)
                         try
                             configLastModified <- lastModified
                         finally
                             rwlock.ReleaseWriterLock()
-                *)
 
 
         let loadSymbolPriceDB () =
             if pricesEnabled then
-                ignore 1
-                (* commenting out 'cause it needs to be reviewed
                 do printfn "Parsing prices file: %s" pricesFilePath
                 try
                     let (priceDB, parseTime) = time <| fun () -> loadSymbolPriceDB pricesFilePath
                     do printfn "Parsed prices file in %A seconds." parseTime.TotalSeconds
                     rwlock.AcquireWriterLock(Timeout.Infinite)
                     try
-                        symbolPriceDB <- priceDB
+                        journal <- {journal with DownloadedPriceDB = priceDB}
                     finally
                         rwlock.ReleaseWriterLock()
                 with
                     ex -> 
                         do printfn "Error parsing prices: %s" ex.Message
-                *)
 
-        
+
         let fetchSymbolPrices () =
             if pricesEnabled then
-                ignore 1
-                (* commenting out 'cause it needs to be reviewed
                 do printfn "Fetching new symbol prices..."
                 try
                     let symbolUsage = Query.identifySymbolUsage journal
-                    let priceDB = updateSymbolPriceDB symbolUsage symbolConfig symbolPriceDB
+                    let priceDB = updateSymbolPriceDB symbolUsage symbolConfig journal.DownloadedPriceDB
                     do printfn "Storing prices to: %s" pricesFilePath
                     do saveSymbolPriceDB pricesFilePath priceDB
                     rwlock.AcquireWriterLock(Timeout.Infinite)
                     try
-                        symbolPriceDB <- priceDB
+                        journal <- {journal with DownloadedPriceDB = priceDB}
                         symbolPricesLastFetched <- DateTime.Now
                     finally
                         rwlock.ReleaseWriterLock()
@@ -137,8 +129,7 @@ module JournalService =
                             symbolPricesLastFetched <- DateTime.Now
                         finally
                             rwlock.ReleaseWriterLock()
-                *)
-        
+
 
         let backgroundTasks () =
             while true do
@@ -158,7 +149,7 @@ module JournalService =
         let watchThread = new Thread(ThreadStart(backgroundTasks))
         do watchThread.Start()
 
-        
+
 
         interface IJournalService with
             member this.Journal = 
