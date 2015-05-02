@@ -359,7 +359,7 @@ module NancyRunner =
 
 
     let run =
-        let url = "http://localhost:5055"
+        let url = "http://localhost:5050"
         Nancy.Json.JsonSettings.MaxJsonLength <- System.Int32.MaxValue  // increase max JSON response length (default is 100 kb)
         let configuration = new Nancy.Hosting.Self.HostConfiguration()
         configuration.UrlReservations.CreateAutomatically <- true
