@@ -59,7 +59,7 @@ module NancyRunner =
     type RegisterEntry = {
         account: string;
         amount: string;
-        total: string;
+        total: string list;
     }
 
     type RegisterTransaction = {
@@ -176,11 +176,11 @@ module NancyRunner =
 
 
     /// Transform balance report data for presentation
-    let presentBalanceData (accountBalances, totalBalance) =
+    let presentBalanceData (accountBalances : AccountBalance list, totalBalance : AccountBalance) : BalanceSheetRow list =
         let paddingLeftBase = 8
         let indentPadding = 20
         let getAccountDisplay account =
-            let rec accountDisplay list (account: string) (parentage: string) indent =
+            let rec accountDisplay (list : AccountBalance list) (account: string) (parentage: string) indent =
                 match list with
                 | [] -> ((if parentage.Length > 0 then account.Remove(0, parentage.Length+1) else account), indent)
                 | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
@@ -211,13 +211,23 @@ module NancyRunner =
 
 
     /// Transform register report data for presentation
-    let presentRegisterData transactions =
-        let presentEntry (account, amount :decimal, total :decimal) = 
-            {account = account; amount = amount.ToString("C"); total = total.ToString("C")}
-        let presentTransaction (date :System.DateTime, payee, entries) = 
-            {date = date.ToString("yyyy-MM-dd"); payee = payee; entries = List.map presentEntry entries}
+    let presentRegisterData (transactions : Register list) : RegisterTransaction List =
+        let presentRegisterPostings (registerPosting : RegisterPosting) = 
+            {
+                account = registerPosting.Account;
+                amount = formatAmount <| Some registerPosting.Amount;
+                total = List.map (fun amount -> formatAmount <| Some amount) registerPosting.Balance;
+            }
+
+        let presentRegister (register : Register) = 
+            {
+                date = register.Date.ToString("yyyy-MM-dd");
+                payee = register.Payee;
+                entries = List.map presentRegisterPostings register.Postings;
+            }
+
         transactions
-        |> List.map presentTransaction
+        |> List.map presentRegister
 
 
     let generateNetWorthData (journal : Journal) : LineChartSeries list =

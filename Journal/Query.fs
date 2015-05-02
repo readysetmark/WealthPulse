@@ -21,6 +21,18 @@ type AccountBalance = {
     PriceDate: DateTime option;
 }
 
+type RegisterPosting = {
+    Account: Account;
+    Amount: Amount;
+    Balance: Amount list;
+}
+
+type Register = {
+    Date: DateTime;
+    Payee: Payee;
+    Postings: RegisterPosting list;
+}
+
 type OutstandingPayee = {
     Payee: Account;
     Balance: Amount list;
@@ -201,7 +213,7 @@ module private Support =
         let amountsEqual a b =
             (List.sort a) = (List.sort b)
 
-        let existsChildAccountWithSameAmount allBalances accountBalance =
+        let existsChildAccountWithSameAmount (allBalances : AccountBalance list) (accountBalance : AccountBalance) : bool =
             allBalances
             |> List.exists (fun otherAccountBalance -> otherAccountBalance.Account.StartsWith(accountBalance.Account) 
                                                         && otherAccountBalance.Account.Length > accountBalance.Account.Length
@@ -279,16 +291,35 @@ module private Support =
             accountBalances
 
     /// Groups postings by header and returns (date, payee, postings) tuples
-    let calculateRegisterLines postings =
-        let runningTotal = ref 0M
-        // return (account, amount, total) for a posting
-        // using localized side-effects here to simplify computation of running total
-        let calculatePostingLine (posting : Posting) =
-            runningTotal := !runningTotal + posting.Amount.Value
-            (posting.Account, posting.Amount.Value, !runningTotal)
+    let calculateRegisterLines (postings : Posting list) : Register list =
+        let postingTotalMap = 
+            postings
+            |> Seq.scan (fun symbolAmounts posting -> SymbolAmountMap.add symbolAmounts posting.Amount) Map.empty
+            |> Seq.skip 1  // head of sequence is Map.empty, so skip
+            |> Seq.map SymbolAmountMap.toSortedAmountList
+            |> Seq.zip postings
+            |> Map.ofSeq
+
         postings
         |> Seq.groupBy (fun posting -> posting.Header)
-        |> Seq.map (fun (header, postings) -> header.Date, header.Payee, Seq.map calculatePostingLine postings |> Seq.toList |> List.rev)
+        |> Seq.map (fun (header, postings) ->
+                        let registerPostings =
+                            postings
+                            |> Seq.map (fun posting ->
+                                            {
+                                                Account = posting.Account;
+                                                Amount = posting.Amount;
+                                                Balance = Map.find posting postingTotalMap;
+                                            })
+                            |> Seq.toList
+                            |> List.rev
+                        {
+                            Date = header.Date;
+                            Payee = header.Payee;
+                            Postings = registerPostings;
+                        })
+        |> Seq.toList
+        |> List.rev
 
 
 
@@ -318,14 +349,11 @@ let balance (options : QueryOptions) (journal : Journal) : (AccountBalance list 
 
 
 
-/// Returns a list of (date, payee, postings) tuples that match the filters,
-/// where lines is a list of (account, amount, total) tuples.
-let register (options : QueryOptions) (journal : Journal) =
+/// Returns a list of register entries that match the filters.
+let register (options : QueryOptions) (journal : Journal) : Register list =
     journal
     |> filterPostings options
     |> calculateRegisterLines
-    |> Seq.toList
-    |> List.rev
 
 
 /// Returns a list of Outstanding Payees, which is any account with an outstanding

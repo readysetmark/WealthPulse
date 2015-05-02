@@ -216,12 +216,15 @@ var BalanceReport = React.createClass({
 var RegisterReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.account);
+
+    var total = _.map(this.props.total, function(amount) { return React.DOM.p(null, amount); });
+
     var row = React.DOM.tr(null,
                            React.DOM.td({className: this.props.cellClass}, this.props.date),
                            React.DOM.td({className: this.props.cellClass}, this.props.description),
                            React.DOM.td({className: this.props.cellClass}, React.DOM.a({href: link}, this.props.account)),
                            React.DOM.td({className: "currency " + this.props.cellClass}, this.props.amount),
-                           React.DOM.td({className: "currency " + this.props.cellClass}, this.props.total));
+                           React.DOM.td({className: "currency " + this.props.cellClass}, total));
     return row;
   }
 });

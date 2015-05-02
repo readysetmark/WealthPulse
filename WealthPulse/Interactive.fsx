@@ -81,14 +81,21 @@ Map.iter (displayCommodityMap streamWriter) commodityMap
 streamWriter.Close()
 *)
 
-(*
-    Balance Query
-*)
 
-open Journal.Query
+// Balance Query
 
-let filters = { AccountsWith= Some ["assets"; "liabilities"]; ExcludeAccountsWith=None; PeriodStart=None; PeriodEnd=None; ConvertCommodities=false }
+let filters = { AccountsWith= Some ["assets"; "liabilities"]; ExcludeAccountsWith=None; PeriodStart=None; PeriodEnd=None; ConvertCommodities=false } : Query.QueryOptions
 
-balance filters journal
+Query.balance filters journal
+
+
+// Outstanding Payees Query
 
 Query.outstandingPayees journal
+
+
+// Register Query
+
+let options = { AccountsWith= Some ["assets:investments"]; ExcludeAccountsWith=None; PeriodStart=None; PeriodEnd=None; ConvertCommodities=false } : Query.QueryOptions
+
+Query.register options journal

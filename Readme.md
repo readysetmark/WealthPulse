@@ -316,7 +316,7 @@ Outstanding Payees
 - [x] Handle multiple commodities
 
 Register Report
-- [ ] Handle Multiple commodities
+- [x] Handle Multiple commodities
 
 
 
