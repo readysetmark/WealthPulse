@@ -1,0 +1,47 @@
+; Simple test file
+
+2014-12-31 * Initial balances
+  Assets:Savings              $2,000.00
+  Liabilities:Credit          $400.00
+  Equity:OpeningBalances      $-1,600.00
+
+2015-01-01 * Pay day
+  Assets:Savings              $1,000.00
+  Income:Salary
+
+2015-01-05 * Buy stocks
+  Assets:Stocks:StarkInd      3.125 SII
+  Assets:Savings              $-250.00
+  Basis:SII:2015-01-05        -3.125 SII
+  Basis:SII:2015-01-05        $250.00
+
+P 2015-01-05 SII $80.00
+
+2015-01-08 * Buy stocks
+  Assets:Stocks:WayneEnt      40.000 WE
+  Assets:Savings              $-250.00
+  Basis:WE:2015-01-08         -40.000 WE
+  Basis:WE:2015-01-08         $250.00
+
+P 2015-01-05 WE $6.25
+
+2015-01-10 * Groceries
+  Expenses:Food:Groceries     $80.00
+  Liabilities:Credit
+
+2015-01-15 * Pay day
+  Assets:Savings              $1,000.00
+  Income:Salary
+
+2015-01-20 * Pay credit
+  Liabilities:Credit          $450.00
+  Assets:Savings
+
+2015-01-25 * Sell stocks
+  Assets:Savings                $140.00
+  Assets:Stocks:WayneEnt        -20.000 WE
+  Basis:WE:2015-01-25           $-125.00
+  Basis:WE:2015-01-25           20.000 WE
+  Income:CapitalGain:WayneEnt   $-15.00
+
+P 2015-01-25 WE $7.00

@@ -30,6 +30,10 @@ tr.grand_total {
 	font-weight: bold;
 }
 
+.currency p {
+  margin: 0px 0px 0px 0px;
+}
+
 .positive {
 	color: #1a1;
 }
@@ -59,14 +63,11 @@ text {
 
 .line {
   fill: none;
-  stroke: steelblue;
   stroke-width: 1.5px;
 }
 
 .node {
   r: 5;
-  stroke: steelblue;
-  fill: steelblue;
   stroke-width: 1.5px;
 }
 

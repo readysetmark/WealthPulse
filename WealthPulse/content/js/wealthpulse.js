@@ -22,16 +22,18 @@ var ReportNav = React.createClass({
 //   @payee
 //   @report
 //   @query
-//   @amountClass
-//   @amount
+//   @balance (list of @amount, @amountClass)
 var PayeeNav = React.createClass({
   render: function() {
     var query = this.props.query.length > 0 ? "?" + this.props.query : "";
     var url = "#/" + this.props.report + query;
+    
+    var amounts = _.map(this.props.balance, function(amount) { return React.DOM.span({className: amount.amountClass}, amount.amount); });
+
     return React.DOM.li({className: this.props.className},
                         React.DOM.a({href: url},
                                     this.props.payee,
-                                    React.DOM.span({className: "pull-right " + this.props.amountClass}, this.props.amount)));
+                                    React.DOM.span({className: "pull-right currency"}, amounts)));
   }
 });
 
@@ -74,8 +76,7 @@ var NavBox = React.createClass({
         }
         payee_nodes.push(PayeeNav({className: className,
                                    payee: payee.payee,
-                                   amountClass: payee.amountClass,
-                                   amount: payee.amount,
+                                   balance: payee.balance,
                                    report: payee.command.report,
                                    query: payee.command.query,
                                    key: payee.payee}));
@@ -114,13 +115,32 @@ var NavBox = React.createClass({
 //   @balance
 //   @accountStyle
 //   @account
+//   @basisBalance
+//   @commodityBalance
+//   @price
+//   @priceDate
+//   @showCommodities
 var BalanceReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.key);
+    var commodity_columns = [];
+    var balances = [];
+
+    if (this.props.showCommodities) {
+      commodity_columns = [React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.basisBalance),
+                           React.DOM.td({className: "currency"}, this.props.commodityBalance),
+                           React.DOM.td({className: "currency"}, this.props.price),
+                           React.DOM.td(null, this.props.priceDate)]
+    }
+
+    balances = _.map(this.props.balance, function(balance) { return React.DOM.p(null, balance); });
+
     var row = React.DOM.tr({className: this.props.rowClass},
-                           React.DOM.td({className: "currency "+ this.props.balanceClass}, this.props.balance),
                            React.DOM.td({style: this.props.accountStyle},
-                                        React.DOM.a({href: link}, this.props.account)));
+                                        React.DOM.a({href: link}, this.props.account)),
+                           React.DOM.td({className: "currency "+ this.props.balanceClass}, balances),
+                           commodity_columns
+                           );
     return row;
   }
 });
@@ -133,11 +153,31 @@ var BalanceReportRow = React.createClass({
 var BalanceReport = React.createClass({
   render: function() {
     var table_rows = [];
+    var commodity_headers = [];
+    var show_commodities = false;
+    var table_span = "span6"
     var i = 0;
 
+    // determine if we must show the commodity-related columns
     if (this.props.hasOwnProperty('balances')) {
       for (i = 0; i < this.props.balances.length; i++) {
         var balance = this.props.balances[i];
+        if (balance.basisBalance != "") {
+          show_commodities = true;
+          table_span = "span10";
+          commodity_headers = [React.DOM.th(null, "Basis"),
+                               React.DOM.th(null, "Commodity"),
+                               React.DOM.th(null, "Price"),
+                               React.DOM.th(null, "Price Date")];
+        }
+      }
+    }
+
+    // generate table rows
+    if (this.props.hasOwnProperty('balances')) {
+      for (i = 0; i < this.props.balances.length; i++) {
+        var balance = this.props.balances[i];
+        balance.showCommodities = show_commodities;
         table_rows.push(BalanceReportRow(balance));
       }
     }
@@ -147,12 +187,13 @@ var BalanceReport = React.createClass({
                                                this.props.title,
                                                React.DOM.br(),
                                                React.DOM.small(null, this.props.subtitle)));
-    var body = React.DOM.section({className: "span4"},
+    var body = React.DOM.section({className: table_span},
                                  React.DOM.table({className: "table table-hover table-condensed"},
                                                  React.DOM.thead(null,
                                                                  React.DOM.tr(null,
+                                                                              React.DOM.th(null, "Account"),
                                                                               React.DOM.th(null, "Balance"),
-                                                                              React.DOM.th(null, "Account"))),
+                                                                              commodity_headers)),
                                                  React.DOM.tbody(null, table_rows)));
 
     return React.DOM.div(null, header, body);
@@ -175,12 +216,15 @@ var BalanceReport = React.createClass({
 var RegisterReportRow = React.createClass({
   render: function() {
     var link = "#/register?accountsWith=" + encodeURIComponent(this.props.account);
+
+    var total = _.map(this.props.total, function(amount) { return React.DOM.p(null, amount); });
+
     var row = React.DOM.tr(null,
                            React.DOM.td({className: this.props.cellClass}, this.props.date),
                            React.DOM.td({className: this.props.cellClass}, this.props.description),
                            React.DOM.td({className: this.props.cellClass}, React.DOM.a({href: link}, this.props.account)),
                            React.DOM.td({className: "currency " + this.props.cellClass}, this.props.amount),
-                           React.DOM.td({className: "currency " + this.props.cellClass}, this.props.total));
+                           React.DOM.td({className: "currency " + this.props.cellClass}, total));
     return row;
   }
 });
@@ -252,131 +296,164 @@ var RegisterReport = React.createClass({
 //   @data
 var NetworthReport = React.createClass({
   componentDidMount: function (root) {
-    var margin = {top: 20, right: 20, bottom: 30, left: 55},
-        width = 600 - margin.left - margin.right,
+    var margin = {top: 20, right: 75, bottom: 30, left: 55},
+        width = 800 - margin.left - margin.right,
         height = 400 - margin.top - margin.bottom;
 
     var parseDate = d3.time.format("%d-%b-%Y").parse;
 
     var x = d3.time.scale()
-    .range([0, width]);
+      .range([0, width]);
 
     var y = d3.scale.linear()
-    .range([height, 0]);
+      .range([height, 0]);
+
+    var color = d3.scale.ordinal()
+      .range(["#1f77b4", "#2ca02c", "#d62728", "#9467bd"]);
 
     var xAxis = d3.svg.axis()
-    .scale(x)
-    .ticks(d3.time.months, 3)
-    .tickFormat(d3.time.format("%b %y"))
-    .orient("bottom");
+      .scale(x)
+      .ticks(d3.time.months, 3)
+      .tickFormat(d3.time.format("%b %y"))
+      .orient("bottom");
 
     var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left");
+      .scale(y)
+      .orient("left");
 
     var line = d3.svg.line()
-    .x(function(d) { return x(d.date); })
-    .y(function(d) { return y(d.amount); });
+      .x(function(d) { return x(d.date); })
+      .y(function(d) { return y(d.amount); });
 
     var svg = d3.select('#linechart').append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     if (!this.props.data) {
       return;
     }
 
-    this.props.data.forEach(function(d) {
-      d.date = parseDate(d.date);
-      d.amount = parseFloat(d.amount);
+    this.props.data.forEach(function(s) {
+      s.values.forEach(function(d) {
+        d.date = parseDate(d.date);
+        d.amount = parseFloat(d.amount);
+        d.series = s.series;
+      });
     });
 
-    x.domain(d3.extent(this.props.data, function(d) { return d.date; }))
-    .nice(d3.time.month);
-    y.domain(d3.extent(this.props.data, function(d) { return d.amount; }));
+    x.domain(d3.extent(this.props.data[0].values, function(d) { return d.date; }))
+      .nice(d3.time.month);
+
+    y.domain([
+      d3.min(this.props.data, function(s) { return d3.min(s.values, function(d) { return d.amount; }); }),
+      d3.max(this.props.data, function(s) { return d3.max(s.values, function(d) { return d.amount; }); })
+    ]);
+
+    color.domain(d3.map(this.props.data, function(d) { return d.series; }));
 
     svg.append("g")
-    .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
-    .call(xAxis);
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
 
     svg.append("g")
-    .attr("class", "y axis")
-    .call(yAxis)
-    .append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", 6)
-    .attr("dy", ".71em")
-    .style("text-anchor", "end")
-    .text("Amount ($)");
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Amount ($)");
 
-    svg.append("path")
-    .datum(this.props.data)
-    .attr("class", "line")
-    .attr("d", line);
+    svg.selectAll("legend")
+      .data(this.props.data)
+      .enter()
+      .append("g")
+      .attr("class", "legend")
+      .append("text")
+      .text(function(d) { return d.series; })
+      .attr("transform", function(d, index) {
+        var heightOffset = 5 + (index * 14);
+        return "translate(" + width + "," + (height - heightOffset) + ")";
+      })
+      .attr("text-anchor", "end")
+      .attr("fill", function(d) { return color(d.series); });
 
-    var node = svg.append("g")
-    .attr("class", "nodes")
-    .selectAll("circle")
-    .data(this.props.data)
-    .enter()
-    .append("circle")
-    .attr("class", "node")
-    .attr("r", 2)
-    .attr("cx", function(d) { return x(d.date); })
-    .attr("cy", function(d) { return y(d.amount); });
+    var series = svg.selectAll("series")
+      .data(this.props.data)
+      .enter()
+      .append("g")
+      .attr("class", function(d) { return "series " + d.series; });
+
+    series.append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .attr("stroke", function(d) { return color(d.series); });
+
+    var node = series.append("g")
+      .attr("class", "nodes")
+      .selectAll("circle")
+      .data(function(d) { return d.values; })
+      .enter()
+      .append("circle")
+      .attr("class", "node")
+      .attr("r", 2)
+      .attr("cx", function(d) { return x(d.date); })
+      .attr("cy", function(d) { return y(d.amount); })
+      .attr("stroke", function(d) { return color(d.series); })
+      .attr("fill", function(d) { return color(d.series); });
 
     var hover = svg.append("g")
-    .attr("class", "node-hover")
-    .style("display", "block")
-    .style("visibility", "hidden");
+      .attr("class", "node-hover")
+      .style("display", "block")
+      .style("visibility", "hidden");
 
     var hover_rect = hover.append("rect")
-    .attr("class", "node-hover-rect")
-    .attr("rx", "5")
-    .attr("ry", "5")
-    .attr("width", "120")
-    .attr("height", "30");
+      .attr("class", "node-hover-rect")
+      .attr("rx", "5")
+      .attr("ry", "5")
+      .attr("width", "120")
+      .attr("height", "30");
 
     var hover_text = hover.append("text")
-    .attr("class", "node-hover-text")
-    .attr("transform", "translate(10,20)");
+      .attr("class", "node-hover-text")
+      .attr("transform", "translate(10,20)");
 
-    node
-    .on("mouseover", function(d) {
-      var text_width = 120;
-      var lines = 1;
+    node.on("mouseover", function(d) {
+        var text_width = 120;
+        var lines = 1;
 
-      hover_text.selectAll("tspan").remove();
-      var name = hover_text.append("tspan")
-      .attr("class", "node-hover-text-name")
-      .attr("x", "0")
-      .text(d.hover);
+        hover_text.selectAll("tspan").remove();
+        var name = hover_text.append("tspan")
+          .attr("class", "node-hover-text-name")
+          .attr("x", "0")
+          .text(d.hover);
 
-      text_width = name.node().getComputedTextLength();
+        text_width = name.node().getComputedTextLength();
 
-      hover_rect
-      .attr("width", text_width + 20);
+        hover_rect
+          .attr("width", text_width + 20);
 
-      var translate_x = x(d.date) + 10;
-      if (translate_x + text_width + 20 > width) {
-        translate_x = x(d.date) - 30 - text_width;
-      }
+        var translate_x = x(d.date) + 10;
+        if (translate_x + text_width + 20 > width) {
+          translate_x = x(d.date) - 30 - text_width;
+        }
 
-      var translate_y = y(d.amount) + 10;
-      if (translate_y + 30 > height) {
-        translate_y = y(d.amount) - 40;
-      }
+        var translate_y = y(d.amount) + 10;
+        if (translate_y + 30 > height) {
+          translate_y = y(d.amount) - 40;
+        }
 
-      hover
-      .attr("transform", "translate(" + translate_x + ", " + translate_y +")")
-      .style("visibility", "visible");
-    })
-    .on("mouseout", function(d) {
-      hover.style("visibility", "hidden");
-    })
+        hover
+          .attr("transform", "translate(" + translate_x + ", " + translate_y +")")
+          .style("visibility", "visible");
+      })
+      .on("mouseout", function(d) {
+        hover.style("visibility", "hidden");
+      })
   },
   render: function () {
     var header = React.DOM.header({className: "page-header"},
@@ -471,7 +548,7 @@ var WealthPulseApp = React.createClass({
   // Routes
   home: function () {
     var defaultReport = 'balance';
-    var defaultQuery = 'accountsWith=assets+liabilities&excludeAccountsWith=units';
+    var defaultQuery = 'accountsWith=assets+liabilities&convertCommodities=true&title=Balance+Sheet';
     //console.log('home');
     this.loadData(defaultReport, defaultQuery);
   },
@@ -538,6 +615,14 @@ var WealthPulseApp = React.createClass({
       if (value[0] === ':') {
         // keyword changes parse mode
         var newMode = value.substring(1);
+
+        if (newMode === "convert") {
+          // :convert has no parameters
+          state.parameters["convertCommodities"] = ["true"];
+          state.mode = "convertCommodities";
+          return state
+        }
+
         if (newMode === "exclude") {
           newMode = "excludeAccountsWith";
         }

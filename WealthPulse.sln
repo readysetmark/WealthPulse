@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Web
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Journal", "Journal\Journal.fsproj", "{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}"
-EndProject
+# Visual Studio 2012
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{53BCB42E-C524-47B6-BDA7-0761281307D9}"
 	ProjectSection(SolutionItems) = preProject
 		LICENSE = LICENSE
@@ -10,11 +10,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{457E120D-154E-4B77-8C9D-FF6D27353A90}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\packages.config = .nuget\packages.config
-	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WealthPulse", "WealthPulse\WealthPulse.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Journal", "Journal\Journal.fsproj", "{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "WealthPulse", "WealthPulse\WealthPulse.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "FetchPrices", "FetchPrices\FetchPrices.fsproj", "{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "JournalTest", "JournalTest\JournalTest.fsproj", "{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,10 +29,20 @@ Global
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D394EE0A-E293-49D0-9982-4EF6A3007F41}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

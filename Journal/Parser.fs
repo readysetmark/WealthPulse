@@ -1,338 +1,431 @@
-﻿namespace WealthPulse
+﻿namespace Journal
 
 open FParsec
-open Journal
+open Journal.Types
 
-// Parser module contains functions for parsing the Ledger journal file
-
+/// Parser module contains functions for parsing the Ledger journal file
 module Parser =
-    
-    // AST module contains transient types for the Abstract Syntax Tree used by the parser
-    // Eventually we convert all the data to the types in the Journal module
 
-    module private AST =
+    /// Contains transient types used during parsing. Eventually all the data
+    /// will be converted to the appropriate Journal types.
+    module Types =
 
-        type ValueSpecification =
-            | TotalCost of Amount
-            | UnitCost of Amount
+        // Types for resolving value restriction errors with FParsec
+        type UserState = unit
+        type Parser<'t> = Parser<'t, UserState>
 
-        type ASTEntry = {
+        /// Parsed Posting. The only difference from a Journal.Type.Posting is the Amount field is an option,
+        /// to allow for postings with blank amounts during parsing. A blank will get calculated when we
+        /// create the Journal.    
+        type ParsedPosting = {
+            LineNumber: int64;
             Account: string;
-            EntryType: EntryType;
             Amount: Amount option;
-            Value: ValueSpecification option;
+            AmountSource: AmountSource;
             Comment: string option
         }
 
-        type ASTNode =
-            | Comment of string
-            | Transaction of Header * ASTNode list
-            | Entry of ASTEntry
+        /// A parsed line will be one of these types
+        type ParseTree =
+            | CommentLine of Journal.Types.Comment
+            | PriceLine of SymbolPrice
+            | Transaction of Header * ParseTree list
+            | PostingLine of ParsedPosting
 
 
-    
-    // Parse module contains FParsec parsing functions
+    /// Parser utility functions
+    module Utilities =
 
-    module private Parse =
-        open AST
-        
         /// Call Trim() on a string
-        let trim (s : string) = 
+        let trim (s : string) : string = 
             s.Trim()
 
+        /// Convert a char array of digits to an Int32
+        let charArrayToInt32 (a : char[]) : int32 =
+            a |> System.String.Concat |> System.Int32.Parse
+    
+
+    module Terminals =
+        let isWhitespace (c : char) : bool = 
+            c = ' ' || c = '\t'
+
+
+    /// Parsing combinator functions
+    module Combinators =
+        open Terminals
+        open Types
+        open Utilities
+        
+        // Whitespace Parsers
+
         /// Skip whitespace as spaces and tabs
-        let skipWS = 
-            let isWS c = c = ' ' || c = '\t'
-            skipManySatisfy isWS
+        let skipWS : Parser<unit> = 
+            skipManySatisfy isWhitespace
+
+        let whitespace : Parser<string> =
+            many1Satisfy isWhitespace
+
+
+        // Line number
+
+        /// Get current line number
+        let lineNumber : Parser<int64> =
+            let posLineNumber (pos : Position) = pos.Line
+            getPosition |>> posLineNumber
+
+
+        // Comment Parsers
+
+        /// Parse a comment that begins with a semi-colon (;)
+        let comment : Parser<Comment> =
+            let commentChar = noneOf "\r\n"
+            pchar ';' >>. manyChars commentChar |>> trim
+
+        /// Parse a journal comment line
+        let commentLine : Parser<ParseTree> =
+            comment |>> CommentLine
+
+
+        // Date Parsers
+
+        /// Parse a 4 digit year
+        let year : Parser<int32> =
+            parray 4 digit |>> charArrayToInt32
+
+        /// Parse a 2 digit month
+        let month : Parser<int32> =
+            parray 2 digit |>> charArrayToInt32
+
+        /// Parse a 2 digit day
+        let day : Parser<int32> =
+            parray 2 digit |>> charArrayToInt32
 
         /// Parse a date
-        let parseDate =
-            let isDateChar c = isDigit c || c = '/' || c = '-' || c = '.'
-            many1SatisfyL isDateChar "Expecting a date separated by / or - or ." .>> skipWS |>> System.DateTime.Parse
+        let date : Parser<System.DateTime> =
+            let isDateSeparator c = c = '/' || c = '-'
+            let dateSeparator = satisfy isDateSeparator
+            let createDate ((year, month), day) = new System.DateTime(year, month, day)
+            year .>> dateSeparator .>>. month .>> dateSeparator .>>. day .>> skipWS
+            |>> createDate
+
+
+        // Simple Transaction Header Field Parsers
 
         /// Parse transaction status as Cleared or Uncleared
-        let parseTransactionStatus = 
+        let status : Parser<Status> = 
             let parseCleared = charReturn '*' Cleared
             let parseUncleared = charReturn '!' Uncleared
             (parseCleared <|> parseUncleared) .>> skipWS
-    
-        /// Parse a code between parentheses
-        let parseCode = 
+
+        /// Parse a transaction code between parentheses
+        let code : Parser<Code> = 
             let codeChar = noneOf ");\r\n"
-            between (pstring "(") (pstring ")") (manyChars codeChar) .>> skipWS
+            between (pchar '(') (pchar ')') (manyChars codeChar) .>> skipWS
 
-        /// Parse a comment that begins with a semi-colon (;)
-        let parseComment =
-            let commentChar = noneOf "\r\n"
-            pstring ";" >>. manyChars commentChar |>> trim
-
-        /// Parse a description/payee
-        let parsePayee = 
+        /// Parse a payee
+        let payee : Parser<Payee> = 
             let payeeChar = noneOf ";\r\n"
             many1Chars payeeChar |>> trim
 
-        /// Parse an account
-        let parseAccount =
-            let extractAccountAndEntryType (account :string) =
-                let entryType = 
-                    match account.[0] with
-                        | '(' -> VirtualUnbalanced
-                        | '[' -> VirtualBalanced
-                        | _ -> Balanced
-                let account = (account.TrimStart [| '('; '[' |]).TrimEnd [| ')'; ']' |]
-                (account, entryType)
-            let accountChar = noneOf " ;\t\r\n" 
-            let stringsSepEndBy p sep =
-                Inline.SepBy(elementParser = p,
-                             separatorParser = sep,
-                             ?separatorMayEndSequence = Some true,
-                             stateFromFirstElement = (fun str -> 
-                                                        let sb = new System.Text.StringBuilder()
-                                                        sb.Append(str : string)),
-                             foldState = (fun sb sep str -> sb.Append(sep : string)
-                                                              .Append(str : string)),
-                             resultFromState = (fun sb -> sb.ToString()))
-            stringsSepEndBy (many1Chars accountChar) (pstring " ") .>> skipWS |>> extractAccountAndEntryType
 
-        /// Parse the numeric portion of an amount
-        let parseAmountNumber =
-            let isAmountChar c = isDigit c || c = '.' || c = ','
-            attempt (pipe2 <| pchar '-' <| many1Satisfy isAmountChar <| (fun a b -> a.ToString() + b)) 
-            <|> (many1Satisfy isAmountChar)
-            .>> skipWS
-            |>> System.Decimal.Parse
-
-        /// Parse the commodity portion of an amount
-        let parseCommodity =
-            let quotedIdentifier = noneOf "\r\n\""
-            let identifier = noneOf "-0123456789., @;\r\n\""
-            attempt (pchar '\"' >>. manyCharsTill quotedIdentifier (pchar '\"'))
-            <|> attempt (many1Chars identifier)
-            .>> skipWS
-
-        /// Parse an amount that includes the numerical value and the commodity.
-        /// The commodity can come before or after the amount. If the commodity contains
-        /// numbers or a space, it must be quoted.
-        let parseAmount =
-            let createAmount (amount, commodity) = {Amount = amount; Commodity = commodity}
-            let amountTuple amount = (amount, None)
-            let reverse (a,b) = (b,a)
-            attempt (parseAmountNumber .>>. (parseCommodity |>> Some) |>> createAmount)
-            <|> attempt (parseAmountNumber |>> amountTuple |>> createAmount)
-            <|> ((parseCommodity |>> Some) .>>. parseAmountNumber |>> reverse |>> createAmount)
-
-        /// Parse a value amount in terms of UnitCost or TotalCost
-        let parseValue =
-            let parseTotalCost = (pstring "@@" .>> skipWS >>. parseAmount) |>> TotalCost
-            let parseUnitCost = (pstring "@" .>> skipWS >>. parseAmount) |>> UnitCost
-            attempt (parseTotalCost <|> parseUnitCost)
+        // Transaction Header
 
         /// Parse a complete transaction header
-        let parseTransactionHeader =
-            let createHeader date status code payee comment =
-                {Date=date; Status=status; Code=code; Description=payee; Comment=comment}        
-            pipe5 parseDate parseTransactionStatus (opt parseCode) parsePayee (opt parseComment) createHeader
+        let header : Parser<Header> =
+            let createHeader (((((lineNum, date), status), code), payee), comment) =
+                Header.create lineNum date status code payee comment
+            lineNumber .>>. date .>>. status .>>. (opt code) .>>. payee .>>. (opt comment)
+            |>> createHeader
 
-        /// Parse a complete transaction entry
-        let parseTransactionEntry =
-            let createEntry (account, entryType) amount value comment =
-                {Account=account; EntryType=entryType; Amount=amount; Value=value; Comment=comment}
-            pipe4 parseAccount (opt parseAmount) (opt parseValue) (opt parseComment) createEntry |>> Entry
 
-        /// Parse a journal comment line
-        let parseCommentLine = parseComment |>> Comment
+        // Account Parsers
+
+        /// Parse a subaccount
+        let subaccount : Parser<Account> =
+            let subaccountChar = noneOf ";: \t\r\n\""
+            many1Chars subaccountChar
+
+        /// Parse an account
+        let account : Parser<Account list> =
+            sepBy1 subaccount (pchar ':') .>> skipWS
+
+
+        // Quantity Parser
+
+        /// Parse a quantity
+        let quantity : Parser<decimal> =
+            let negativeSign = pstring "-"
+            let isAmountChar c = isDigit c || c = ','
+            let integerPart =
+                digit .>>. manySatisfy isAmountChar
+                |>> System.String.Concat
+            let fractionPart =
+                (pstring ".") .>>. many1Satisfy isDigit
+                |>> System.String.Concat
+            let createDecimal negSign intPart fracPart =
+                let qty = 
+                    match negSign, fracPart with
+                    | Some(n), Some(f) -> n + intPart + f
+                    | Some(n), None    -> n + intPart
+                    | None, Some(f)    -> intPart + f
+                    | None, None       -> intPart
+                System.Decimal.Parse(qty)
+            pipe3 (opt negativeSign) integerPart (opt fractionPart) createDecimal
+
+
+        // Symbol Parsers
+
+        /// Parse a quoted symbol
+        let symbol : Parser<Symbol> =
+            let quote = pchar '\"'
+            let quotedSymbolChar = noneOf "\r\n\""
+            let unquotedSymbolChar = noneOf "-0123456789., @;\r\n\""
+            (attempt (between quote quote (many1Chars quotedSymbolChar)) |>> Symbol.create true)
+            <|> (many1Chars unquotedSymbolChar |>> Symbol.create false)
+
+
+        // Amount Parsers
+
+        let amount : Parser<Amount> =
+            let amountSymbolThenQuantity =
+                let createAmount symbol ws qty =
+                    match ws with
+                    | Some(_) -> Amount.create qty symbol SymbolLeftWithSpace
+                    | None    -> Amount.create qty symbol SymbolLeftNoSpace
+                pipe3 symbol (opt whitespace) quantity createAmount
+            let amountQuantityThenSymbol =
+                let createAmount qty ws symbol =
+                    match ws with
+                    | Some(_) -> Amount.create qty symbol SymbolRightWithSpace
+                    | None    -> Amount.create qty symbol SymbolRightNoSpace
+                pipe3 quantity (opt whitespace) symbol createAmount
+            (amountSymbolThenQuantity <|> amountQuantityThenSymbol) .>> skipWS
+
+        let amountOrInferred : Parser<AmountSource * Amount option> =
+            let computeSource amount =
+                match amount with
+                | Some(a) -> (Provided, amount)
+                | None    -> (Inferred, None)
+            opt amount
+            |>> computeSource
+
+
+        // Posting Parser
+
+        /// Parse a transaction posting
+        let posting : Parser<ParseTree> =
+            let createParsedPosting lineNum account (amountSource, amount) comment =
+                {
+                    LineNumber = lineNum;
+                    Account = String.concat ":" account;
+                    AmountSource = amountSource
+                    Amount = amount;
+                    Comment = comment
+                }
+            pipe4 lineNumber account amountOrInferred (opt comment) createParsedPosting
+            |>> PostingLine
+
+
+        // Transaction Parser
 
         /// Parse a complete transaction
-        let parseTransaction =
-            let parseEntry = attempt (skipWS >>. (parseTransactionEntry <|> parseCommentLine) .>> newline)
-            parseTransactionHeader .>> newline
-            .>>. many parseEntry
-            |>> Transaction
+        let transaction : Parser<ParseTree> =
+            let parsePosting = attempt (skipWS >>. (posting <|> commentLine) .>> newline)
+            header .>> newline .>>. many parsePosting |>> Transaction
+
+
+        // Price Parsers
+
+        /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
+        let price : Parser<SymbolPrice> =
+            let priceLeader = pchar 'P' .>> skipWS
+            priceLeader >>. pipe4 lineNumber date (symbol .>> skipWS) amount SymbolPrice.create
+
+        /// Parse a price line within a journal file
+        let priceLine : Parser<ParseTree> =
+            price |>> PriceLine
+
+
+        // Symbol Configuration Parser
+
+        /// Parse a symbol configuration entry.
+        /// e.g. "SC <symbol> <google finance search symbol>"
+        let symbolConfig : Parser<SymbolConfig> =
+            let symbolConfigLeader = pstring "SC" .>> skipWS
+            let googleSymbolChar = noneOf "; \t\r\n\""
+            symbolConfigLeader >>. pipe2 (symbol .>> skipWS) (many1Chars googleSymbolChar) SymbolConfig.create
+
+
+        // Journal Parser
 
         /// Parse a complete ledger journal
-        let parseJournal =
-            sepEndBy (parseCommentLine <|> parseTransaction) (many (skipWS >>. newline))
+        let journal : Parser<ParseTree list> =
+            sepEndBy (commentLine <|> transaction <|> priceLine) (many1 (skipWS >>. newline))
+
+
+        // Price DB Parser
+
+        /// Parse a prices file
+        let priceDB : Parser<SymbolPrice list> =
+            sepEndBy price (many1 (skipWS >>. newline))
+
+
+        // Config File Parser
+
+        /// Parse a config file
+        let config : Parser<SymbolConfig list> =
+            sepEndBy symbolConfig (many1 (skipWS >>. newline))
 
 
         
     // Module PostProcess contains post-parsing transformations
 
-    module private PostProcess =
-        open AST
+    module PostProcess =
+        open Types
 
-        /// Transforms the AST data structure into a list of (Header, ASTEntry list) tuples
+        /// Transforms the ParseTree tree data structure into a list of (Header, ParsedPosting list) tuples
         /// Basically, we're dropping all the comment nodes
-        let transformASTToTransactions ast =
-            let transactionFilter (node: ASTNode) =
-                match node with
+        let mapToHeaderParsedPostingTuples (lines : ParseTree list) : (Header * ParsedPosting list) list =
+            let isTransaction (line : ParseTree) =
+                match line with
                 | Transaction(_,_) -> true
                 | _ -> false
 
-            let getTransactionHeader (node: ASTNode) =
-                match node with
-                | Transaction(header, ast) -> (header, ast)
-                | _ -> failwith "Unexpected AST value in getTransactionHeader"
-
-            let transactionEntryFilter (node: ASTNode) =
-                match node with
-                | Entry(_) -> true
+            let isParsedPosting (line : ParseTree) =
+                match line with
+                | PostingLine(_) -> true
                 | _ -> false
 
-            let getTransactionEntry (node: ASTNode) =
-                match node with
-                | Entry(te) -> te
-                | _ -> failwith "Unexpected AST value in getTransactionEntry"
+            let toParsedPosting (line : ParseTree) =
+                match line with
+                | PostingLine(p) -> p
+                | _ -> failwith "Unexpected ParseTree value in toParsedPosting"
 
-            let getTransactionEntries (header, ast) =
-                let entries = 
-                    ast
-                    |> List.filter transactionEntryFilter
-                    |> List.map getTransactionEntry
-                (header, entries)
+            let toHeaderPostingsTuple (line : ParseTree) =
+                match line with
+                | Transaction(header, lines) ->
+                    let postings = 
+                        lines
+                        |> List.filter isParsedPosting
+                        |> List.map toParsedPosting
+                    (header, postings)    
+                | _ -> failwith "Unexpected ParseTree value in toHeaderPostingsTuple"
+            
+            lines
+            |> List.filter isTransaction
+            |> List.map toHeaderPostingsTuple
 
-            ast
-            |> List.filter transactionFilter
-            |> List.map getTransactionHeader
-            |> List.map getTransactionEntries
 
+        /// Verifies that transactions balance and autobalances transactions if 
+        /// one amount is missing.
+        let balanceTransactions (transactions : (Header * ParsedPosting list) list) : (Header * ParsedPosting list) list =
+            // Calculates balances by symbol for a transaction. Returns any non-zero balances by symbol
+            // and the number of postings with Inferred amounts.
+            let postingsBalance (postings : ParsedPosting list) =
+                let sumPostingsBySymbol (balance : Map<SymbolValue, Amount>) (posting : ParsedPosting) =
+                    let symbol = posting.Amount.Value.Symbol.Value
+                    match balance.ContainsKey symbol with
+                    | true  ->
+                        let amount = balance.[symbol]
+                        balance.Add(symbol, {amount with Value = amount.Value + posting.Amount.Value.Value})
+                    | false ->
+                        balance.Add(symbol, posting.Amount.Value)
 
-        /// Verifies that transactions balance for all entry types and autobalances
-        /// transactions if one amount is missing.
-        /// TODO: The possibility of different commodities is completely ignored right now.
-        let balanceTransactions transactions =
-            // Virtual Unbalanced transactions must have an amount (since they are unbalanced)
-            let verifyVirtualUnbalanced entries =
-                let virtualUnbalancedMissingAmount =
-                    List.filter (fun entry -> entry.EntryType = VirtualUnbalanced && entry.Amount.IsNone) entries
-                match List.length virtualUnbalancedMissingAmount with
-                | 0 -> entries
-                | otherwise -> failwith "Encountered virtual unbalanced entry missing an amount."
+                let symbolBalances =
+                    postings
+                    |> List.filter (fun posting -> posting.AmountSource = Provided)
+                    |> List.fold sumPostingsBySymbol Map.empty
+                    |> Map.filter (fun symbol amount -> amount.Value <> 0M)
 
-            // Generic balance checker for balanced entry types. Balanced entries should sum 0 or have only 1
-            // amount missing (which can be auto-balanced).
-            let verifyBalanced entryType entries =
-                let balancedEntries = List.filter (fun entry -> entry.EntryType = entryType) entries
-                let commodity =
-                    balancedEntries
-                    |> List.tryPick (fun entry -> if entry.Amount.IsSome && entry.Amount.Value.Commodity.IsSome 
-                                                  then entry.Amount.Value.Commodity
-                                                  else None)
-                let sum =
-                    balancedEntries
-                    |> List.fold (fun sum entry -> if entry.Amount.IsSome
-                                                   then sum + entry.Amount.Value.Amount
-                                                   else sum)
-                                 0M
-                let numMissing =
-                    balancedEntries
-                    |> List.filter (fun entry -> entry.Amount.IsNone)
+                let numInferredPostings =
+                    postings
+                    |> List.filter (fun posting -> posting.AmountSource = Inferred)
                     |> List.length
-                (sum, commodity, numMissing)
 
-            // Balanced entry types can be autobalanced as long as there is only 1 amount missing.
-            let autobalance entryType entries =
-                match verifyBalanced entryType entries with
-                | _, _, numMissing when numMissing > 1 -> failwith "Encountered balanced transaction with more than one amount missing."
-                | sum, commodity, numMissing when numMissing = 1 ->
-                    entries
-                    |> List.map (fun entry -> if entry.Amount.IsNone
-                                              then { entry with Amount = Some {Amount = -sum; Commodity = commodity} }
-                                              else entry)
-                | sum, _, _ when sum <> 0M -> failwith "Encountered balanced transaction that is not balanced."
-                | otherwise -> entries
+                (symbolBalances, numInferredPostings)
 
-            // Transform pipeline to balance transaction entries
-            let balanceEntries =
-               verifyVirtualUnbalanced
-               >> autobalance VirtualBalanced
-               >> autobalance Balanced
+            // Postings can be autobalanced as long as there is only 1 amount missing
+            // and only one symbol out of balance.
+            let autobalance postings =
+                let symbolBalances, numInferredPostings = postingsBalance postings
+
+                match numInferredPostings, (Seq.length symbolBalances) with
+                | numMissing, _ when numMissing > 1 ->
+                    failwith "Encountered transaction with more than one amount missing."
+                | numMissing, numUnbalancedSymbols when numUnbalancedSymbols > numMissing ->
+                    failwith "Encountered transaction with one or more symbols out of balance."
+                | numMissing, numUnbalancedSymbols when numMissing = 1 && numUnbalancedSymbols = 1 ->
+                    let balance = (Seq.nth 0 symbolBalances).Value
+                    postings
+                    |> List.map (fun posting ->
+                        if posting.AmountSource = Inferred
+                        then {posting with Amount = Some {balance with Value = -balance.Value}}
+                        else posting)
+                | otherwise ->
+                    postings
 
             transactions
-            |> List.map (fun (header, entries) -> (header, balanceEntries entries))
+            |> List.map (fun (header, postings) -> (header, autobalance postings))
             
 
-        /// Convert to a list of journal entries (transaction entries)
-        let toEntryList ts =
-            let transactionToJournal (h, es) =
-                let header = ({ Date=h.Date; Status=h.Status; Code=h.Code; Description=h.Description; Comment=h.Comment; } : Header)
-                let toEntry e =
-                    let getAccountLineage (account: string) =
-                        /// Use with fold to get all combinations.
-                        /// ex: if we have a:b:c, returns a list of a:b:c; a:b; a
-                        let combinator (s: string list) (t: string) =
-                            if not s.IsEmpty then (s.Head + ":" + t) :: s else t :: s
-                        account.Split ':'
-                        |> Array.fold combinator []
-                        |> List.rev
-                    let getValue (value: ValueSpecification option) (amount : Amount) =
-                        match value with
-                        | Some(TotalCost(v)) -> Some v
-                        | Some(UnitCost(v)) -> Some {Amount = v.Amount * amount.Amount; Commodity = v.Commodity}
-                        | None -> None
-                    ({ Header=header; Account=e.Account; AccountLineage=getAccountLineage e.Account; EntryType=e.EntryType; Amount=e.Amount.Value; Value=getValue e.Value e.Amount.Value; Comment=e.Comment } : Entry)
-                List.map toEntry es
-            List.collect transactionToJournal ts
+        /// Convert to a list of journal postings (transaction postings)
+        let toPostingList (txs : (Header * ParsedPosting list) list) : Posting list =
+            let transactionToPostings (header, ps) =
+                let toPosting (p : ParsedPosting) =
+                    {
+                        LineNumber = p.LineNumber;
+                        Header = header; 
+                        Account = p.Account;
+                        AccountLineage = Account.getAccountLineage p.Account;
+                        Amount = p.Amount.Value;
+                        AmountSource = p.AmountSource;
+                        Comment = p.Comment 
+                    }
+                List.map toPosting ps
+            List.collect transactionToPostings txs
 
 
-        /// Pipelined functions applied to the AST to produce the final journal data structure
-        let transform = 
-            transformASTToTransactions >> balanceTransactions >> toEntryList
+        /// Pipelined functions applied to the ParseTree to produce the final
+        /// journal data structure
+        let extractPostings = 
+            mapToHeaderParsedPostingTuples
+            >> balanceTransactions
+            >> toPostingList
 
+
+        /// Extract the price entries from the AST
+        let extractPrices (lines : ParseTree list) : SymbolPriceDB =
+            let priceOnly (line : ParseTree) =
+                match line with
+                | PriceLine p -> Some p
+                | _ -> None
+            lines
+            |> List.choose priceOnly
+            |> SymbolPriceDB.fromList
+            
+            
 
     
-    let private processResult result =
+    let private extractResult result =
         match result with
-            | Success(ast, _, _) -> PostProcess.transform ast
-            | Failure(errorMsg, _, _) -> failwith errorMsg
+        | Success(r, _, _)        -> r
+        | Failure(errorMsg, _, _) -> failwith errorMsg
 
-    /// Run the parser against a file
+    /// Run the parser against a ledger journal file
     let parseJournalFile fileName encoding =
-        runParserOnFile Parse.parseJournal () fileName encoding
-        |> processResult
+        let parseTree = 
+            runParserOnFile Combinators.journal () fileName encoding
+            |> extractResult
+        let postings = PostProcess.extractPostings parseTree
+        let pricedb = PostProcess.extractPrices parseTree
+        (postings, pricedb)
 
-    /// Run the parser against a stream
-    let parseJournalStream stream encoding =
-        runParserOnStream Parse.parseJournal () "" stream encoding
-        |> processResult
+    /// Run the parser against a prices file
+    let parsePricesFile fileName encoding =
+        runParserOnFile Combinators.priceDB () fileName encoding
+        |> extractResult
 
-
-
-    // Parser unit tests
-
-    module Test =
-        open FsUnit.Xunit
-        open Xunit
-        open Parse
-
-        let testParse parser text =
-            match run parser text with
-            | Success(result, _, _) -> Some(result)
-            | Failure(_, _, _)      -> None
-
-        [<Fact>]
-        let ``skipWS ok on empty string`` () =
-            testParse skipWS "" |> should equal (Some(()))
-        
-        [<Fact>]
-        let ``skipWS ok when no space or tab`` () =
-            testParse skipWS "alpha" |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips single space`` () =
-            testParse skipWS " " |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips many spaces`` () =
-            testParse skipWS "     " |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips single tab`` () =
-            testParse skipWS "\t" |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips many tabs`` () =
-            testParse skipWS "\t\t\t" |> should equal (Some(()))
-
-        [<Fact>]
-        let ``skipWS skips tabs and spaces`` () =
-            testParse skipWS "   \t  \t \t " |> should equal (Some(()))
+    /// Run the parser against a config file
+    let parseConfigFile fileName encoding =
+        runParserOnFile Combinators.config () fileName encoding
+        |> extractResult

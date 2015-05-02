@@ -1,7 +1,8 @@
 ﻿namespace WealthPulse
 
-open WealthPulse.Journal
-open WealthPulse.Query
+open Journal
+open Journal.Types
+open Journal.Query
 open WealthPulse.JournalService
 
 module NancyRunner =
@@ -11,11 +12,15 @@ module NancyRunner =
         query: string;
     }
 
+    type PayeeAmount = {
+        amount: string;
+        amountClass: string;
+    }
+
     type NavPayee = {
         payee: string;
         command: NavCommand;
-        amount: string;
-        amountClass: string;
+        balance: PayeeAmount list;
     }
 
     type NavReport = {
@@ -36,8 +41,12 @@ module NancyRunner =
         key: string;
         account: string;
         accountStyle: Map<string,string>;
-        balance: string;
+        balance: string list;
         balanceClass: string;
+        basisBalance: string list;
+        commodityBalance: string;
+        price: string;
+        priceDate: string;
         rowClass: string;
     }
 
@@ -50,7 +59,7 @@ module NancyRunner =
     type RegisterEntry = {
         account: string;
         amount: string;
-        total: string;
+        total: string list;
     }
 
     type RegisterTransaction = {
@@ -71,12 +80,17 @@ module NancyRunner =
         hover: string;
     }
 
-    type LineChartReportData = {
-        title: string;
-        data: LineChartPoint list;
+    type LineChartSeries = {
+        series: string;
+        values: LineChartPoint list;
     }
 
-    
+    type LineChartReportData = {
+        title: string;
+        data: LineChartSeries list;
+    }
+
+
     /// Access values out of the Nancy.DynamicDictionary
     /// see http://stackoverflow.com/questions/17640218/accessing-dynamic-property-in-f/
     let (?) (parameters:obj) param =
@@ -94,6 +108,11 @@ module NancyRunner =
             match dateVal.HasValue with
             | true -> Some <| System.DateTime.Parse(dateVal.ToString())
             | otherwise -> None
+
+        let parseBoolVal (boolVal : Nancy.DynamicDictionaryValue) =
+            match boolVal.HasValue with
+            | true -> Some <| System.Boolean.Parse(boolVal.ToString())
+            | false -> None
 
         let titleVal = query?title
         let since = parseDateVal query?since
@@ -120,6 +139,10 @@ module NancyRunner =
                 | Some _, _ -> upto
                 | _, Some _ -> periodEnd
                 | _, _ -> None;
+            ConvertCommodities =
+                match parseBoolVal query?convertCommodities with
+                | Some b -> b
+                | None   -> false
         },
         match titleVal.HasValue with
         | true -> titleVal.ToString()
@@ -135,72 +158,124 @@ module NancyRunner =
         | _, Some periodEnd -> "Up to " + periodEnd.ToString(dateFormat)
         | _, _ -> "As of " + System.DateTime.Now.ToString(dateFormat)
 
+    
+    /// Format an Amount type with the amount and symbol
+    let formatAmount (amount :Amount option) =
+        match amount with
+        | Some amount ->
+            let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
+            match amount.Symbol with
+            | s when s.Value <> "$" ->
+                numberFormat.CurrencyPositivePattern <- 3  // n $
+                numberFormat.CurrencyNegativePattern <- 15 // (n $)
+                numberFormat.CurrencySymbol <- s.Value
+                numberFormat.CurrencyDecimalDigits <- 3
+            | otherwise -> ()
+            amount.Value.ToString("C", numberFormat)
+        | otherwise -> ""
+
 
     /// Transform balance report data for presentation
-    let presentBalanceData (accountBalances, totalBalance) =
+    let presentBalanceData (accountBalances : AccountBalance list, totalBalance : AccountBalance) : BalanceSheetRow list =
         let paddingLeftBase = 8
         let indentPadding = 20
         let getAccountDisplay account =
-            let rec accountDisplay list (account: string) (parentage: string) indent =
+            let rec accountDisplay (list : AccountBalance list) (account: string) (parentage: string) indent =
                 match list with
                 | [] -> ((if parentage.Length > 0 then account.Remove(0, parentage.Length+1) else account), indent)
-                | (acc, _) :: t when account.StartsWith(acc) && account <> acc && account.[acc.Length] = ':' -> accountDisplay t account acc (indent+1)
-                | (acc, _) :: t -> accountDisplay t account parentage indent
+                | accB :: t when account.StartsWith(accB.Account) && account <> accB.Account && account.[accB.Account.Length] = ':' -> accountDisplay t account accB.Account (indent+1)
+                | _ :: t -> accountDisplay t account parentage indent
             accountDisplay accountBalances account "" 0
-        let accountBalances =
-            List.sortBy fst accountBalances
 
-        (accountBalances @ [("", totalBalance)])
-        |> List.map (fun (account, (amount : decimal)) -> 
-            let accountDisplay, indent = getAccountDisplay account
-            { key = account;
+        (accountBalances @ [totalBalance])
+        |> List.map (fun accountBalance -> 
+            let accountDisplay, indent = getAccountDisplay accountBalance.Account
+            { key = accountBalance.Account;
               account = accountDisplay; 
               accountStyle = Map.ofArray [|("padding-left", (sprintf "%dpx" (paddingLeftBase+(indent*indentPadding))))|]; 
-              balance = amount.ToString("C");
-              balanceClass = account.Split([|':'|]).[0].ToLower();
+              balance = List.map (Some >> formatAmount) accountBalance.Balance//formatAmount <| Some accountBalance.Balance
+              balanceClass = accountBalance.Account.Split([|':'|]).[0].ToLower();
+              basisBalance = 
+                match accountBalance.Basis with
+                | Some basisList -> List.map (Some >> formatAmount) basisList
+                | None           -> List.empty;
+              commodityBalance = formatAmount accountBalance.Commodity;
+              price = formatAmount accountBalance.Price;
+              priceDate = match accountBalance.PriceDate with
+                          | Some priceDate -> priceDate.ToString("dd-MMM-yyyy")
+                          | otherwise -> ""
               rowClass = 
-                match account with
+                match accountBalance.Account with
                 | "" -> "grand_total"
                 | otherwise -> ""; })
-    
-    
-    /// Transform register report data for presentation
-    let presentRegisterData transactions =
-        let presentEntry (account, amount :decimal, total :decimal) = 
-            {account = account; amount = amount.ToString("C"); total = total.ToString("C")}
-        let presentTransaction (date :System.DateTime, payee, entries) = 
-            {date = date.ToString("yyyy-MM-dd"); payee = payee; entries = List.map presentEntry entries}
-        transactions
-        |> List.map presentTransaction
-    
 
-    let generateNetWorthData journalData =
-        let generatePeriodBalance month =
+
+    /// Transform register report data for presentation
+    let presentRegisterData (transactions : Register list) : RegisterTransaction List =
+        let presentRegisterPostings (registerPosting : RegisterPosting) = 
+            {
+                account = registerPosting.Account;
+                amount = formatAmount <| Some registerPosting.Amount;
+                total = List.map (fun amount -> formatAmount <| Some amount) registerPosting.Balance;
+            }
+
+        let presentRegister (register : Register) = 
+            {
+                date = register.Date.ToString("yyyy-MM-dd");
+                payee = register.Payee;
+                entries = List.map presentRegisterPostings register.Postings;
+            }
+
+        transactions
+        |> List.map presentRegister
+
+
+    let generateNetWorthData (journal : Journal) : LineChartSeries list =
+        let zeroBalance = { Value = 0M; Symbol = { Value = "$"; Quoted = false }; Format = SymbolLeftNoSpace }
+
+        let tryFindDollarAmount (balances : Amount list) =
+            match List.tryFind (fun (a:Amount) -> a.Symbol.Value = "$") balances with
+            | Some amount -> amount
+            | None        -> zeroBalance
+
+        let generatePeriodBalance (month : System.DateTime) : LineChartPoint * LineChartPoint =
             let parameters = {
                 AccountsWith = Some ["assets"; "liabilities"];
-                ExcludeAccountsWith = Some ["units"];
+                ExcludeAccountsWith = None;
                 PeriodStart = None;
                 PeriodEnd = Some (DateUtils.getLastOfMonth(month));
+                ConvertCommodities = true;
             }
-            let _, totalBalance = Query.balance parameters journalData
+            let _, totalBalance = Query.balance parameters journal
+            let balanceDollarAmount = tryFindDollarAmount totalBalance.Balance
+            let basisDollarAmount =
+                match totalBalance.Basis with
+                | Some basis -> tryFindDollarAmount basis
+                | None       -> zeroBalance
+
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = totalBalance.ToString(); 
-                hover = month.ToString("MMM yyyy") + ": " + totalBalance.ToString("C");
+                amount = balanceDollarAmount.Value.ToString();
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some balanceDollarAmount);
+            },
+            {
+                date = month.ToString("dd-MMM-yyyy"); 
+                amount = basisDollarAmount.Value.ToString();
+                hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some basisDollarAmount);
             }
 
         let firstMonth = DateUtils.getFirstOfMonth(System.DateTime.Today).AddMonths(-25)
         let months = seq { for i in 0 .. 25 do yield firstMonth.AddMonths(i) }
 
-        let netWorthData =
+        let balanceValues, basisValues =
             months
             |> Seq.map generatePeriodBalance
             |> Seq.toList
+            |> List.unzip
 
-        netWorthData
+        [{ series = "Balance"; values = balanceValues }; { series = "Basis"; values = basisValues }]
 
 
-    
     type WealthPulseModule(journalService : IJournalService) as this =
         inherit Nancy.NancyModule()
         let journalService = journalService
@@ -209,17 +284,26 @@ module NancyRunner =
             fun parameters ->
                 this.View.["index.html"] |> box
 
-        
+
         do this.Get.["/api/nav"] <-
             fun parameters ->
-                let presentPayee (payee : string, amount : decimal) =
-                    let command = {report = "register"; query = "accountsWith=assets%3Areceivables%3A" + payee.ToLower() + "+liabilities%3Apayables%3A" + payee.ToLower();} : NavCommand
-                    {payee = payee; command = command; amount = amount.ToString("C"); amountClass = if amount >= 0M then "positive" else "negative";}
+                let presentPayee (outstandingPayee : OutstandingPayee) : NavPayee =
+                    let command =
+                        {
+                            report = "register";
+                            query = "accountsWith=assets%3Areceivables%3A" + outstandingPayee.Payee.ToLower() 
+                                    + "+liabilities%3Apayables%3A" + outstandingPayee.Payee.ToLower();
+                        } : NavCommand
+                    let amounts =
+                        outstandingPayee.Balance
+                        |> List.map (fun amount -> { amount = formatAmount <| Some amount;
+                                                     amountClass = if amount.Value >= 0M then "positive" else "negative" })
+                    {payee = outstandingPayee.Payee; command = command; balance = amounts}
                 let nav = {
                     reports = [{ key = "Balance Sheet";
                                  title = "Balance Sheet";
                                  report = "balance";
-                                 query = "accountsWith=assets+liabilities&excludeAccountsWith=units"; };
+                                 query = "accountsWith=assets+liabilities&convertCommodities=true&title=Balance+Sheet"; };
                                { key = "Net Worth";
                                  title = "Net Worth";
                                  report= "networth";
@@ -233,7 +317,7 @@ module NancyRunner =
                                  report = "balance";
                                  query = "accountsWith=income+expenses&period=last+month&title=Income+Statement"; }];
                     payees = List.map presentPayee journalService.OutstandingPayees;
-                    journalLastModified = journalService.LastModified.ToString();
+                    journalLastModified = journalService.JournalLastModified.ToString();
                     exceptionMessage = 
                         match journalService.GetAndClearException with
                         | Some msg -> msg
@@ -241,18 +325,18 @@ module NancyRunner =
                 }
                 nav |> box
 
-        
+
         do this.Get.["/api/balance"] <-
             fun parameters ->
                 let queryParameters, title = parseQueryParameters this.Request.Query "Balance"
                 let balanceSheetData = {
                     title = title;
                     subtitle = generateSubtitle queryParameters;
-                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal;
+                    balances = presentBalanceData <| Query.balance queryParameters journalService.Journal
                 }
                 balanceSheetData |> box
 
-        
+
         do this.Get.["/api/register"] <-
             fun parameters ->
                 let queryParameters, title = parseQueryParameters this.Request.Query "Register"
@@ -275,7 +359,7 @@ module NancyRunner =
 
 
     let run =
-        let url = "http://localhost:5050"
+        let url = "http://localhost:5055"
         Nancy.Json.JsonSettings.MaxJsonLength <- System.Int32.MaxValue  // increase max JSON response length (default is 100 kb)
         let configuration = new Nancy.Hosting.Self.HostConfiguration()
         configuration.UrlReservations.CreateAutomatically <- true

@@ -4,13 +4,12 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D394EE0A-E293-49D0-9982-4EF6A3007F41}</ProjectGuid>
+    <ProjectGuid>{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>webledger</RootNamespace>
-    <AssemblyName>wealthpulse</AssemblyName>
+    <RootNamespace>FetchPrices</RootNamespace>
+    <AssemblyName>FetchPrices</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <Name>WealthPulse</Name>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <Name>FetchPrices</Name>
     <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -21,7 +20,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\WealthPulse.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\FetchPrices.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,8 +29,21 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\webledger.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\FetchPrices.XML</DocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="FSharp.Core">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="main.fs" />
+  </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
@@ -48,65 +60,11 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
-  <ItemGroup>
-    <None Include="Interactive.fsx" />
-    <Compile Include="Utility.fs" />
-    <Compile Include="JournalService.fs" />
-    <Compile Include="NancyRunner.fs" />
-    <Compile Include="main.fs" />
-    <None Include="packages.config" />
-    <None Include="app.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="FParsec, Version=1.0.0.0, Culture=neutral, PublicKeyToken=40ccfc0a09edbb5d">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="FParsecCS, Version=1.0.0.0, Culture=neutral, PublicKeyToken=40ccfc0a09edbb5d">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="Nancy, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Nancy.Hosting.Self, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-    <ProjectReference Include="..\Journal\Journal.fsproj">
-      <Name>Journal</Name>
-      <Project>{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}</Project>
-    </ProjectReference>
-    <Reference Include="System.Web.Extensions" />
-    <Reference Include="FSharp.Core">
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
-  <!--
-  <PropertyGroup>
-    <PostBuildEvent>rmdir /Q /S views
-mkdir views
-xcopy $(ProjectDir)views views /S
-
-rmdir /Q /S content
-mkdir content
-xcopy $(ProjectDir)content content /S</PostBuildEvent>
-  </PropertyGroup>
--->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
-  -->
   <Target Name="AfterBuild">
-    <ItemGroup>
-      <Content Include=".\content\**\*.*" />
-    </ItemGroup>
-    <ItemGroup>
-      <Views Include=".\views\**\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(Content)" DestinationFolder="$(TargetDir)\content\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(Views)" DestinationFolder="$(TargetDir)\views\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
+  -->
 </Project>

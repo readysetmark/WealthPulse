@@ -1,8 +1,5 @@
 ﻿namespace WealthPulse
 
-open WealthPulse.Journal
-open WealthPulse.Utility
-
 module Main =
         
     //let ledgerFilePath = @"C:\Users\Mark\Nexus\Development\ledger\WealthPulse\templates\stan.dat"
