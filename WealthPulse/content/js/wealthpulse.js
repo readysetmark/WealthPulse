@@ -22,16 +22,18 @@ var ReportNav = React.createClass({
 //   @payee
 //   @report
 //   @query
-//   @amountClass
-//   @amount
+//   @balance (list of @amount, @amountClass)
 var PayeeNav = React.createClass({
   render: function() {
     var query = this.props.query.length > 0 ? "?" + this.props.query : "";
     var url = "#/" + this.props.report + query;
+    
+    var amounts = _.map(this.props.balance, function(amount) { return React.DOM.span({className: amount.amountClass}, amount.amount); });
+
     return React.DOM.li({className: this.props.className},
                         React.DOM.a({href: url},
                                     this.props.payee,
-                                    React.DOM.span({className: "pull-right " + this.props.amountClass}, this.props.amount)));
+                                    React.DOM.span({className: "pull-right currency"}, amounts)));
   }
 });
 
@@ -74,8 +76,7 @@ var NavBox = React.createClass({
         }
         payee_nodes.push(PayeeNav({className: className,
                                    payee: payee.payee,
-                                   amountClass: payee.amountClass,
-                                   amount: payee.amount,
+                                   balance: payee.balance,
                                    report: payee.command.report,
                                    query: payee.command.query,
                                    key: payee.payee}));

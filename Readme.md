@@ -313,11 +313,10 @@ Price Fetching
 - [x] Review and enable price fetching logic
 
 Outstanding Payees
-- [ ] Handle multiple commodities?
+- [x] Handle multiple commodities
 
 Register Report
 - [ ] Handle Multiple commodities
-	- [ ] Prototype... what should it look like?
 
 
 
@@ -342,6 +341,7 @@ Nav
 - [ ] Combine reports and payables / receivables into one dict?
 - [ ] Default report?
 - [ ] Display indicator when ajax call is happening
+- [ ] Handle outstanding payees with multiple commodity amounts a bit nicer (renders poorly right now)
 
 Parsing Ledger File
 - [ ] Skipping the comment lines during parsing would simplify processing (since first thing we do is drop them)
@@ -371,7 +371,7 @@ Charts
 - [ ] Income Statement chart (monthly, over time)
 
 Command Bar Enhancements
-- [ ] Add paramters:
+- [ ] Add parameters:
 	:payee
 	:excludepayee
 - [ ] Add fault tolerance to parameter parsing

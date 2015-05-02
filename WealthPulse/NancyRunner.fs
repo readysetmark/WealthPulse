@@ -12,11 +12,15 @@ module NancyRunner =
         query: string;
     }
 
+    type PayeeAmount = {
+        amount: string;
+        amountClass: string;
+    }
+
     type NavPayee = {
         payee: string;
         command: NavCommand;
-        amount: string;
-        amountClass: string;
+        balance: PayeeAmount list;
     }
 
     type NavReport = {
@@ -273,9 +277,18 @@ module NancyRunner =
 
         do this.Get.["/api/nav"] <-
             fun parameters ->
-                let presentPayee (payee : string, amount : decimal) =
-                    let command = {report = "register"; query = "accountsWith=assets%3Areceivables%3A" + payee.ToLower() + "+liabilities%3Apayables%3A" + payee.ToLower();} : NavCommand
-                    {payee = payee; command = command; amount = amount.ToString("C"); amountClass = if amount >= 0M then "positive" else "negative";}
+                let presentPayee (outstandingPayee : OutstandingPayee) : NavPayee =
+                    let command =
+                        {
+                            report = "register";
+                            query = "accountsWith=assets%3Areceivables%3A" + outstandingPayee.Payee.ToLower() 
+                                    + "+liabilities%3Apayables%3A" + outstandingPayee.Payee.ToLower();
+                        } : NavCommand
+                    let amounts =
+                        outstandingPayee.Balance
+                        |> List.map (fun amount -> { amount = formatAmount <| Some amount;
+                                                     amountClass = if amount.Value >= 0M then "positive" else "negative" })
+                    {payee = outstandingPayee.Payee; command = command; balance = amounts}
                 let nav = {
                     reports = [{ key = "Balance Sheet";
                                  title = "Balance Sheet";

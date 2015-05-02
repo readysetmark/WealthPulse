@@ -13,12 +13,17 @@ type QueryOptions = {
 }
 
 type AccountBalance = {
-    Account: string;
+    Account: Account;
     Balance: Amount list;
     Basis: Amount list option;
     Commodity: Amount option;
     Price: Amount option;
     PriceDate: DateTime option;
+}
+
+type OutstandingPayee = {
+    Payee: Account;
+    Balance: Amount list;
 }
 
 
@@ -37,6 +42,11 @@ module private Support =
                 | Some mapAmount -> { mapAmount with Value = mapAmount.Value + amount.Value }
                 | None           -> amount
             Map.add amount.Symbol updatedAmount symbolAmounts
+
+        /// Filter out any symbols that have a 0 amount balance
+        let filterZeroAmounts (symbolAmounts: SymbolAmountMap) : SymbolAmountMap =
+            symbolAmounts
+            |> Map.filter (fun symbol amount -> amount.Value <> 0M)
 
         /// Convert a SymbolAmountMap to a list of Amounts sorted by Symbol
         let toSortedAmountList (symbolAmounts: SymbolAmountMap) : Amount list =
@@ -318,22 +328,31 @@ let register (options : QueryOptions) (journal : Journal) =
     |> List.rev
 
 
-/// Returns a sorted list of (payee, amount) tuples
-let outstandingPayees (journal : Journal) =
-    let calculatePayeeAmounts (payees : Map<string,decimal>) (posting : Posting) =
+/// Returns a list of Outstanding Payees, which is any account with an outstanding
+/// receivable or payable amount.
+let outstandingPayees (journal : Journal) : OutstandingPayee list =
+    let calculatePayeeAmounts (payees : Map<Account,SymbolAmountMap>) (posting : Posting) =
         if posting.Account.StartsWith("Assets:Receivables:") || posting.Account.StartsWith("Liabilities:Payables:") then 
             let payee = posting.Account.Replace("Assets:Receivables:", "").Replace("Liabilities:Payables:", "")
-            let currentAmount = if payees.ContainsKey(payee) then payees.[payee] else 0M
-            Map.add payee (currentAmount + posting.Amount.Value) payees
+            let payeeBalance =
+                match Map.tryFind payee payees with
+                | Some balance -> SymbolAmountMap.add balance posting.Amount
+                | None         -> SymbolAmountMap.add Map.empty posting.Amount
+            Map.add payee payeeBalance payees
         else payees
     journal.Postings
     |> List.fold calculatePayeeAmounts Map.empty
-    |> Map.filter (fun _ amount -> amount <> 0M)
+    |> Map.map (fun payee balance ->
+                    balance
+                    |> SymbolAmountMap.filterZeroAmounts
+                    |> SymbolAmountMap.toSortedAmountList)
+    |> Map.filter (fun payee balance -> not <| List.isEmpty balance)
     |> Map.toList
+    |> List.map (fun (payee, balance) -> { Payee = payee; Balance = balance })
 
 
 /// Returns a list of symbols used in the journal
-let identifySymbolUsage (journal : Journal) =
+let identifySymbolUsage (journal : Journal) : SymbolUsage list =
     let buildSymbolMap map (posting : Posting) =
         let symbol = posting.Amount.Symbol.Value
         match Map.tryFind symbol map with

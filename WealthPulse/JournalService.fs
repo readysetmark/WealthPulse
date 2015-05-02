@@ -3,6 +3,7 @@
 open Journal
 open Journal.Types
 open Journal.SymbolPrices
+open Journal.Query
 open WealthPulse.Utility
 open System
 open System.IO
@@ -13,7 +14,7 @@ module JournalService =
     /// Interface for Nancy Dependency Injection
     type IJournalService =
         abstract member Journal : Journal
-        abstract member OutstandingPayees : (string * decimal) list
+        abstract member OutstandingPayees : OutstandingPayee list
         abstract member JournalLastModified : DateTime
         abstract member GetAndClearException : string option
 
