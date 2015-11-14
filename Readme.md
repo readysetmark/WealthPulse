@@ -171,6 +171,7 @@ Tooling
 Price Scraping
 - [x] Retry after delay if fetching prices fails (happens if no internet is
 available) instead of waiting a full day to retry
+- [ ] Only write to `.pricedb` if new prices were found
 - [ ] When writing to `.pricedb`, write to temp file first, then replace
 `.pricedb` file (avoid clobbering a file if app exits during write)
 - [ ] Consider using Akka.net actors?
