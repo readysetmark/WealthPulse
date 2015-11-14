@@ -15,8 +15,6 @@ Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Journal", "Journal\Journal.
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "WealthPulse", "WealthPulse\WealthPulse.fsproj", "{D394EE0A-E293-49D0-9982-4EF6A3007F41}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "FetchPrices", "FetchPrices\FetchPrices.fsproj", "{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}"
-EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "JournalTest", "JournalTest\JournalTest.fsproj", "{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}"
 EndProject
 Global
@@ -29,10 +27,6 @@ Global
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F76B8D5-0B39-42F0-9D72-FB1CD77E0CC3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4AF69A4F-F10E-4FAB-9F37-1D3DD28BBE7F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{651A08BA-81C9-45E7-8AC8-B6FAB101F3C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
