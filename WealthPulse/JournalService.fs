@@ -24,7 +24,6 @@ module JournalService =
         let ledgerFilePath = Environment.GetEnvironmentVariable("LEDGER_FILE")
         //let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/ledger.dat"
         //let ledgerFilePath = @"C:\Users\Mark\Nexus\Documents\finances\ledger\test_investments.dat"
-        //let ledgerFilePath = @"/Users/mark/Nexus/Documents/finances/ledger/test_investments.dat"
         let configFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_CONFIG_FILE")
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
@@ -37,7 +36,8 @@ module JournalService =
         let mutable symbolConfig = Map.empty : SymbolConfigCollection
         let mutable configLastModified = DateTime.MinValue
         let pricesEnabled = pricesFilePath <> null
-        let mutable symbolPricesLastFetched = DateTime.Now.AddDays(-1.0).AddSeconds(20.0) // delay first fetch by 20 seconds
+        let mutable symbolPricesLastFetched = DateTime.Now.AddDays(-1.0) // force fetch to happen on startup
+        let fetchPricesRetryDelay = TimeSpan.FromMinutes(30.0)
 
 
         let loadJournal () =
@@ -125,9 +125,11 @@ module JournalService =
                 with
                     ex -> 
                         do printfn "Error fetching new symbol prices: %s" ex.Message
+                        let newLastFetchedTime = symbolPricesLastFetched.Add(fetchPricesRetryDelay)
+                        do printfn "Scheduling retry around %s" <| newLastFetchedTime.ToLongTimeString()
                         rwlock.AcquireWriterLock(Timeout.Infinite)
                         try
-                            symbolPricesLastFetched <- DateTime.Now
+                            symbolPricesLastFetched <- newLastFetchedTime
                         finally
                             rwlock.ReleaseWriterLock()
 

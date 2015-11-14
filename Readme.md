@@ -169,12 +169,10 @@ Tooling
 - [ ] Setup CI (TravisCI?)
 
 Price Scraping
-- [ ] Consider performing on demand instead?
-	- With WP running all the time, a lot of times the price scraping errors out
-	because there is no internet available
-	- Could also check for internet and delay if not available
-	- Might need to run immediately (or keep track of runs) if server only runs
-	while Electron app runs
+- [x] Retry after delay if fetching prices fails (happens if no internet is
+available) instead of waiting a full day to retry
+- [ ] When writing to `.pricedb`, write to temp file first, then replace
+`.pricedb` file (avoid clobbering a file if app exits during write)
 - [ ] Consider using Akka.net actors?
 
 Types
@@ -209,6 +207,8 @@ Command Bar Enhancements
 	:excludepayee
 
 Dependency Updates:
+- [ ] Use bower or npm to retrieve dependencies, rather than including sources
+for all dependencies in the git repo
 - [ ] Update to latest React
 - [ ] Update to Bootstrap 3 (or 4?)
 - [ ] Switch to React Router instead of Backbone router?
