@@ -1,6 +1,7 @@
 *.userprefs
 */bin
 */obj
+node_modules
 output
 packages/FParsec.*
 packages/Fuchu.*

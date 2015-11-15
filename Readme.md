@@ -161,6 +161,7 @@ Electron
 - [ ] Turn it into an Electron app instead of accessing through a browser
 	- [ ] Launch F# app at startup
 	- [ ] Launch electron browser window pointed to WP server
+	- [ ] Update documentation with launch instructions (npm start in dev)
 
 Tooling
 - [ ] Add a real logger
