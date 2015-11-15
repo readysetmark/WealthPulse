@@ -159,9 +159,8 @@ Joting down some initial thoughts here. Nothing set in stone.
 Electron
 - [x] Do proof-of-concept with Electron pointed to current server -- it works!
 - [ ] Turn it into an Electron app instead of accessing through a browser
-	- Need to decide how tightly I want to couple to electron (move all
-	html/js/css to electron and just get data via REST http calls, or just launch
-	an electron window pointed to the server?), then breakdown tasks
+	- [ ] Launch F# app at startup
+	- [ ] Launch electron browser window pointed to WP server
 
 Tooling
 - [ ] Add a real logger
