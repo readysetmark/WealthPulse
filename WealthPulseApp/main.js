@@ -1,5 +1,6 @@
 var app = require('app');  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
+var spawn = require('child_process').spawn;  // Module to control child processes.
 
 // Report crashes to our server.
 //require('crash-reporter').start();
@@ -20,8 +21,21 @@ app.on('window-all-closed', function() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+  // Spawn WealthPulse server
+  var serverProcess = spawn('mono', ['WealthPulse/bin/Debug/wealthpulse.exe']);
+
+  serverProcess.stdout.on('data',
+    function (data) {
+      console.log('[Server|Output] ' + data);
+    });
+
+  serverProcess.stderr.on('data',
+    function (data) {
+      console.log('[Server|Error ] ' + data);
+    });
+
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 1200, height: 820, "node-integration": false});
+  mainWindow = new BrowserWindow({width: 1200, height: 820, 'node-integration': false});
 
   // and load the index.html of the app.
   //mainWindow.loadUrl('file://' + __dirname + '/index.html');
@@ -36,5 +50,9 @@ app.on('ready', function() {
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     mainWindow = null;
+
+    // Kill the WealthPulse server process
+    serverProcess.kill();
+    serverProcess = null;
   });
 });

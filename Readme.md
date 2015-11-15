@@ -57,9 +57,17 @@ points to your Wealth Pulse config file.
 * Optional: Setup a ``WEALTH_PULSE_PRICES_FILE`` environment variable that
 points to where you'd like Wealth Pulse to store symbol prices.
 
+Server & Browser method:
+
 * Run ``wealthpulse.exe``
 
 * Open a browser to ``http://localhost:5050/``
+
+Electron method:
+
+* Run ``npm install`` to download dependencies
+
+* Run ``npm start`` to start Electron & server
 
 
 
@@ -159,9 +167,13 @@ Joting down some initial thoughts here. Nothing set in stone.
 Electron
 - [x] Do proof-of-concept with Electron pointed to current server -- it works!
 - [ ] Turn it into an Electron app instead of accessing through a browser
-	- [ ] Launch F# app at startup
-	- [ ] Launch electron browser window pointed to WP server
-	- [ ] Update documentation with launch instructions (npm start in dev)
+	- [x] Launch F# server at startup
+	- [x] Launch electron browser window pointed to WP server
+	- [x] Update documentation with launch instructions (npm start in dev)
+	- [ ] Delay launching browser window until server ready
+	- [ ] Retrieve port (or full address) from server output
+	- [ ] Server should handle SIGTERM signal gracefully
+	- [ ] Tooling to build a shippable "app"
 
 Tooling
 - [ ] Add a real logger

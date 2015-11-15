@@ -116,6 +116,7 @@ module JournalService =
                     let priceDB = updateSymbolPriceDB symbolUsage symbolConfig journal.DownloadedPriceDB
                     do printfn "Storing prices to: %s" pricesFilePath
                     do saveSymbolPriceDB pricesFilePath priceDB
+                    do printfn "Done storing prices"
                     rwlock.AcquireWriterLock(Timeout.Infinite)
                     try
                         journal <- {journal with DownloadedPriceDB = priceDB}
