@@ -170,8 +170,9 @@ Electron
 	- [x] Launch F# server at startup
 	- [x] Launch electron browser window pointed to WP server
 	- [x] Update documentation with launch instructions (npm start in dev)
-	- [ ] Delay launching browser window until server ready
-	- [ ] Retrieve port (or full address) from server output
+	- [x] Delay launching browser window until server ready
+	- [x] Retrieve port (or full address) from server output
+	- [ ] Let server launch on any port?
 	- [ ] Server should handle SIGTERM signal gracefully
 	- [ ] Tooling to build a shippable "app"
 
