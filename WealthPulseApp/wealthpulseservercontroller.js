@@ -2,14 +2,14 @@ var util = require('util');
 var spawn = require('child_process').spawn;
 var EventEmitter = require('events').EventEmitter;
 
-function WealthPulseServer () {
+function WealthPulseServerController () {
   EventEmitter.call(this);
   this.serverProcess = null;
 }
 
-util.inherits(WealthPulseServer, EventEmitter);
+util.inherits(WealthPulseServerController, EventEmitter);
 
-WealthPulseServer.prototype.spawn = function (command, args, options) {
+WealthPulseServerController.prototype.spawn = function (command, args, options) {
   this.serverProcess = spawn(command, args, options);
 
   var self = this;
@@ -30,9 +30,9 @@ WealthPulseServer.prototype.spawn = function (command, args, options) {
   });
 };
 
-WealthPulseServer.prototype.kill = function (signal) {
+WealthPulseServerController.prototype.kill = function (signal) {
   this.serverProcess.kill(signal);
   this.serverProcess = null;
 }
 
-module.exports = WealthPulseServer;
+module.exports = WealthPulseServerController;

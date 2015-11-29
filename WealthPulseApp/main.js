@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs');
 var app = require('app');  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
-var WealthPulseServer = require('./wealthpulseserver');
+var WealthPulseServerController = require('./wealthpulseservercontroller');
 
 // Report crashes to our server.
 //require('crash-reporter').start();
@@ -42,7 +42,7 @@ app.on('window-all-closed', function() {
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
   // Spawn WealthPulse server
-  var server = new WealthPulseServer();
+  var server = new WealthPulseServerController();
 
   server.on('ready', function (location) {
     // Create the browser window.
