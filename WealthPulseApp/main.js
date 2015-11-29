@@ -1,3 +1,6 @@
+var process = require('process');
+var path = require('path');
+var fs = require('fs');
 var app = require('app');  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
 var WealthPulseServer = require('./wealthpulseserver');
@@ -8,6 +11,24 @@ var WealthPulseServer = require('./wealthpulseserver');
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
+
+// Determine path to WealthPulse server executable
+function resolveWealthPulseServerExecutablePath() {
+  // default path in OS X bundled app
+  var wealthPulseServerExecutablePath = path.resolve(
+    path.dirname(process.execPath),
+    '../Resources/app/WealthPulse/bin/Debug/wealthpulse.exe');
+
+  try {
+    fs.statSync(wealthPulseServerExecutablePath);
+  }
+  catch(err) {
+    // default path in dev mode
+    wealthPulseServerExecutablePath = 'WealthPulse/bin/Debug/wealthpulse.exe';
+  }
+  
+  return wealthPulseServerExecutablePath
+}
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -45,5 +66,5 @@ app.on('ready', function() {
     });
   });
 
-  server.spawn('mono', ['WealthPulse/bin/Debug/wealthpulse.exe']);
+  server.spawn('mono', [resolveWealthPulseServerExecutablePath()]);
 });

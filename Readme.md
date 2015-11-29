@@ -166,15 +166,24 @@ Joting down some initial thoughts here. Nothing set in stone.
 
 Electron
 - [x] Do proof-of-concept with Electron pointed to current server -- it works!
-- [ ] Turn it into an Electron app instead of accessing through a browser
+- [x] Turn it into an Electron app instead of accessing through a browser
 	- [x] Launch F# server at startup
 	- [x] Launch electron browser window pointed to WP server
 	- [x] Update documentation with launch instructions (npm start in dev)
 	- [x] Delay launching browser window until server ready
 	- [x] Retrieve port (or full address) from server output
+- [ ] Bonus stuff
+	- [ ] Tooling to build a shippable "app"
+		- OS X:
+			- Copy `node_modules/electron-prebuilt/dist/Electron.app` to `dist`
+			- Copy `package.json` and `WealthPulseApp` to
+			`dist/Electron.app/Contents/Resources/app`
+			- Copy F# app to `dist/Electron.app/Contents/Resources/app` as well
+		- Will need code to determine correct path to wealth pulse server
+			depending on debug mode vs shipped and OS X vs Windows
+	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
 	- [ ] Let server launch on any port?
 	- [ ] Server should handle SIGTERM signal gracefully
-	- [ ] Tooling to build a shippable "app"
 
 Tooling
 - [ ] Add a real logger
@@ -219,6 +228,7 @@ Command Bar Enhancements
 - [ ] Add parameters:
 	:payee
 	:excludepayee
+	:uncleared or :cleared
 
 Dependency Updates:
 - [ ] Use bower or npm to retrieve dependencies, rather than including sources
