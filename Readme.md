@@ -57,9 +57,17 @@ points to your Wealth Pulse config file.
 * Optional: Setup a ``WEALTH_PULSE_PRICES_FILE`` environment variable that
 points to where you'd like Wealth Pulse to store symbol prices.
 
+Server & Browser method:
+
 * Run ``wealthpulse.exe``
 
 * Open a browser to ``http://localhost:5050/``
+
+Electron method:
+
+* Run ``npm install`` to download dependencies
+
+* Run ``npm start`` to start Electron & server
 
 
 
@@ -152,20 +160,43 @@ A sale of the same mutual fund would look like:
 Project Plan
 ============
 
-### Phase 3: Planned Improvements
+### Phase 3: UI Refresh
 
-Joting down some initial thoughts here. Nothing set in stone.
+#### Objectives
+
+* Use electron to make a bundled app instead of requiring an always-running
+server process with a web browser pointed at it
+* Update some of our dependencies on the UI, and see if we can use tooling to
+retrieve them instead of storing it in the repo
+* Implement logging to file
+
+#### First Milestone
 
 Electron
 - [x] Do proof-of-concept with Electron pointed to current server -- it works!
-- [ ] Turn it into an Electron app instead of accessing through a browser
-	- [ ] Launch F# app at startup
-	- [ ] Launch electron browser window pointed to WP server
+- Turn it into an Electron app instead of accessing through a browser:
+	- [x] Launch F# server at startup
+	- [x] Launch electron browser window pointed to WP server
+	- [x] Update documentation with launch instructions (npm start in dev)
+	- [x] Delay launching browser window until server ready
+	- [x] Retrieve port (or full address) from server output
+	- [ ] Determine correct path to wealth pulse server depending on:
+		- dev mode vs bundled app
+		- platform (OS X vs Windows)
+		>> Partially done
+	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
 
 Tooling
 - [ ] Add a real logger
-- [ ] FAKE build scripts?
-- [ ] Setup CI (TravisCI?)
+- [ ] Use npm/FAKE/grunt/gulp automation?
+- Automate:
+	- [ ] Building/bundling a shippable "app"
+		- OS X:
+			- Copy `node_modules/electron-prebuilt/dist/Electron.app` to `dist`
+			- Copy `package.json` and `WealthPulseApp` to
+			`dist/Electron.app/Contents/Resources/app`
+			- Copy F# app to `dist/Electron.app/Contents/Resources/app`
+		- Windows: TBD
 
 Price Scraping
 - [x] Retry after delay if fetching prices fails (happens if no internet is
@@ -173,6 +204,20 @@ available) instead of waiting a full day to retry
 - [ ] Only write to `.pricedb` if new prices were found
 - [ ] When writing to `.pricedb`, write to temp file first, then replace
 `.pricedb` file (avoid clobbering a file if app exits during write)
+
+Dependency Updates:
+- [ ] Use bower or npm to retrieve dependencies, rather than including sources
+for all dependencies in the git repo
+- [ ] Switch to elm instead of React? Evaluate Elm
+- [ ] Update to latest React
+- [ ] Switch to React Router instead of Backbone router?
+- [ ] Update to Bootstrap 3 (or 4?)
+
+
+
+### Someday/Maybe/Improvements
+
+Price Scraping
 - [ ] Consider using Akka.net actors?
 
 Types
@@ -205,23 +250,14 @@ Command Bar Enhancements
 - [ ] Add parameters:
 	:payee
 	:excludepayee
+	:uncleared or :cleared
 
 Dependency Updates:
-- [ ] Use bower or npm to retrieve dependencies, rather than including sources
-for all dependencies in the git repo
-- [ ] Update to latest React
-- [ ] Update to Bootstrap 3 (or 4?)
-- [ ] Switch to React Router instead of Backbone router?
-- [ ] Switch to elm instead of React?
 - [ ] Switch to Suave instead of NancyFX?
-
-
-
-### Someday/Maybe/Improvements
 
 Nav
 - [ ] Configurable nav list
-- [ ] Default report?
+- [ ] Configurable default report
 - [ ] Handle outstanding payees with multiple commodity amounts a bit nicer
 (renders poorly right now)
 
@@ -251,6 +287,16 @@ Command Bar Enhancements
 	Additions for period: yyyy, last year, this year
 - [ ] Autocomplete hints (bootstrap typeahead)
 
+Validation
+- [ ] Validate accounts based on a master list? To prevent typos and whatnot...
+
+Server
+- [ ] Let server launch on any port?
+- [ ] Server should handle SIGTERM signal gracefully
+
+Tooling
+- [ ] Setup CI (TravisCI?)
+
 
 
 Archives
@@ -258,7 +304,7 @@ Archives
 
 ### Phase 1: Basic Reporting
 
-#### Objective
+#### Objectives
 
 *	Replace the ledger bal and reg commandline options with a web interface.
 *	Provide some basic reporting like net worth, income vs expenses, ...
@@ -333,7 +379,7 @@ Documentation
 
 ### Phase 2: Commodities
 
-#### Objective
+#### Objectives
 
 *	Add support for investments (ie, multiple commodities) on balance and register
 reports
