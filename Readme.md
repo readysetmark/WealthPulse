@@ -188,7 +188,7 @@ Electron
 
 Tooling
 - [ ] Add a real logger
-- [ ] Use FAKE/grunt/gulp automation?
+- [ ] Use npm/FAKE/grunt/gulp automation?
 - Automate:
 	- [ ] Building/bundling a shippable "app"
 		- OS X:
@@ -286,6 +286,9 @@ Command Bar Enhancements
 - [ ] Clean up and improve date/period parsing
 	Additions for period: yyyy, last year, this year
 - [ ] Autocomplete hints (bootstrap typeahead)
+
+Validation
+- [ ] Validate accounts based on a master list? To prevent typos and whatnot...
 
 Server
 - [ ] Let server launch on any port?
