@@ -255,7 +255,7 @@ module private Support =
             |> filterPostings basisFilter
             |> List.filter (fun (p:Posting) -> p.Amount.Symbol.Value = "$")
             |> List.sumBy (fun (p:Posting) -> p.Amount.Value)
-        Amount.create basisAmount (Symbol.make "$") SymbolLeftNoSpace
+        Amount.make basisAmount (Symbol.make "$") SymbolLeftNoSpace
 
     // TODO: How do I handle if we're computing commodity values and an account has more than one commodity?
     /// Compute real and basis values for commodities held in an account. 

@@ -84,10 +84,10 @@ type Amount = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Amount =
 
-    let create quantity symbol format =
+    let make quantity symbol format =
         {Value = quantity; Symbol = symbol; Format = format;}
 
-    let serialize (amount : Amount) =
+    let render (amount : Amount) =
         match amount.Format with
         | SymbolLeftWithSpace  -> (Symbol.render amount.Symbol) + " " + amount.Value.ToString()
         | SymbolLeftNoSpace    -> (Symbol.render amount.Symbol) + amount.Value.ToString()
@@ -111,7 +111,7 @@ module SymbolPrice =
 
     let render (sp : SymbolPrice) : string =
         let dateFormat = "yyyy-MM-dd"
-        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.render sp.Symbol) (Amount.serialize sp.Price)
+        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.render sp.Symbol) (Amount.render sp.Price)
 
 
 /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
@@ -138,7 +138,7 @@ module SymbolPriceCollection =
     let prettyPrint spc =
         let dateFormat = "yyyy-MM-dd"
         let printPrice (price : SymbolPrice) =
-            do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.serialize price.Price)
+            do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.render price.Price)
         do printfn "Symbol:  %s" spc.Symbol.Value
         do printfn "First Date: %s" (spc.FirstDate.ToString(dateFormat))
         do printfn "Last Date:  %s" (spc.LastDate.ToString(dateFormat))

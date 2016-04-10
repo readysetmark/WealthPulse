@@ -191,14 +191,14 @@ module Parser =
             let amountSymbolThenQuantity =
                 let createAmount symbol ws qty =
                     match ws with
-                    | Some(_) -> Amount.create qty symbol SymbolLeftWithSpace
-                    | None    -> Amount.create qty symbol SymbolLeftNoSpace
+                    | Some(_) -> Amount.make qty symbol SymbolLeftWithSpace
+                    | None    -> Amount.make qty symbol SymbolLeftNoSpace
                 pipe3 symbol (opt whitespace) quantity createAmount
             let amountQuantityThenSymbol =
                 let createAmount qty ws symbol =
                     match ws with
-                    | Some(_) -> Amount.create qty symbol SymbolRightWithSpace
-                    | None    -> Amount.create qty symbol SymbolRightNoSpace
+                    | Some(_) -> Amount.make qty symbol SymbolRightWithSpace
+                    | None    -> Amount.make qty symbol SymbolRightNoSpace
                 pipe3 quantity (opt whitespace) symbol createAmount
             (amountSymbolThenQuantity <|> amountQuantityThenSymbol) .>> skipWS
 
