@@ -13,12 +13,14 @@ module Account =
     /// Calculate full account lineage for a particular account. This will return
     /// a list of all parent accounts and the account itself.
     /// e.g. given "a:b:c", returns ["a"; "a:b"; "a:b:c"]
-    let getAccountLineage (account: string) =
+    let getAccountLineage (account: Account) =
         /// Use with fold to get all combinations.
-        let combinator (s: string list) (t: string) =
-            if not s.IsEmpty then (s.Head + ":" + t) :: s else t :: s
+        let combineIntoLineage (lineage: string list) (accountLevel: string) =
+            match lineage.IsEmpty with
+            | true  -> accountLevel :: lineage
+            | false -> (lineage.Head + ":" + accountLevel) :: lineage
         account.Split ':'
-        |> Array.fold combinator []
+        |> Array.fold combineIntoLineage []
         |> List.rev
 
 

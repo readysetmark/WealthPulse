@@ -4,6 +4,30 @@ open Fuchu
 open Journal.Types
 
 [<Tests>]
+let accountTests =
+    testList "getAccountLineage" [
+        testCase "empty account" <| fun _ ->
+            let account = ""
+            let accountLineage = [""]
+            Assert.Equal("empty account", accountLineage, Account.getAccountLineage account)
+
+        testCase "single level account" <| fun _ ->
+            let account = "Level1"
+            let accountLineage = ["Level1"]
+            Assert.Equal("single level account", accountLineage, Account.getAccountLineage account)
+
+        testCase "two level account" <| fun _ ->
+            let account = "Level1:Level2"
+            let accountLineage = ["Level1"; "Level1:Level2"]
+            Assert.Equal("two level account", accountLineage, Account.getAccountLineage account)
+
+        testCase "three level account" <| fun _ ->
+            let account = "Level1:Level2:Level3"
+            let accountLineage = ["Level1"; "Level1:Level2"; "Level1:Level2:Level3"]
+            Assert.Equal("three level account", accountLineage, Account.getAccountLineage account)
+    ]
+
+[<Tests>]
 let symbolConfigTests = 
     testList "render" [
         testCase "quoted symbol" <| fun _ ->
