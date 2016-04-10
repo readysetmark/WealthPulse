@@ -60,14 +60,15 @@ module Symbol =
         | Unquoted -> symbol.Value
 
 
+type AmountValue = decimal
 
 /// An amount may be provided or inferred in a transaction
 type AmountSource = 
     | Provided
     | Inferred
 
-/// How an amount is formatted when rendered or in the source file
-type AmountFormat =
+/// How an amount should be rendered
+type AmountRenderOption =
     | SymbolLeftWithSpace
     | SymbolLeftNoSpace
     | SymbolRightWithSpace
@@ -75,9 +76,9 @@ type AmountFormat =
 
 /// An amount is a quantity and an optional symbol.
 type Amount = {
-    Value: decimal;
+    Value: AmountValue;
     Symbol: Symbol;
-    Format: AmountFormat;
+    Format: AmountRenderOption;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
