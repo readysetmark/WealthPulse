@@ -1,6 +1,7 @@
 ﻿module Journal.Types
 
 open System
+open System.Text.RegularExpressions
 
 // Journal Types
 
@@ -26,23 +27,37 @@ module Account =
 
 type SymbolValue = string
 
+type SymbolRenderOption =
+    | Quoted
+    | Unquoted
+
 /// A commodity symbol. e.g. "$", "AAPL", "MSFT"
 type Symbol = {
     Value: SymbolValue;
-    Quoted: bool;
+    RenderOption: SymbolRenderOption;
 }
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Symbol =
 
-    let create quoted symbol =
-        {Value=symbol; Quoted=quoted}
+    let makeSR symbol renderOption =
+        {Value = symbol; RenderOption = renderOption}
+
+    /// Render option will be automatically detected/assigned based on
+    /// whether the symbol contains characters that *must* be quoted
+    /// (which are: -.,0123456789 @;)
+    let make symbol =
+        let renderOption =
+            match Regex.IsMatch(symbol, "[\-\.\,\d\ @;]") with
+            | true -> Quoted
+            | false -> Unquoted
+        {Value = symbol; RenderOption = renderOption }
 
     let render (symbol : Symbol) =
-        match symbol.Quoted with
-        | true -> "\"" + symbol.Value + "\""
-        | _    -> symbol.Value
+        match symbol.RenderOption with
+        | Quoted   -> "\"" + symbol.Value + "\""
+        | Unquoted -> symbol.Value
 
 
 

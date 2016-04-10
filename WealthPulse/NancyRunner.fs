@@ -231,7 +231,7 @@ module NancyRunner =
 
 
     let generateNetWorthData (journal : Journal) : LineChartSeries list =
-        let zeroBalance = { Value = 0M; Symbol = { Value = "$"; Quoted = false }; Format = SymbolLeftNoSpace }
+        let zeroBalance = { Value = 0M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace }
 
         let tryFindDollarAmount (balances : Amount list) =
             match List.tryFind (fun (a:Amount) -> a.Symbol.Value = "$") balances with

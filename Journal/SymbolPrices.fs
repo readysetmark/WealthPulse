@@ -62,7 +62,7 @@ let scrapePrices (symbol : Symbol) (html : string) : SymbolPrice list =
     let matchToSymbolPrice (regexMatch : Match) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
         let amount = System.Decimal.Parse(regexMatch.Groups.[2].Value)
-        let priceSymbol = { Value = "$"; Quoted = false; }
+        let priceSymbol = Symbol.make "$"
         let price = Amount.create amount priceSymbol SymbolLeftNoSpace
         SymbolPrice.create -1L date symbol price
 

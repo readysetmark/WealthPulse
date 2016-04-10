@@ -154,153 +154,8 @@ A sale of the same mutual fund would look like:
 	P 2015-05-12 "OGF387" $24.00
 
 
-***
-
-
 Project Plan
 ============
-
-### Phase 3: UI Refresh
-
-#### Objectives
-
-* Use electron to make a bundled app instead of requiring an always-running
-server process with a web browser pointed at it
-* Update some of our dependencies on the UI, and see if we can use tooling to
-retrieve them instead of storing it in the repo
-* Implement logging to file
-
-#### First Milestone
-
-Electron
-- [x] Do proof-of-concept with Electron pointed to current server -- it works!
-- Turn it into an Electron app instead of accessing through a browser:
-	- [x] Launch F# server at startup
-	- [x] Launch electron browser window pointed to WP server
-	- [x] Update documentation with launch instructions (npm start in dev)
-	- [x] Delay launching browser window until server ready
-	- [x] Retrieve port (or full address) from server output
-	- [ ] Determine correct path to wealth pulse server depending on:
-		- dev mode vs bundled app
-		- platform (OS X vs Windows)
-		>> Partially done
-	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
-
-Tooling
-- [ ] Add a real logger
-- [ ] Use npm/FAKE/grunt/gulp automation?
-- Automate:
-	- [ ] Building/bundling a shippable "app"
-		- OS X:
-			- Copy `node_modules/electron-prebuilt/dist/Electron.app` to `dist`
-			- Copy `package.json` and `WealthPulseApp` to
-			`dist/Electron.app/Contents/Resources/app`
-			- Copy F# app to `dist/Electron.app/Contents/Resources/app`
-		- Windows: TBD
-
-Price Scraping
-- [x] Retry after delay if fetching prices fails (happens if no internet is
-available) instead of waiting a full day to retry
-- [ ] Only write to `.pricedb` if new prices were found
-- [ ] When writing to `.pricedb`, write to temp file first, then replace
-`.pricedb` file (avoid clobbering a file if app exits during write)
-
-Dependency Updates:
-- [ ] Use bower or npm to retrieve dependencies, rather than including sources
-for all dependencies in the git repo
-- [ ] Switch to elm instead of React? Evaluate Elm
-- [ ] Update to latest React
-- [ ] Switch to React Router instead of Backbone router?
-- [ ] Update to Bootstrap 3 (or 4?)
-
-
-
-### Someday/Maybe/Improvements
-
-Price Scraping
-- [ ] Consider using Akka.net actors?
-
-Types
-- [ ] Include a list of account levels field on Posting?
-	- How am I actually using Account & AccountLineage in the app?
-	- Also change Account to a Subaccount list and Subaccount = String
-- [ ] Review all types for consistency
-- [ ] Symbol Price: Hard-coded line number to -1 -- feels like a hack
-
-Reports
-- [ ] Add unit tests
-- [ ] Break functions into smaller units?
-
-Income Statement
-- [ ] Should be able to pull up income statement for any month
-	- Add a dropdown for picking period?
-
-UI
-- [ ] Display indicator when ajax call is happening
-- [ ] Combine reports and payables / receivables into one dict?
-
-Parsing Ledger File
-- [ ] Skipping the comment lines during parsing would simplify processing (since
-first thing we do is drop them)
-- [ ] Transform post-processing to a pipeline that deals with one transaction at
-a time (completely), or does things in parallel
-- [ ] Improve error reporting during parsing and balance checking
-
-Command Bar Enhancements
-- [ ] Add parameters:
-	:payee
-	:excludepayee
-	:uncleared or :cleared
-
-Dependency Updates:
-- [ ] Switch to Suave instead of NancyFX?
-
-Nav
-- [ ] Configurable nav list
-- [ ] Configurable default report
-- [ ] Handle outstanding payees with multiple commodity amounts a bit nicer
-(renders poorly right now)
-
-Balance Report
-- [ ] Can I improve the entry filtering code?
-
-Commodities
-- [ ] Write the equivalent of Penny's sell-off command
-
-Portfolio
-- [ ] Overall portfolio return and per investment
-- [ ] Expected T3s/T5s to receive for last year (ie had distribution)
-	- I should be able to get this with a register report query
-
-Expenses
-- [ ] Average in last 3 months, in last year
-- [ ] Burn rate - using last 3 months expenses average, how long until savings
-is gone?
-- [ ] Top Expenses over last period
-
-Charts
-- [ ] Income Statement chart (monthly, over time)
-
-Command Bar Enhancements
-- [ ] Add fault tolerance to parameter parsing
-- [ ] Clean up and improve date/period parsing
-	Additions for period: yyyy, last year, this year
-- [ ] Autocomplete hints (bootstrap typeahead)
-
-Validation
-- [ ] Validate accounts based on a master list? To prevent typos and whatnot...
-
-Server
-- [ ] Let server launch on any port?
-- [ ] Server should handle SIGTERM signal gracefully
-
-Tooling
-- [ ] Setup CI (TravisCI?)
-
-
-
-Archives
---------
 
 ### Phase 1: Basic Reporting
 
@@ -377,6 +232,7 @@ Documentation
 - [x] How to use / setup
 
 
+
 ### Phase 2: Commodities
 
 #### Objectives
@@ -400,7 +256,6 @@ units/book value entries in the program or update the ledger file. In the mean
 time, I'll have to keep the "units" excluded from the main balance report. This
 way I can avoid having to propogate up the account hierarchy all the different
 commodities.
-
 
 
 #### First Milestone
@@ -430,7 +285,6 @@ units, price, price date (may drop price date)
 - [x] Update front end
 - [x] Omit commodity-related columns if "real value" and "book value" columns
 are the same for the whole report (based on query parameters)
-
 
 
 #### Second Milestone
@@ -512,6 +366,121 @@ Balance Report
 - [x] Can I clean it up so the balance query function is just sub-function
 calls?
 - [x] Clean up computeCommodityValues (get rid of side-effects)
+
+
+
+### Phase 3: Post-1.0 Someday/Maybe Improvements
+
+Electron
+* Use electron to make a bundled app instead of requiring an always-running
+server process with a web browser pointed at it
+- [x] Do proof-of-concept with Electron pointed to current server -- it works!
+- Turn it into an Electron app instead of accessing through a browser:
+	- [x] Launch F# server at startup
+	- [x] Launch electron browser window pointed to WP server
+	- [x] Update documentation with launch instructions (npm start in dev)
+	- [x] Delay launching browser window until server ready
+	- [x] Retrieve port (or full address) from server output
+	- [ ] Determine correct path to wealth pulse server depending on:
+		- dev mode vs bundled app
+		- platform (OS X vs Windows)
+		>> Partially done
+	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
+
+Tooling
+- [ ] Switch tests to xUnit/FSUnit
+- [ ] Setup CI (TravisCI?)
+- [ ] Add a real logger
+- [ ] Use npm/FAKE/grunt/gulp automation?
+- Automate:
+	- [ ] Building/bundling a shippable "app"
+		- OS X:
+			- Copy `node_modules/electron-prebuilt/dist/Electron.app` to `dist`
+			- Copy `package.json` and `WealthPulseApp` to
+			`dist/Electron.app/Contents/Resources/app`
+			- Copy F# app to `dist/Electron.app/Contents/Resources/app`
+		- Windows: TBD
+
+Price Scraping
+- [x] Retry after delay if fetching prices fails (happens if no internet is
+available) instead of waiting a full day to retry
+- [ ] Only write to `.pricedb` if new prices were found
+- [ ] When writing to `.pricedb`, write to temp file first, then replace
+`.pricedb` file (avoid clobbering a file if app exits during write)
+- [ ] Consider using Akka.net actors?
+
+UI
+- [ ] Use bower or npm to retrieve dependencies, rather than including sources
+for all dependencies in the git repo
+- [ ] Switch to elm or cycle.js instead of React?
+	- [ ] Spike Elm
+	- [ ] Spike cycle.js
+- [ ] If keeping with React...
+	- [ ] Update to latest React
+	- [ ] Switch to React Router instead of Backbone router
+- [ ] Update to Bootstrap from v2 to v3 (or v4...)
+- [ ] Display indicator when ajax call is happening
+- [ ] Combine reports and payables / receivables into one dict?
+
+Types
+- [ ] Include a list of account levels field on Posting?
+	- How am I actually using Account & AccountLineage in the app?
+	- Also change Account to a Subaccount list and Subaccount = String
+- [ ] Review all types for consistency
+- [ ] Symbol Price: Hard-coded line number to -1 -- feels like a hack
+
+Reports
+- [ ] Add unit tests
+- [ ] Break functions into smaller units?
+- [ ] Use LINQ?
+- [ ] Balance: Can I improve the entry filtering code?
+- [ ] Income Statement: Should be able to pull up income statement for any month 
+	- Add a dropdown for picking period?
+
+New Report Ideas
+- [ ] Portfolio
+	- [ ] Overall portfolio return and per investment
+	- [ ] Expected T3s/T5s to receive for last year (ie had distribution)
+		- I should be able to get this with a register report query
+- [ ] Expenses
+	- [ ] Average in last 3 months, in last year
+	- [ ] Burn rate - using last 3 months expenses average, how long until savings
+	is gone?
+	- [ ] Top Expenses over last period
+- [ ] Charts
+	- [ ] Income Statement chart (monthly, over time)
+
+Parsing Ledger File
+- [ ] Skipping the comment lines during parsing would simplify processing (since
+first thing we do is drop them)
+- [ ] Transform post-processing to a pipeline that deals with one transaction at
+a time (completely), or does things in parallel
+- [ ] Improve error reporting during parsing and balance checking
+- [ ] Validate accounts based on a master list? To prevent typos and whatnot...
+
+Command Bar Enhancements
+- [ ] Add parameters:
+	:payee
+	:excludepayee
+	:uncleared or :cleared
+- [ ] Add fault tolerance to parameter parsing
+- [ ] Clean up and improve date/period parsing
+	Additions for period: yyyy, last year, this year
+- [ ] Autocomplete hints (bootstrap typeahead)
+
+Nav
+- [ ] Configurable nav list
+- [ ] Configurable default report
+- [ ] Handle outstanding payees with multiple commodity amounts a bit nicer
+(renders poorly right now)
+
+Commodities
+- [ ] Write the equivalent of Penny's sell-off command
+
+Server
+- [ ] Switch to Suave instead of NancyFX?
+- [ ] Let server launch on any port?
+- [ ] Server should handle SIGTERM signal gracefully
 
 
 

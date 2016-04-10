@@ -180,8 +180,9 @@ module Parser =
             let quote = pchar '\"'
             let quotedSymbolChar = noneOf "\r\n\""
             let unquotedSymbolChar = noneOf "-0123456789., @;\r\n\""
-            (attempt (between quote quote (many1Chars quotedSymbolChar)) |>> Symbol.create true)
-            <|> (many1Chars unquotedSymbolChar |>> Symbol.create false)
+            let makeSymbol renderOption symbol = Symbol.makeSR symbol renderOption
+            (attempt (between quote quote (many1Chars quotedSymbolChar)) |>> makeSymbol Quoted)
+            <|> (many1Chars unquotedSymbolChar |>> makeSymbol Unquoted)
 
 
         // Amount Parsers
