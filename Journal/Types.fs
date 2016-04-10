@@ -212,8 +212,8 @@ module Header =
 type Posting = {
     LineNumber: int64;
     Header: Header;
-    Account: string;
-    AccountLineage: string list;
+    Account: Account;
+    AccountLineage: Account list;
     Amount: Amount;
     AmountSource: AmountSource;
     Comment: string option;
