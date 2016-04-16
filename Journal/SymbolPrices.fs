@@ -63,7 +63,7 @@ let scrapePrices (symbol : Symbol) (html : string) : SymbolPrice list =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
         let amount = System.Decimal.Parse(regexMatch.Groups.[2].Value)
         let priceSymbol = Symbol.make "$"
-        let price = Amount.make amount priceSymbol SymbolLeftNoSpace
+        let price = Amount.make amount priceSymbol Amount.SymbolLeftNoSpace
         SymbolPrice.create -1L date symbol price
 
     let regex = new Regex("<td class=\"lm\">(\w+ \d{1,2}, \d{4})\s<td class=\"rgt rm\">(\d+\.\d+)")

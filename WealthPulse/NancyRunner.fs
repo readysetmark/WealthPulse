@@ -160,7 +160,7 @@ module NancyRunner =
 
     
     /// Format an Amount type with the amount and symbol
-    let formatAmount (amount :Amount option) =
+    let formatAmount (amount :Amount.T option) =
         match amount with
         | Some amount ->
             let numberFormat = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.Clone() :?> System.Globalization.NumberFormatInfo
@@ -171,7 +171,7 @@ module NancyRunner =
                 numberFormat.CurrencySymbol <- s.Value
                 numberFormat.CurrencyDecimalDigits <- 3
             | otherwise -> ()
-            amount.Value.ToString("C", numberFormat)
+            amount.Quantity.ToString("C", numberFormat)
         | otherwise -> ""
 
 
@@ -231,10 +231,10 @@ module NancyRunner =
 
 
     let generateNetWorthData (journal : Journal) : LineChartSeries list =
-        let zeroBalance = { Value = 0M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace }
+        let zeroBalance = Amount.make 0M (Symbol.make "$") Amount.SymbolLeftNoSpace
 
-        let tryFindDollarAmount (balances : Amount list) =
-            match List.tryFind (fun (a:Amount) -> a.Symbol.Value = "$") balances with
+        let tryFindDollarAmount (balances : Amount.T list) =
+            match List.tryFind (fun (a:Amount.T) -> a.Symbol.Value = "$") balances with
             | Some amount -> amount
             | None        -> zeroBalance
 
@@ -255,12 +255,12 @@ module NancyRunner =
 
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = balanceDollarAmount.Value.ToString();
+                amount = balanceDollarAmount.Quantity.ToString();
                 hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some balanceDollarAmount);
             },
             {
                 date = month.ToString("dd-MMM-yyyy"); 
-                amount = basisDollarAmount.Value.ToString();
+                amount = basisDollarAmount.Quantity.ToString();
                 hover = month.ToString("MMM yyyy") + ": " + (formatAmount <| Some basisDollarAmount);
             }
 
@@ -297,7 +297,7 @@ module NancyRunner =
                     let amounts =
                         outstandingPayee.Balance
                         |> List.map (fun amount -> { amount = formatAmount <| Some amount;
-                                                     amountClass = if amount.Value >= 0M then "positive" else "negative" })
+                                                     amountClass = if amount.Quantity >= 0M then "positive" else "negative" })
                     {payee = outstandingPayee.Payee; command = command; balance = amounts}
                 let nav = {
                     reports = [{ key = "Balance Sheet";

@@ -20,7 +20,7 @@ module Parser =
         type ParsedPosting = {
             LineNumber: int64;
             Account: string;
-            Amount: Amount option;
+            Amount: Amount.T option;
             AmountSource: AmountSource;
             Comment: string option
         }
@@ -187,22 +187,22 @@ module Parser =
 
         // Amount Parsers
 
-        let amount : Parser<Amount> =
+        let amount : Parser<Amount.T> =
             let amountSymbolThenQuantity =
                 let createAmount symbol ws qty =
                     match ws with
-                    | Some(_) -> Amount.make qty symbol SymbolLeftWithSpace
-                    | None    -> Amount.make qty symbol SymbolLeftNoSpace
+                    | Some(_) -> Amount.make qty symbol Amount.SymbolLeftWithSpace
+                    | None    -> Amount.make qty symbol Amount.SymbolLeftNoSpace
                 pipe3 symbol (opt whitespace) quantity createAmount
             let amountQuantityThenSymbol =
                 let createAmount qty ws symbol =
                     match ws with
-                    | Some(_) -> Amount.make qty symbol SymbolRightWithSpace
-                    | None    -> Amount.make qty symbol SymbolRightNoSpace
+                    | Some(_) -> Amount.make qty symbol Amount.SymbolRightWithSpace
+                    | None    -> Amount.make qty symbol Amount.SymbolRightNoSpace
                 pipe3 quantity (opt whitespace) symbol createAmount
             (amountSymbolThenQuantity <|> amountQuantityThenSymbol) .>> skipWS
 
-        let amountOrInferred : Parser<AmountSource * Amount option> =
+        let amountOrInferred : Parser<AmountSource * Amount.T option> =
             let computeSource amount =
                 match amount with
                 | Some(a) -> (Provided, amount)
@@ -323,12 +323,12 @@ module Parser =
             // Calculates balances by symbol for a transaction. Returns any non-zero balances by symbol
             // and the number of postings with Inferred amounts.
             let postingsBalance (postings : ParsedPosting list) =
-                let sumPostingsBySymbol (balance : Map<SymbolValue, Amount>) (posting : ParsedPosting) =
+                let sumPostingsBySymbol (balance : Map<SymbolValue, Amount.T>) (posting : ParsedPosting) =
                     let symbol = posting.Amount.Value.Symbol.Value
                     match balance.ContainsKey symbol with
                     | true  ->
                         let amount = balance.[symbol]
-                        balance.Add(symbol, {amount with Value = amount.Value + posting.Amount.Value.Value})
+                        balance.Add(symbol, {amount with Quantity = amount.Quantity + posting.Amount.Value.Quantity})
                     | false ->
                         balance.Add(symbol, posting.Amount.Value)
 
@@ -336,7 +336,7 @@ module Parser =
                     postings
                     |> List.filter (fun posting -> posting.AmountSource = Provided)
                     |> List.fold sumPostingsBySymbol Map.empty
-                    |> Map.filter (fun symbol amount -> amount.Value <> 0M)
+                    |> Map.filter (fun symbol amount -> amount.Quantity <> 0M)
 
                 let numInferredPostings =
                     postings
@@ -356,11 +356,11 @@ module Parser =
                 | numMissing, numUnbalancedSymbols when numUnbalancedSymbols > numMissing ->
                     failwith "Encountered transaction with one or more symbols out of balance."
                 | numMissing, numUnbalancedSymbols when numMissing = 1 && numUnbalancedSymbols = 1 ->
-                    let balance = (Seq.nth 0 symbolBalances).Value
+                    let balance = (Seq.head symbolBalances).Value
                     postings
                     |> List.map (fun posting ->
                         if posting.AmountSource = Inferred
-                        then {posting with Amount = Some {balance with Value = -balance.Value}}
+                        then {posting with Amount = Some {balance with Quantity = -balance.Quantity}}
                         else posting)
                 | otherwise ->
                     postings

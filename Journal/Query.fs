@@ -14,17 +14,17 @@ type QueryOptions = {
 
 type AccountBalance = {
     Account: Account;
-    Balance: Amount list;
-    Basis: Amount list option;
-    Commodity: Amount option;
-    Price: Amount option;
+    Balance: Amount.T list;
+    Basis: Amount.T list option;
+    Commodity: Amount.T option;
+    Price: Amount.T option;
     PriceDate: DateTime option;
 }
 
 type RegisterPosting = {
     Account: Account;
-    Amount: Amount;
-    Balance: Amount list;
+    Amount: Amount.T;
+    Balance: Amount.T list;
 }
 
 type Register = {
@@ -35,33 +35,33 @@ type Register = {
 
 type OutstandingPayee = {
     Payee: Account;
-    Balance: Amount list;
+    Balance: Amount.T list;
 }
 
 
 module private Support =
 
-    type SymbolAmountMap = Map<Symbol, Amount>
+    type SymbolAmountMap = Map<Symbol, Amount.T>
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module SymbolAmountMap =
 
         /// Add an amount to a SymbolAmountMap by adding the value to the existing amount
         /// for a particular symbol, or create a new symbol entry for the amount if there is none
-        let add (symbolAmounts : SymbolAmountMap) (amount : Amount) : SymbolAmountMap =
+        let add (symbolAmounts : SymbolAmountMap) (amount : Amount.T) : SymbolAmountMap =
             let updatedAmount =
                 match Map.tryFind amount.Symbol symbolAmounts with
-                | Some mapAmount -> { mapAmount with Value = mapAmount.Value + amount.Value }
+                | Some mapAmount -> { mapAmount with Quantity = mapAmount.Quantity + amount.Quantity }
                 | None           -> amount
             Map.add amount.Symbol updatedAmount symbolAmounts
 
         /// Filter out any symbols that have a 0 amount balance
         let filterZeroAmounts (symbolAmounts: SymbolAmountMap) : SymbolAmountMap =
             symbolAmounts
-            |> Map.filter (fun symbol amount -> amount.Value <> 0M)
+            |> Map.filter (fun symbol amount -> amount.Quantity <> 0M)
 
         /// Convert a SymbolAmountMap to a list of Amounts sorted by Symbol
-        let toSortedAmountList (symbolAmounts: SymbolAmountMap) : Amount list =
+        let toSortedAmountList (symbolAmounts: SymbolAmountMap) : Amount.T list =
             symbolAmounts
             |> Map.toSeq
             |> Seq.map snd
@@ -86,7 +86,7 @@ module private Support =
                 | None       -> amounts.Basis
             { amounts with Real = realBalances; Basis = basisBalances }
 
-        let toSortedAmountLists (amounts : RealAndBasisAmounts) : Amount List * (Amount List Option) =
+        let toSortedAmountLists (amounts : RealAndBasisAmounts) : Amount.T List * (Amount.T List Option) =
             let real = SymbolAmountMap.toSortedAmountList amounts.Real
             let basis = 
                 match Map.isEmpty amounts.Basis with
@@ -155,7 +155,7 @@ module private Support =
     let discardAccountsWithZeroBalance (accountBalances : AccountBalance list) : AccountBalance list =
         accountBalances
         |> List.map (fun accountBalance ->
-            let nonZeroBalances = List.filter (fun balance -> balance.Value <> 0M) accountBalance.Balance
+            let nonZeroBalances = List.filter (fun (balance : Amount.T) -> balance.Quantity <> 0M) accountBalance.Balance
             { accountBalance with Balance = nonZeroBalances })
         |> List.filter (fun accountBalance -> (List.length accountBalance.Balance) > 0)
 
@@ -242,7 +242,7 @@ module private Support =
             | None -> None
 
     /// Compute the basis amount for a symbol over a period specified by the filters.
-    let computeBasis (account : Account) (filters : QueryOptions) (journal : Journal) : Amount =
+    let computeBasis (account : Account) (filters : QueryOptions) (journal : Journal) : Amount.T =
         let basisAccountParts =
             "Basis" :: (
                 account.Split ':'
@@ -254,8 +254,8 @@ module private Support =
             journal
             |> filterPostings basisFilter
             |> List.filter (fun (p:Posting) -> p.Amount.Symbol.Value = "$")
-            |> List.sumBy (fun (p:Posting) -> p.Amount.Value)
-        Amount.make basisAmount (Symbol.make "$") SymbolLeftNoSpace
+            |> List.sumBy (fun (p:Posting) -> p.Amount.Quantity)
+        Amount.make basisAmount (Symbol.make "$") Amount.SymbolLeftNoSpace
 
     // TODO: How do I handle if we're computing commodity values and an account has more than one commodity?
     /// Compute real and basis values for commodities held in an account. 
@@ -264,12 +264,12 @@ module private Support =
         let computeRealBalance (accountBalance : AccountBalance) =
             match List.length accountBalance.Balance with
             | 1 ->
-                let nonDollarAmount (amount : Amount) = amount.Symbol.Value <> "$"
+                let nonDollarAmount (amount : Amount.T) = amount.Symbol.Value <> "$"
                 match List.tryFind nonDollarAmount accountBalance.Balance with
                 | Some amount -> 
                     match tryFindSymbolPrice amount.Symbol.Value options.PeriodEnd journal with
                     | Some pricePoint ->
-                        let balance = { pricePoint.Price with Value = pricePoint.Price.Value * amount.Value }
+                        let balance = { pricePoint.Price with Quantity = pricePoint.Price.Quantity * amount.Quantity }
                         let basis = computeBasis accountBalance.Account options journal
                         {
                             accountBalance with
@@ -399,7 +399,7 @@ let identifySymbolUsage (journal : Journal) : SymbolUsage list =
                 && p.AccountLineage.Head.ToLower() = "assets")
         let balance =
             assetPostingsWithSymbol
-            |> List.fold (fun balance posting -> balance + posting.Amount.Value) 0M
+            |> List.fold (fun balance posting -> balance + posting.Amount.Quantity) 0M
         let lastDate =
             assetPostingsWithSymbol
             |> List.fold

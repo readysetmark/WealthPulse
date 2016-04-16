@@ -268,25 +268,25 @@ let amountParsers =
             testCase "symbol then quantity with whitespace" <| fun _ ->
                 Assert.Equal(
                     "amount: $ 13,245.00",
-                    Some({Value = 13245.00M; Symbol = Symbol.make "$"; Format = SymbolLeftWithSpace}),
+                    Some(Amount.make 13245.00M (Symbol.make "$") Amount.SymbolLeftWithSpace),
                     parse amount "$ 13,245.00")
 
             testCase "symbol then quantity no whitespace" <| fun _ ->
                 Assert.Equal(
                     "amount: $13,245.00",
-                    Some({Value = 13245.00M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace}),
+                    Some(Amount.make 13245.00M (Symbol.make "$") Amount.SymbolLeftNoSpace),
                     parse amount "$13,245.00")
 
             testCase "quantity then symbol with whitespace" <| fun _ ->
                 Assert.Equal(
                     "amount: 13,245.463 AAPL",
-                    Some({Value = 13245.463M; Symbol = Symbol.make "AAPL"; Format = SymbolRightWithSpace}),
+                    Some(Amount.make 13245.463M (Symbol.make "AAPL") Amount.SymbolRightWithSpace),
                     parse amount "13,245.463 AAPL")
 
             testCase "quantity then symbol no whitespace" <| fun _ ->
                 Assert.Equal(
                     "amount: -13,245.463\"MUTF803\"",
-                    Some({Value = -13245.463M; Symbol = Symbol.make "MUTF803"; Format = SymbolRightNoSpace}),
+                    Some(Amount.make -13245.463M (Symbol.make "MUTF803") Amount.SymbolRightNoSpace),
                     parse amount "-13,245.463\"MUTF803\"")
         ]
 
@@ -294,7 +294,7 @@ let amountParsers =
             testCase "has amount" <| fun _ ->
                 Assert.Equal(
                     "amountOrInferred: $13,245.00",
-                    Some(Provided, Some {Value = 13245.00M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace}),
+                    Some(Provided, Some(Amount.make 13245.00M (Symbol.make "$") Amount.SymbolLeftNoSpace)),
                     parse amountOrInferred "$13,245.00")
 
             testCase "inferred amount" <| fun _ ->
@@ -314,7 +314,7 @@ let postingParser =
                 Some(PostingLine {
                     LineNumber = 1L;
                     Account = "Assets:Savings";
-                    Amount = Some {Value = 45.00M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace};
+                    Amount = Some <| Amount.make 45.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                     AmountSource = Provided;
                     Comment = Some "comment"
                 }),
@@ -326,7 +326,7 @@ let postingParser =
                 Some(PostingLine {
                     LineNumber = 1L;
                     Account = "Assets:Investments";
-                    Amount = Some {Value = 13.508M; Symbol = Symbol.make "MUTF514"; Format = SymbolRightWithSpace};
+                    Amount = Some <| Amount.make 13.508M (Symbol.make "MUTF514") Amount.SymbolRightWithSpace;
                     AmountSource = Provided;
                     Comment = Some "comment"
                 }),
@@ -338,7 +338,7 @@ let postingParser =
                 Some(PostingLine {
                     LineNumber = 1L;
                     Account = "Assets:Savings";
-                    Amount = Some {Value = 45.00M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace};
+                    Amount = Some <| Amount.make 45.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                     AmountSource = Provided;
                     Comment = None
                 }),
@@ -350,7 +350,7 @@ let postingParser =
                 Some(PostingLine {
                     LineNumber = 1L;
                     Account = "Assets:Savings";
-                    Amount = Some {Value = 45.00M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace};
+                    Amount = Some <| Amount.make 45.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                     AmountSource = Provided;
                     Comment = None
                 }),
@@ -421,7 +421,7 @@ let transactionParser =
                             PostingLine {
                                 LineNumber = 2L;
                                 Account = "Expenses:Groceries";
-                                Amount = Some {Value = 45.00M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace};
+                                Amount = Some <| Amount.make 45.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             };
@@ -449,7 +449,7 @@ let priceParsers =
                         LineNumber = 1L;
                         Date = new System.DateTime(2015,3,20);
                         Symbol = Symbol.make "MUTF514";
-                        Price = {Value = 5.42M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace}
+                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
                     },
                     parse price "P 2015-03-20 \"MUTF514\" $5.42")
         ]
@@ -462,7 +462,7 @@ let priceParsers =
                         LineNumber = 1L;
                         Date = new System.DateTime(2015,3,20);
                         Symbol = Symbol.make "MUTF514";
-                        Price = {Value = 5.42M; Symbol = Symbol.make "$"; Format = SymbolLeftNoSpace}
+                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
                     }),
                     parse priceLine "P 2015-03-20 \"MUTF514\" $5.42")
         ]
@@ -516,7 +516,7 @@ let journalParser =
                             PostingLine {
                                 LineNumber = 2L;
                                 Account = "Expenses:Groceries";
-                                Amount = Some {Value=45.00M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace};
+                                Amount = Some <| Amount.make 45.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             };
@@ -541,7 +541,7 @@ let journalParser =
                             LineNumber = 1L;
                             Date = new System.DateTime(2015,3,7);
                             Symbol = Symbol.make "MUTF514";
-                            Price = {Value=5.42M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace}
+                            Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
                         }
                     )
                 ],
@@ -589,7 +589,7 @@ let journalParser =
                             PostingLine {
                                 LineNumber = 4L;
                                 Account = "Expenses:Groceries";
-                                Amount = Some {Value=45.00M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace};
+                                Amount = Some <| Amount.make 45.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             };
@@ -615,28 +615,28 @@ let journalParser =
                             PostingLine {
                                 LineNumber = 8L;
                                 Account = "Assets:Investments:Stocks";
-                                Amount = Some {Value=33.245M; Symbol = Symbol.make "MUTF514"; Format=SymbolRightWithSpace};
+                                Amount = Some <| Amount.make 33.245M (Symbol.make "MUTF514") Amount.SymbolRightWithSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             };
                             PostingLine {
                                 LineNumber = 9L;
                                 Account = "Assets:Savings";
-                                Amount = Some {Value= -250.00M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace};
+                                Amount = Some <| Amount.make -250.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             };
                             PostingLine {
                                 LineNumber = 10L;
                                 Account = "Basis:MUTF514:2015-03-20";
-                                Amount = Some {Value= -33.245M; Symbol = Symbol.make "MUTF514"; Format=SymbolRightWithSpace};
+                                Amount = Some <| Amount.make -33.245M (Symbol.make "MUTF514") Amount.SymbolRightWithSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             };
                             PostingLine {
                                 LineNumber = 11L;
                                 Account = "Basis:MUTF514:2015-03-20";
-                                Amount = Some {Value=250.00M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace};
+                                Amount = Some <| Amount.make 250.00M (Symbol.make "$") Amount.SymbolLeftNoSpace;
                                 AmountSource = Provided;
                                 Comment = None
                             }
@@ -647,7 +647,7 @@ let journalParser =
                             LineNumber = 13L;
                             Date = new System.DateTime(2015,3,20);
                             Symbol = Symbol.make "MUTF514";
-                            Price = {Value=7.52M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace}
+                            Price = Amount.make 7.52M (Symbol.make "$") Amount.SymbolLeftNoSpace
                         }
                     )
                 ],
@@ -671,7 +671,7 @@ let priceDBParser =
                         LineNumber = 1L;
                         Date = new System.DateTime(2015,3,7);
                         Symbol = Symbol.make "MUTF514"
-                        Price = {Value=5.42M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace}
+                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
                     }
                 ],
                 parse priceDB "P 2015-03-07 \"MUTF514\" $5.42")
@@ -691,19 +691,19 @@ let priceDBParser =
                         LineNumber = 1L;
                         Date = new System.DateTime(2015,3,7);
                         Symbol = Symbol.make "MUTF514"
-                        Price = {Value=5.42M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace}
+                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
                     };
                     {
                         LineNumber = 2L;
                         Date = new System.DateTime(2015,3,7);
                         Symbol = Symbol.make "MUTF803";
-                        Price = {Value=15.98M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace}
+                        Price = Amount.make 15.98M (Symbol.make "$") Amount.SymbolLeftNoSpace
                     };
                     {
                         LineNumber = 3L;
                         Date = new System.DateTime(2015,3,7);
                         Symbol = Symbol.make "AAPL";
-                        Price = {Value=313.38M; Symbol = Symbol.make "$"; Format=SymbolLeftNoSpace}
+                        Price = Amount.make 313.38M (Symbol.make "$") Amount.SymbolLeftNoSpace
                     }
                 ],
                 parse priceDB prices)

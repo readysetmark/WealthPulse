@@ -60,39 +60,41 @@ module Symbol =
         | Unquoted -> symbol.Value
 
 
-type AmountValue = decimal
-
 /// An amount may be provided or inferred in a transaction
-type AmountSource = 
+type AmountSource =
     | Provided
     | Inferred
 
-/// How an amount should be rendered
-type AmountRenderOption =
-    | SymbolLeftWithSpace
-    | SymbolLeftNoSpace
-    | SymbolRightWithSpace
-    | SymbolRightNoSpace
-
-/// An amount is a quantity and an optional symbol.
-type Amount = {
-    Value: AmountValue;
-    Symbol: Symbol;
-    Format: AmountRenderOption;
-}
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Amount =
 
-    let make quantity symbol format =
-        {Value = quantity; Symbol = symbol; Format = format;}
+    /// An amount is a quantity and a symbol.
+    type T = {
+        Quantity: Quantity;
+        Symbol: Symbol;
+        RenderOption: RenderOption;
+    }
 
-    let render (amount : Amount) =
-        match amount.Format with
-        | SymbolLeftWithSpace  -> (Symbol.render amount.Symbol) + " " + amount.Value.ToString()
-        | SymbolLeftNoSpace    -> (Symbol.render amount.Symbol) + amount.Value.ToString()
-        | SymbolRightWithSpace -> amount.Value.ToString() + " " + (Symbol.render amount.Symbol)
-        | SymbolRightNoSpace   -> amount.Value.ToString() + (Symbol.render amount.Symbol)
+    and Quantity = decimal
+
+    and RenderOption = 
+        | SymbolLeftWithSpace
+        | SymbolLeftNoSpace
+        | SymbolRightWithSpace
+        | SymbolRightNoSpace
+
+    let make quantity symbol renderOption =
+        {Quantity = quantity; Symbol = symbol; RenderOption = renderOption;}
+
+    let render (amount : T) =
+        let renderedSymbol = Symbol.render amount.Symbol
+        let quantityString = amount.Quantity.ToString()
+        match amount.RenderOption with
+        | SymbolLeftWithSpace  -> renderedSymbol + " " + quantityString
+        | SymbolLeftNoSpace    -> renderedSymbol + quantityString
+        | SymbolRightWithSpace -> quantityString + " " + renderedSymbol
+        | SymbolRightNoSpace   -> quantityString + renderedSymbol
 
 
 /// Symbol price as of a certain date.
@@ -100,7 +102,7 @@ type SymbolPrice = {
     LineNumber: int64
     Date: System.DateTime;
     Symbol: Symbol;
-    Price: Amount;
+    Price: Amount.T;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -230,7 +232,7 @@ type Posting = {
     Header: Header;
     Account: Account;
     AccountLineage: Account list;
-    Amount: Amount;
+    Amount: Amount.T;
     AmountSource: AmountSource;
     Comment: string option;
 }
