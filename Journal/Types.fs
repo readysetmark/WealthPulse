@@ -134,7 +134,7 @@ module SymbolPriceCollection =
             |> List.sortBy (fun sp -> sp.Date)
         let symbol = (List.head sortedPrices).Symbol
         let firstDate = (List.head sortedPrices).Date
-        let lastDate = (List.nth sortedPrices <| ((List.length sortedPrices) - 1)).Date
+        let lastDate = (List.item ((List.length sortedPrices) - 1) sortedPrices).Date
         {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;}
 
     let prettyPrint spc =
