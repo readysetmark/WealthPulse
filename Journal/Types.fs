@@ -5,16 +5,16 @@ open System.Text.RegularExpressions
 
 // Journal Types
 
-/// A ledger account. e.g. "Assets:Accounts:Savings"
-type Account = string
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Account =
+
+    /// A ledger account. e.g. "Assets:Accounts:Savings"
+    type T = string
 
     /// Calculate full account lineage for a particular account. This will return
     /// a list of all parent accounts and the account itself.
     /// e.g. given "a:b:c", returns ["a"; "a:b"; "a:b:c"]
-    let getAccountLineage (account: Account) =
+    let getAccountLineage (account: T) =
         /// Use with fold to get all combinations.
         let combineIntoLineage (lineage: string list) (accountLevel: string) =
             match lineage.IsEmpty with
@@ -25,23 +25,22 @@ module Account =
         |> List.rev
 
 
-type SymbolValue = string
-
-type SymbolRenderOption =
-    | Quoted
-    | Unquoted
-
-/// A commodity symbol. e.g. "$", "AAPL", "MSFT"
-type Symbol = {
-    Value: SymbolValue;
-    RenderOption: SymbolRenderOption;
-}
-
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Symbol =
 
-    let makeSR symbol renderOption =
+    /// A commodity symbol. e.g. "$", "AAPL", "MSFT"
+    type T = {
+        Value: Value;
+        RenderOption: RenderOption;
+    }
+
+    and Value = string
+
+    and RenderOption =
+        | Quoted
+        | Unquoted
+
+    let makeRO symbol renderOption =
         {Value = symbol; RenderOption = renderOption}
 
     /// Render option will be automatically detected/assigned based on
@@ -52,18 +51,12 @@ module Symbol =
             match Regex.IsMatch(symbol, "[\-\.\,\d\ @;]") with
             | true -> Quoted
             | false -> Unquoted
-        {Value = symbol; RenderOption = renderOption }
+        makeRO symbol renderOption
 
-    let render (symbol : Symbol) =
+    let render symbol =
         match symbol.RenderOption with
         | Quoted   -> "\"" + symbol.Value + "\""
         | Unquoted -> symbol.Value
-
-
-/// An amount may be provided or inferred in a transaction
-type AmountSource =
-    | Provided
-    | Inferred
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -72,7 +65,7 @@ module Amount =
     /// An amount is a quantity and a symbol.
     type T = {
         Quantity: Quantity;
-        Symbol: Symbol;
+        Symbol: Symbol.T;
         RenderOption: RenderOption;
     }
 
@@ -97,37 +90,43 @@ module Amount =
         | SymbolRightNoSpace   -> quantityString + renderedSymbol
 
 
-/// Symbol price as of a certain date.
-type SymbolPrice = {
-    LineNumber: int64
-    Date: System.DateTime;
-    Symbol: Symbol;
-    Price: Amount.T;
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPrice =
 
-    let create lineNum date symbol price =
-        {LineNumber = lineNum; Date = date; Symbol = symbol; Price = price;}
+    /// Symbol price as of a certain date.
+    type T = {
+        Date: System.DateTime;
+        Symbol: Symbol.T;
+        Price: Amount.T;
+        LineNumber: int64 option;
+    }
 
-    let render (sp : SymbolPrice) : string =
+    let makeLN date symbol price lineNum =
+        {Date = date; Symbol = symbol; Price = price; LineNumber = lineNum;}
+
+    let make date symbol price =
+        makeLN date symbol price None
+
+    let render symbolPrice =
         let dateFormat = "yyyy-MM-dd"
-        sprintf "P %s %s %s" (sp.Date.ToString(dateFormat)) (Symbol.render sp.Symbol) (Amount.render sp.Price)
+        let date = symbolPrice.Date.ToString(dateFormat)
+        let symbol = Symbol.render symbolPrice.Symbol
+        let price = Amount.render symbolPrice.Price
+        sprintf "P %s %s %s" date symbol price
 
 
 /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
 type SymbolPriceCollection = {
-    Symbol:    Symbol;
+    Symbol:    Symbol.T;
     FirstDate: System.DateTime;
     LastDate:  System.DateTime;
-    Prices:    SymbolPrice list;
+    Prices:    SymbolPrice.T list;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceCollection =
 
-    let fromList (prices : seq<SymbolPrice>) =
+    let fromList (prices : seq<SymbolPrice.T>) =
         let sortedPrices = 
             prices
             |> Seq.toList
@@ -139,7 +138,7 @@ module SymbolPriceCollection =
 
     let prettyPrint spc =
         let dateFormat = "yyyy-MM-dd"
-        let printPrice (price : SymbolPrice) =
+        let printPrice (price : SymbolPrice.T) =
             do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.render price.Price)
         do printfn "Symbol:  %s" spc.Symbol.Value
         do printfn "First Date: %s" (spc.FirstDate.ToString(dateFormat))
@@ -149,12 +148,12 @@ module SymbolPriceCollection =
 
 
 /// Symbol Price DB is a map of symbols to symbol price collections
-type SymbolPriceDB = Map<SymbolValue, SymbolPriceCollection>
+type SymbolPriceDB = Map<Symbol.Value, SymbolPriceCollection>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
 
-    let fromList (prices : list<SymbolPrice>) : SymbolPriceDB =
+    let fromList (prices : list<SymbolPrice.T>) : SymbolPriceDB =
         prices
         |> Seq.groupBy (fun sp -> sp.Symbol.Value)
         |> Seq.map (fun (symbolValue, symbolPrices) -> symbolValue, SymbolPriceCollection.fromList symbolPrices)
@@ -170,7 +169,7 @@ module SymbolPriceDB =
 
 
 type SymbolConfig = {
-    Symbol: Symbol;
+    Symbol: Symbol.T;
     GoogleFinanceSearchSymbol: string;
 }
 
@@ -184,7 +183,7 @@ module SymbolConfig =
         sprintf "SC %s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
 
 
-type SymbolConfigCollection = Map<SymbolValue, SymbolConfig>
+type SymbolConfigCollection = Map<Symbol.Value, SymbolConfig>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolConfigCollection =
@@ -225,13 +224,17 @@ module Header =
     let create lineNum date status code payee comment =
         {LineNumber=lineNum; Date=date; Status=status; Code=code; Payee=payee; Comment=comment}
 
+/// An amount may be provided or inferred in a transaction
+type AmountSource =
+    | Provided
+    | Inferred
 
 /// Transaction posting.
 type Posting = {
     LineNumber: int64;
     Header: Header;
-    Account: Account;
-    AccountLineage: Account list;
+    Account: Account.T;
+    AccountLineage: Account.T list;
     Amount: Amount.T;
     AmountSource: AmountSource;
     Comment: string option;
@@ -266,7 +269,7 @@ module Journal =
     
 /// Symbol Usage record.
 type SymbolUsage = {
-    Symbol: Symbol;
+    Symbol: Symbol.T;
     FirstAppeared: DateTime;
     ZeroBalanceDate: DateTime option;
 }

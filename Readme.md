@@ -426,7 +426,7 @@ Types
 	- How am I actually using Account & AccountLineage in the app?
 	- Also change Account to a Subaccount list and Subaccount = String
 - [ ] Review all types for consistency
-- [ ] Symbol Price: Hard-coded line number to -1 -- feels like a hack
+- [x] Symbol Price: Hard-coded line number to -1 -- feels like a hack
 
 Reports
 - [ ] Add unit tests

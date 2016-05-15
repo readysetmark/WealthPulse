@@ -58,13 +58,13 @@ let fetch (url : string) : string =
     reader.ReadToEnd()
 
 
-let scrapePrices (symbol : Symbol) (html : string) : SymbolPrice list =
+let scrapePrices (symbol : Symbol.T) (html : string) : SymbolPrice.T list =
     let matchToSymbolPrice (regexMatch : Match) =
         let date = System.DateTime.Parse(regexMatch.Groups.[1].Value)
         let amount = System.Decimal.Parse(regexMatch.Groups.[2].Value)
         let priceSymbol = Symbol.make "$"
         let price = Amount.make amount priceSymbol Amount.SymbolLeftNoSpace
-        SymbolPrice.create -1L date symbol price
+        SymbolPrice.make date symbol price
 
     let regex = new Regex("<td class=\"lm\">(\w+ \d{1,2}, \d{4})\s<td class=\"rgt rm\">(\d+\.\d+)")
     regex.Matches(html)
@@ -83,7 +83,7 @@ let scrapePagination (html : string) : Pagination =
     }
 
 
-let rec getPrices (baseURL : string) (startAtRecord : int) (symbol : Symbol) : SymbolPrice list =
+let rec getPrices (baseURL : string) (startAtRecord : int) (symbol : Symbol.T) : SymbolPrice.T list =
     let url = sprintf "%s&start=%s" baseURL (startAtRecord.ToString())
     let html = fetch url
     let prices = scrapePrices symbol html
@@ -107,7 +107,7 @@ let generateBaseURL (searchKey : string) (startDate : System.DateTime) (endDate 
     baseURL
 
 
-let printNewPrices (prices : SymbolPrice list) : unit =
+let printNewPrices (prices : SymbolPrice.T list) : unit =
     match List.length prices with
     | length when length = 0 -> do printfn "No new prices to add."
     | length when length = 1 -> do printfn "Adding %d price:" length
@@ -181,7 +181,7 @@ let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigColle
 // Save Symbol Prices
 //
 
-let serializeSymbolPriceList (sw : StreamWriter) (prices : SymbolPrice list) : unit =
+let serializeSymbolPriceList (sw : StreamWriter) (prices : SymbolPrice.T list) : unit =
     prices
     |> List.iter (fun price -> sw.WriteLine(SymbolPrice.render price))
 

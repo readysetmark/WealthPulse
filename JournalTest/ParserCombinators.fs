@@ -443,27 +443,29 @@ let priceParsers =
     testList "price parsers" [
         testList "price" [
             testCase "entry" <| fun _ ->
+                let symbolPrice =
+                    SymbolPrice.makeLN
+                        (new System.DateTime(2015,3,20))
+                        (Symbol.make "MUTF514")
+                        (Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                        (Some 1L)
                 Assert.Equal(
                     "price: P 2015-03-20 \"MUTF514\" $5.42",
-                    Some {
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,3,20);
-                        Symbol = Symbol.make "MUTF514";
-                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                    },
+                    Some symbolPrice,
                     parse price "P 2015-03-20 \"MUTF514\" $5.42")
         ]
 
         testList "priceLine" [
             testCase "entry" <| fun _ ->
+                let symbolPrice =
+                    SymbolPrice.makeLN
+                        (new System.DateTime(2015,3,20))
+                        (Symbol.make "MUTF514")
+                        (Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                        (Some 1L)
                 Assert.Equal(
                     "priceLine: P 2015-03-20 \"MUTF514\" $5.42",
-                    Some(PriceLine {
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,3,20);
-                        Symbol = Symbol.make "MUTF514";
-                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                    }),
+                    Some <| PriceLine symbolPrice,
                     parse priceLine "P 2015-03-20 \"MUTF514\" $5.42")
         ]
     ]
@@ -537,12 +539,11 @@ let journalParser =
                 "journal: P 2015-03-07 \"MUTF514\" $5.42",
                 Some [
                     PriceLine (
-                        {
-                            LineNumber = 1L;
-                            Date = new System.DateTime(2015,3,7);
-                            Symbol = Symbol.make "MUTF514";
-                            Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                        }
+                        SymbolPrice.makeLN
+                            (new System.DateTime(2015,3,7))
+                            (Symbol.make "MUTF514")
+                            (Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                            (Some 1L)
                     )
                 ],
                 parse journal "P 2015-03-07 \"MUTF514\" $5.42")
@@ -643,12 +644,11 @@ let journalParser =
                         ]
                     );
                     PriceLine (
-                        {
-                            LineNumber = 13L;
-                            Date = new System.DateTime(2015,3,20);
-                            Symbol = Symbol.make "MUTF514";
-                            Price = Amount.make 7.52M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                        }
+                        SymbolPrice.makeLN
+                            (new System.DateTime(2015,3,20))
+                            (Symbol.make "MUTF514")
+                            (Amount.make 7.52M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                            (Some 13L)
                     )
                 ],
                 parse journal lines)
@@ -667,12 +667,11 @@ let priceDBParser =
             Assert.Equal(
                 "priceDB: P 2015-03-07 \"MUTF514\" $5.42",
                 Some [
-                    {
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,3,7);
-                        Symbol = Symbol.make "MUTF514"
-                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                    }
+                    SymbolPrice.makeLN
+                        (new System.DateTime(2015,3,7))
+                        (Symbol.make "MUTF514")
+                        (Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                        (Some 1L)
                 ],
                 parse priceDB "P 2015-03-07 \"MUTF514\" $5.42")
 
@@ -687,24 +686,24 @@ let priceDBParser =
             Assert.Equal(
                 "priceDB:\r\n" + prices,
                 Some [
-                    {
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,3,7);
-                        Symbol = Symbol.make "MUTF514"
-                        Price = Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                    };
-                    {
-                        LineNumber = 2L;
-                        Date = new System.DateTime(2015,3,7);
-                        Symbol = Symbol.make "MUTF803";
-                        Price = Amount.make 15.98M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                    };
-                    {
-                        LineNumber = 3L;
-                        Date = new System.DateTime(2015,3,7);
-                        Symbol = Symbol.make "AAPL";
-                        Price = Amount.make 313.38M (Symbol.make "$") Amount.SymbolLeftNoSpace
-                    }
+                    (SymbolPrice.makeLN
+                        (new System.DateTime(2015,3,7))
+                        (Symbol.make "MUTF514")
+                        (Amount.make 5.42M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                        (Some 1L)
+                    );
+                    (SymbolPrice.makeLN
+                        (new System.DateTime(2015,3,7))
+                        (Symbol.make "MUTF803")
+                        (Amount.make 15.98M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                        (Some 2L)
+                    );
+                    (SymbolPrice.makeLN
+                        (new System.DateTime(2015,3,7))
+                        (Symbol.make "AAPL")
+                        (Amount.make 313.38M (Symbol.make "$") Amount.SymbolLeftNoSpace)
+                        (Some 3L)
+                    )
                 ],
                 parse priceDB prices)
     ]

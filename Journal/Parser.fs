@@ -2,6 +2,7 @@
 
 open FParsec
 open Journal.Types
+open Journal.Types.Symbol
 
 /// Parser module contains functions for parsing the Ledger journal file
 module Parser =
@@ -28,7 +29,7 @@ module Parser =
         /// A parsed line will be one of these types
         type ParseTree =
             | CommentLine of Journal.Types.Comment
-            | PriceLine of SymbolPrice
+            | PriceLine of SymbolPrice.T
             | Transaction of Header * ParseTree list
             | PostingLine of ParsedPosting
 
@@ -141,12 +142,12 @@ module Parser =
         // Account Parsers
 
         /// Parse a subaccount
-        let subaccount : Parser<Account> =
+        let subaccount : Parser<Account.T> =
             let subaccountChar = noneOf ";: \t\r\n\""
             many1Chars subaccountChar
 
         /// Parse an account
-        let account : Parser<Account list> =
+        let account : Parser<Account.T list> =
             sepBy1 subaccount (pchar ':') .>> skipWS
 
 
@@ -176,11 +177,11 @@ module Parser =
         // Symbol Parsers
 
         /// Parse a quoted symbol
-        let symbol : Parser<Symbol> =
+        let symbol : Parser<Symbol.T> =
             let quote = pchar '\"'
             let quotedSymbolChar = noneOf "\r\n\""
             let unquotedSymbolChar = noneOf "-0123456789., @;\r\n\""
-            let makeSymbol renderOption symbol = Symbol.makeSR symbol renderOption
+            let makeSymbol renderOption symbol = Symbol.makeRO symbol renderOption
             (attempt (between quote quote (many1Chars quotedSymbolChar)) |>> makeSymbol Quoted)
             <|> (many1Chars unquotedSymbolChar |>> makeSymbol Unquoted)
 
@@ -238,9 +239,11 @@ module Parser =
         // Price Parsers
 
         /// Parse a price entry. e.g. "P 2014/12/14 AAPL $23.44"
-        let price : Parser<SymbolPrice> =
+        let price : Parser<SymbolPrice.T> =
             let priceLeader = pchar 'P' .>> skipWS
-            priceLeader >>. pipe4 lineNumber date (symbol .>> skipWS) amount SymbolPrice.create
+            let makeSymbolPrice lineNum date symbol amount =
+                SymbolPrice.makeLN date symbol amount (Some lineNum)
+            priceLeader >>. pipe4 lineNumber date (symbol .>> skipWS) amount makeSymbolPrice
 
         /// Parse a price line within a journal file
         let priceLine : Parser<ParseTree> =
@@ -267,7 +270,7 @@ module Parser =
         // Price DB Parser
 
         /// Parse a prices file
-        let priceDB : Parser<SymbolPrice list> =
+        let priceDB : Parser<SymbolPrice.T list> =
             sepEndBy price (many1 (skipWS >>. newline))
 
 
@@ -323,7 +326,7 @@ module Parser =
             // Calculates balances by symbol for a transaction. Returns any non-zero balances by symbol
             // and the number of postings with Inferred amounts.
             let postingsBalance (postings : ParsedPosting list) =
-                let sumPostingsBySymbol (balance : Map<SymbolValue, Amount.T>) (posting : ParsedPosting) =
+                let sumPostingsBySymbol (balance : Map<Symbol.Value, Amount.T>) (posting : ParsedPosting) =
                     let symbol = posting.Amount.Value.Symbol.Value
                     match balance.ContainsKey symbol with
                     | true  ->

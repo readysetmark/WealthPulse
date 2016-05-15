@@ -13,7 +13,7 @@ type QueryOptions = {
 }
 
 type AccountBalance = {
-    Account: Account;
+    Account: Account.T;
     Balance: Amount.T list;
     Basis: Amount.T list option;
     Commodity: Amount.T option;
@@ -22,7 +22,7 @@ type AccountBalance = {
 }
 
 type RegisterPosting = {
-    Account: Account;
+    Account: Account.T;
     Amount: Amount.T;
     Balance: Amount.T list;
 }
@@ -34,14 +34,14 @@ type Register = {
 }
 
 type OutstandingPayee = {
-    Payee: Account;
+    Payee: Account.T;
     Balance: Amount.T list;
 }
 
 
 module private Support =
 
-    type SymbolAmountMap = Map<Symbol, Amount.T>
+    type SymbolAmountMap = Map<Symbol.T, Amount.T>
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module SymbolAmountMap =
@@ -68,7 +68,7 @@ module private Support =
             |> Seq.sortBy (fun amount -> amount.Symbol.Value)
             |> Seq.toList
 
-    type AccountAmountsMap = Map<Account, SymbolAmountMap>
+    type AccountAmountsMap = Map<Account.T, SymbolAmountMap>
 
     type RealAndBasisAmounts = {
         Real: SymbolAmountMap;
@@ -94,7 +94,7 @@ module private Support =
                 | false -> Some <| SymbolAmountMap.toSortedAmountList amounts.Basis
             real, basis
 
-    type AccountRealAndBasisAmountsMap = Map<Account, RealAndBasisAmounts>
+    type AccountRealAndBasisAmountsMap = Map<Account.T, RealAndBasisAmounts>
 
     /// Account contains one of "termsOption" if "termsOption" provided, otherwise defaultValue
     let containsOneOf (defaultValue : bool) (termsOption : string list option) (account : string) : bool =
@@ -177,7 +177,7 @@ module private Support =
 
     /// Calculate parent account balances
     let calculateParentAccountBalances (accountBalances : AccountBalance List) : AccountBalance list =
-        let addBalancesForParentAccount (accountBalance : AccountBalance) (parentAccountBalances : AccountRealAndBasisAmountsMap) (account : Account) =
+        let addBalancesForParentAccount (accountBalance : AccountBalance) (parentAccountBalances : AccountRealAndBasisAmountsMap) (account : Account.T) =
             let updatedParentAmounts =
                 let parentAccountAmounts =
                     match Map.tryFind account parentAccountBalances with
@@ -224,7 +224,7 @@ module private Support =
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     /// Try to find a symbol price as of periodEnd or today. Return Some SymbolPrice if found or None otherwise.
-    let tryFindSymbolPrice (symbol : SymbolValue) (periodEnd : DateTime option) (journal : Journal) : SymbolPrice option =
+    let tryFindSymbolPrice (symbol : Symbol.Value) (periodEnd : DateTime option) (journal : Journal) : SymbolPrice.T option =
         let selectPricePointByDate (symbolPriceCollection : SymbolPriceCollection) =
             symbolPriceCollection.Prices
             |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
@@ -242,7 +242,7 @@ module private Support =
             | None -> None
 
     /// Compute the basis amount for a symbol over a period specified by the filters.
-    let computeBasis (account : Account) (filters : QueryOptions) (journal : Journal) : Amount.T =
+    let computeBasis (account : Account.T) (filters : QueryOptions) (journal : Journal) : Amount.T =
         let basisAccountParts =
             "Basis" :: (
                 account.Split ':'
@@ -359,7 +359,7 @@ let register (options : QueryOptions) (journal : Journal) : Register list =
 /// Returns a list of Outstanding Payees, which is any account with an outstanding
 /// receivable or payable amount.
 let outstandingPayees (journal : Journal) : OutstandingPayee list =
-    let calculatePayeeAmounts (payees : Map<Account,SymbolAmountMap>) (posting : Posting) =
+    let calculatePayeeAmounts (payees : Map<Account.T,SymbolAmountMap>) (posting : Posting) =
         if posting.Account.StartsWith("Assets:Receivables:") || posting.Account.StartsWith("Liabilities:Payables:") then 
             let payee = posting.Account.Replace("Assets:Receivables:", "").Replace("Liabilities:Payables:", "")
             let payeeBalance =
@@ -391,7 +391,7 @@ let identifySymbolUsage (journal : Journal) : SymbolUsage list =
         | otherwise ->
             Map.add symbol {Symbol = posting.Amount.Symbol; FirstAppeared = posting.Header.Date; ZeroBalanceDate = None;} map
 
-    let determineZeroBalanceDate (postings : Posting list) (symbol : SymbolValue) (symbolUsage : SymbolUsage) =
+    let determineZeroBalanceDate (postings : Posting list) (symbol : Symbol.Value) (symbolUsage : SymbolUsage) =
         let assetPostingsWithSymbol =
             postings 
             |> List.filter (fun (p : Posting) -> 
