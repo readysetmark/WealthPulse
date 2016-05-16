@@ -225,7 +225,7 @@ module private Support =
 
     /// Try to find a symbol price as of periodEnd or today. Return Some SymbolPrice if found or None otherwise.
     let tryFindSymbolPrice (symbol : Symbol.Value) (periodEnd : DateTime option) (journal : Journal) : SymbolPrice.T option =
-        let selectPricePointByDate (symbolPriceCollection : SymbolPriceCollection) =
+        let selectPricePointByDate (symbolPriceCollection : SymbolPriceCollection.T) =
             symbolPriceCollection.Prices
             |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
             |> List.maxBy (fun symbolPrice -> symbolPrice.Date)

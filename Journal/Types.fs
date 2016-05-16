@@ -1,5 +1,6 @@
 ﻿module Journal.Types
 
+open Journal.DateUtils
 open System
 open System.Text.RegularExpressions
 
@@ -108,23 +109,22 @@ module SymbolPrice =
         makeLN date symbol price None
 
     let render symbolPrice =
-        let dateFormat = "yyyy-MM-dd"
-        let date = symbolPrice.Date.ToString(dateFormat)
+        let date = symbolPrice.Date.ToString(RenderDateFormat)
         let symbol = Symbol.render symbolPrice.Symbol
         let price = Amount.render symbolPrice.Price
         sprintf "P %s %s %s" date symbol price
 
 
-/// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
-type SymbolPriceCollection = {
-    Symbol:    Symbol.T;
-    FirstDate: System.DateTime;
-    LastDate:  System.DateTime;
-    Prices:    SymbolPrice.T list;
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceCollection =
+
+    /// A symbol price collection keeps all historical prices for a symbol, plus some metadata.
+    type T = {
+        Symbol:    Symbol.T;
+        FirstDate: System.DateTime;
+        LastDate:  System.DateTime;
+        Prices:    SymbolPrice.T list;
+    }
 
     let fromList (prices : seq<SymbolPrice.T>) =
         let sortedPrices = 
@@ -137,18 +137,17 @@ module SymbolPriceCollection =
         {Symbol = symbol; FirstDate = firstDate; LastDate = lastDate; Prices = sortedPrices;}
 
     let prettyPrint spc =
-        let dateFormat = "yyyy-MM-dd"
         let printPrice (price : SymbolPrice.T) =
-            do printfn "%s - %s" (price.Date.ToString(dateFormat)) (Amount.render price.Price)
+            do printfn "%s - %s" (price.Date.ToString(RenderDateFormat)) (Amount.render price.Price)
         do printfn "Symbol:  %s" spc.Symbol.Value
-        do printfn "First Date: %s" (spc.FirstDate.ToString(dateFormat))
-        do printfn "Last Date:  %s" (spc.LastDate.ToString(dateFormat))
+        do printfn "First Date: %s" (spc.FirstDate.ToString(RenderDateFormat))
+        do printfn "Last Date:  %s" (spc.LastDate.ToString(RenderDateFormat))
         do printfn "Price History:"
         List.iter printPrice spc.Prices
 
 
 /// Symbol Price DB is a map of symbols to symbol price collections
-type SymbolPriceDB = Map<Symbol.Value, SymbolPriceCollection>
+type SymbolPriceDB = Map<Symbol.Value, SymbolPriceCollection.T>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
@@ -160,8 +159,7 @@ module SymbolPriceDB =
         |> Map.ofSeq
 
     let prettyPrint (priceDB : SymbolPriceDB) =
-        let dateFormat = "yyyy-MM-dd"
-        let printSymbolPrices _ (spc : SymbolPriceCollection) =
+        let printSymbolPrices _ (spc : SymbolPriceCollection.T) =
             do printfn "----"
             do SymbolPriceCollection.prettyPrint spc
         priceDB
