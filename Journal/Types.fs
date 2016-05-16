@@ -146,19 +146,19 @@ module SymbolPriceCollection =
         List.iter printPrice spc.Prices
 
 
-/// Symbol Price DB is a map of symbols to symbol price collections
-type SymbolPriceDB = Map<Symbol.Value, SymbolPriceCollection.T>
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolPriceDB =
 
-    let fromList (prices : list<SymbolPrice.T>) : SymbolPriceDB =
+    /// Symbol Price DB is a map of symbols to symbol price collections
+    type T = Map<Symbol.Value, SymbolPriceCollection.T>
+
+    let fromList (prices : list<SymbolPrice.T>) : T =
         prices
         |> Seq.groupBy (fun sp -> sp.Symbol.Value)
         |> Seq.map (fun (symbolValue, symbolPrices) -> symbolValue, SymbolPriceCollection.fromList symbolPrices)
         |> Map.ofSeq
 
-    let prettyPrint (priceDB : SymbolPriceDB) =
+    let prettyPrint (priceDB : T) =
         let printSymbolPrices _ (spc : SymbolPriceCollection.T) =
             do printfn "----"
             do SymbolPriceCollection.prettyPrint spc
@@ -243,8 +243,8 @@ type Journal = {
     Postings: Posting list;
     MainAccounts: Set<string>;
     AllAccounts: Set<string>;
-    PriceDB: SymbolPriceDB;
-    DownloadedPriceDB : SymbolPriceDB;
+    PriceDB: SymbolPriceDB.T;
+    DownloadedPriceDB : SymbolPriceDB.T;
 }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

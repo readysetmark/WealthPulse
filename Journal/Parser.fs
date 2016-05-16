@@ -398,7 +398,7 @@ module Parser =
 
 
         /// Extract the price entries from the AST
-        let extractPrices (lines : ParseTree list) : SymbolPriceDB =
+        let extractPrices (lines : ParseTree list) : SymbolPriceDB.T =
             let priceOnly (line : ParseTree) =
                 match line with
                 | PriceLine p -> Some p

@@ -34,7 +34,7 @@ let loadSymbolConfig (path : string) : SymbolConfigCollection =
 // Load Symbol Prices
 //
 
-let loadSymbolPriceDB (path : string) : SymbolPriceDB =
+let loadSymbolPriceDB (path : string) : SymbolPriceDB.T =
     match File.Exists(path) with
     | true ->
         Parser.parsePricesFile path System.Text.Encoding.ASCII
@@ -160,14 +160,14 @@ let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig) (symbolDat
     | usage, None            -> getPricesForNewSymbol usage config
 
 
-let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigCollection) (priceDB : SymbolPriceDB) : SymbolPriceDB =
+let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigCollection) (priceDB : SymbolPriceDB.T) : SymbolPriceDB.T =
     let symbolsWithConfig (usage : SymbolUsage) =
         Map.containsKey usage.Symbol.Value configs
     let getUpdatedSymbolPriceCollection (usage : SymbolUsage) =
         let config = Map.find usage.Symbol.Value configs
         let symbolData = Map.tryFind config.Symbol.Value priceDB
         fetchPricesForSymbol usage config symbolData
-    let updateDB (priceDB : SymbolPriceDB) (symbolPriceCollection : SymbolPriceCollection.T) =
+    let updateDB (priceDB : SymbolPriceDB.T) (symbolPriceCollection : SymbolPriceCollection.T) =
         Map.add symbolPriceCollection.Symbol.Value symbolPriceCollection priceDB
 
     usages
@@ -186,7 +186,7 @@ let serializeSymbolPriceList (sw : StreamWriter) (prices : SymbolPrice.T list) :
     |> List.iter (fun price -> sw.WriteLine(SymbolPrice.render price))
 
 
-let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB) : unit =
+let saveSymbolPriceDB (path : string) (priceDB : SymbolPriceDB.T) : unit =
     use sw = new StreamWriter(path, false)
 
     priceDB
