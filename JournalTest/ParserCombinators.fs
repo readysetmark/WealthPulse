@@ -477,10 +477,7 @@ let symbolConfigParser =
             let text = "SC \"MUTF514\" MUTF_CA:MUTF514"
             Assert.Equal(
                 "symbolConfig: "+ text,
-                Some {
-                    Symbol = Symbol.make "MUTF514";
-                    GoogleFinanceSearchSymbol="MUTF_CA:MUTF514"
-                },
+                Some <| SymbolConfig.make (Symbol.make "MUTF514") "MUTF_CA:MUTF514",
                 parse symbolConfig text)
     ]
 
@@ -722,10 +719,7 @@ let configParser =
             Assert.Equal(
                 "config: " + text,
                 Some [
-                    {
-                        Symbol = Symbol.make "MUTF514";
-                        GoogleFinanceSearchSymbol = "MUTF_CA:MUTF514"
-                    }
+                    SymbolConfig.make (Symbol.make "MUTF514") "MUTF_CA:MUTF514"
                 ],
                 parse config text)
 
@@ -739,14 +733,8 @@ let configParser =
             Assert.Equal(
                 "config:\r\n" + text,
                 Some [
-                    {
-                        Symbol = Symbol.make "MUTF514";
-                        GoogleFinanceSearchSymbol = "MUTF_CA:MUTF514"
-                    };
-                    {
-                        Symbol = Symbol.make "MUTF803";
-                        GoogleFinanceSearchSymbol = "MUTF_CA:MUTF803"
-                    };
+                    SymbolConfig.make (Symbol.make "MUTF514") "MUTF_CA:MUTF514";
+                    SymbolConfig.make (Symbol.make "MUTF803") "MUTF_CA:MUTF803";
                 ],
                 parse config text)
 

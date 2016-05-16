@@ -254,10 +254,10 @@ module Parser =
 
         /// Parse a symbol configuration entry.
         /// e.g. "SC <symbol> <google finance search symbol>"
-        let symbolConfig : Parser<SymbolConfig> =
+        let symbolConfig : Parser<SymbolConfig.T> =
             let symbolConfigLeader = pstring "SC" .>> skipWS
             let googleSymbolChar = noneOf "; \t\r\n\""
-            symbolConfigLeader >>. pipe2 (symbol .>> skipWS) (many1Chars googleSymbolChar) SymbolConfig.create
+            symbolConfigLeader >>. pipe2 (symbol .>> skipWS) (many1Chars googleSymbolChar) SymbolConfig.make
 
 
         // Journal Parser
@@ -277,7 +277,7 @@ module Parser =
         // Config File Parser
 
         /// Parse a config file
-        let config : Parser<SymbolConfig list> =
+        let config : Parser<SymbolConfig.T list> =
             sepEndBy symbolConfig (many1 (skipWS >>. newline))
 
 

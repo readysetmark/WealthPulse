@@ -166,27 +166,29 @@ module SymbolPriceDB =
         |> Map.iter printSymbolPrices
 
 
-type SymbolConfig = {
-    Symbol: Symbol.T;
-    GoogleFinanceSearchSymbol: string;
-}
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolConfig =
 
-    let create symbol googleFinanceSymbol =
+    type T = {
+        Symbol: Symbol.T;
+        GoogleFinanceSearchSymbol: GoogleFinanceSearchSymbol;
+    }
+
+    and GoogleFinanceSearchSymbol = string
+
+    let make symbol googleFinanceSymbol =
         {Symbol = symbol; GoogleFinanceSearchSymbol = googleFinanceSymbol}
 
-    let render (config : SymbolConfig) : string =
+    let render config =
         sprintf "SC %s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
 
 
-type SymbolConfigCollection = Map<Symbol.Value, SymbolConfig>
+type SymbolConfigCollection = Map<Symbol.Value, SymbolConfig.T>
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolConfigCollection =
     
-    let fromList symbolConfigs =
+    let fromList (symbolConfigs : SymbolConfig.T list) =
         symbolConfigs
         |> List.map (fun sc -> sc.Symbol.Value, sc)
         |> Map.ofList
