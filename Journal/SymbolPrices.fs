@@ -21,7 +21,7 @@ type Pagination = {
 // SymbolConfig functions
 //
 
-let loadSymbolConfig (path : string) : SymbolConfigCollection =
+let loadSymbolConfig (path : string) : SymbolConfigCollection.T =
     match File.Exists(path) with
     | true ->
         Parser.parseConfigFile path System.Text.Encoding.UTF8
@@ -160,7 +160,7 @@ let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig.T) (symbolD
     | usage, None            -> getPricesForNewSymbol usage config
 
 
-let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigCollection) (priceDB : SymbolPriceDB.T) : SymbolPriceDB.T =
+let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigCollection.T) (priceDB : SymbolPriceDB.T) : SymbolPriceDB.T =
     let symbolsWithConfig (usage : SymbolUsage) =
         Map.containsKey usage.Symbol.Value configs
     let getUpdatedSymbolPriceCollection (usage : SymbolUsage) =

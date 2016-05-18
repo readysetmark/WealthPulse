@@ -183,17 +183,17 @@ module SymbolConfig =
         sprintf "SC %s %s" (Symbol.render config.Symbol) config.GoogleFinanceSearchSymbol
 
 
-type SymbolConfigCollection = Map<Symbol.Value, SymbolConfig.T>
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SymbolConfigCollection =
-    
+
+    type T = Map<Symbol.Value, SymbolConfig.T>
+
     let fromList (symbolConfigs : SymbolConfig.T list) =
         symbolConfigs
         |> List.map (fun sc -> sc.Symbol.Value, sc)
         |> Map.ofList
 
-    let prettyPrint (configs : SymbolConfigCollection) : unit =
+    let prettyPrint (configs : T) : unit =
         printfn "Symbol Configs:"
         configs
         |> Map.iter (fun sym config -> printfn "%s" <| SymbolConfig.render config)
