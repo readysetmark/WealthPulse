@@ -199,30 +199,33 @@ module SymbolConfigCollection =
         |> Map.iter (fun sym config -> printfn "%s" <| SymbolConfig.render config)
 
 
-type Code = string
-type Payee = string
 type Comment = string
 
-/// Transaction status.
-type Status =
-    | Cleared
-    | Uncleared
+type Payee = string
 
-/// Transaction header.
-type Header = {
-    LineNumber: int64;
-    Date: System.DateTime;
-    Status: Status;
-    Code: Code option;
-    Payee: Payee;
-    Comment: Comment option
-}
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Header =
 
-    let create lineNum date status code payee comment =
+    /// Transaction header.
+    type T = {
+        LineNumber: int64;
+        Date: System.DateTime;
+        Status: Status;
+        Code: Code option;
+        Payee: Payee;
+        Comment: Comment option
+    }
+
+    and Code = string
+
+    and Status =
+        | Cleared
+        | Uncleared
+
+    let make lineNum date status code payee comment =
         {LineNumber=lineNum; Date=date; Status=status; Code=code; Payee=payee; Comment=comment}
+
 
 /// An amount may be provided or inferred in a transaction
 type AmountSource =
@@ -232,7 +235,7 @@ type AmountSource =
 /// Transaction posting.
 type Posting = {
     LineNumber: int64;
-    Header: Header;
+    Header: Header.T;
     Account: Account.T;
     AccountLineage: Account.T list;
     Amount: Amount.T;

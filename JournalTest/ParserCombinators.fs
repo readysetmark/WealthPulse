@@ -100,10 +100,10 @@ let transactionHeaderSimpleFieldParsers =
     testList "transaction header simple field parsers" [
         testList "status" [
             testCase "cleared" <| fun _ ->
-                Assert.Equal("status: *", Some(Cleared), parse status "*")
+                Assert.Equal("status: *", Some(Header.Cleared), parse status "*")
 
             testCase "uncleared" <| fun _ ->
-                Assert.Equal("status: !", Some(Uncleared), parse status "!")
+                Assert.Equal("status: !", Some(Header.Uncleared), parse status "!")
         ]
 
         testList "code" [
@@ -135,53 +135,53 @@ let transactionHeaderParser =
         testCase "with all fields" <| fun _ ->
             Assert.Equal(
                 "header with all fields",
-                Some({
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,2,15);
-                        Status = Cleared;
-                        Code = Some("conf# abc-123");
-                        Payee = "Payee";
-                        Comment = Some("Comment")
-                    }),
+                Some(Header.make
+                    <| 1L
+                    <| new System.DateTime(2015,2,15)
+                    <| Header.Cleared
+                    <| Some("conf# abc-123")
+                    <| "Payee"
+                    <| Some("Comment")
+                ),
                 parse header "2015/02/15 * (conf# abc-123) Payee ;Comment")
 
         testCase "with code and no comment" <| fun _ ->
             Assert.Equal(
                 "header with code and no comment",
-                Some({
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,2,15);
-                        Status = Uncleared;
-                        Code = Some("conf# abc-123");
-                        Payee = "Payee";
-                        Comment = None
-                    }),
+                Some(Header.make
+                    <| 1L
+                    <| new System.DateTime(2015,2,15)
+                    <| Header.Uncleared
+                    <| Some("conf# abc-123")
+                    <| "Payee"
+                    <| None
+                ),
                 parse header "2015/02/15 ! (conf# abc-123) Payee")
 
         testCase "with comment and no code" <| fun _ ->
             Assert.Equal(
                 "header with comment and no code",
-                Some({
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,2,15);
-                        Status = Cleared;
-                        Code = None;
-                        Payee = "Payee";
-                        Comment = Some("Comment")
-                    }),
+                Some(Header.make
+                    <| 1L
+                    <| new System.DateTime(2015,2,15)
+                    <| Header.Cleared
+                    <| None
+                    <| "Payee"
+                    <| Some("Comment")
+                ),
                 parse header "2015/02/15 * Payee ;Comment")
 
         testCase "with no code or comment" <| fun _ ->
             Assert.Equal(
                 "header with no code or comment",
-                Some({
-                        LineNumber = 1L;
-                        Date = new System.DateTime(2015,2,15);
-                        Status = Cleared;
-                        Code = None;
-                        Payee = "Payee";
-                        Comment = None
-                    }),
+                Some(Header.make
+                    <| 1L
+                    <| new System.DateTime(2015,2,15)
+                    <| Header.Cleared
+                    <| None
+                    <| "Payee"
+                    <| None
+                ),
                 parse header "2015/02/15 * Payee")
     ]
 
@@ -409,14 +409,13 @@ let transactionParser =
                 "transaction:\r\n" + tx,
                 Some(
                     Transaction (
-                        {
-                            LineNumber = 1L;
-                            Date = new System.DateTime(2015,3,20);
-                            Status = Cleared;
-                            Code = None;
-                            Payee = "Basic transaction";
-                            Comment = Some "comment"
-                        },
+                        Header.make
+                            <| 1L
+                            <| new System.DateTime(2015,3,20)
+                            <| Header.Cleared
+                            <| None
+                            <| "Basic transaction"
+                            <| Some "comment",
                         [
                             PostingLine {
                                 LineNumber = 2L;
@@ -503,14 +502,13 @@ let journalParser =
                 "journal:\r\n" + lines,
                 Some [
                     Transaction (
-                        {
-                            LineNumber = 1L;
-                            Date = new System.DateTime(2015,3,20);
-                            Status = Cleared;
-                            Code = None;
-                            Payee = "Basic transaction";
-                            Comment = Some "comment"
-                        },
+                        Header.make
+                            <| 1L
+                            <| new System.DateTime(2015,3,20)
+                            <| Header.Cleared
+                            <| None
+                            <| "Basic transaction"
+                            <| Some "comment",
                         [
                             PostingLine {
                                 LineNumber = 2L;
@@ -575,14 +573,13 @@ let journalParser =
                 Some [
                     CommentLine "first comment";
                     Transaction (
-                        {
-                            LineNumber = 3L;
-                            Date = new System.DateTime(2015,3,20);
-                            Status = Cleared;
-                            Code = None;
-                            Payee = "Basic transaction";
-                            Comment = Some "comment"
-                        },
+                        Header.make
+                            <| 3L
+                            <| new System.DateTime(2015,3,20)
+                            <| Header.Cleared
+                            <| None
+                            <| "Basic transaction"
+                            <|Some "comment",
                         [
                             PostingLine {
                                 LineNumber = 4L;
@@ -601,14 +598,13 @@ let journalParser =
                         ]
                     );
                     Transaction (
-                        {
-                            LineNumber = 7L;
-                            Date = new System.DateTime(2015,3,20);
-                            Status = Cleared;
-                            Code = None;
-                            Payee = "Buy stocks";
-                            Comment = None;
-                        },
+                        Header.make
+                            <| 7L
+                            <| new System.DateTime(2015,3,20)
+                            <| Header.Cleared
+                            <| None
+                            <| "Buy stocks"
+                            <| None,
                         [
                             PostingLine {
                                 LineNumber = 8L;

@@ -3,6 +3,7 @@
 open FParsec
 open Journal.Types
 open Journal.Types.Symbol
+open Journal.Types.Header
 
 /// Parser module contains functions for parsing the Ledger journal file
 module Parser =
@@ -30,7 +31,7 @@ module Parser =
         type ParseTree =
             | CommentLine of Journal.Types.Comment
             | PriceLine of SymbolPrice.T
-            | Transaction of Header * ParseTree list
+            | Transaction of Header.T * ParseTree list
             | PostingLine of ParsedPosting
 
 
@@ -132,9 +133,9 @@ module Parser =
         // Transaction Header
 
         /// Parse a complete transaction header
-        let header : Parser<Header> =
+        let header : Parser<Header.T> =
             let createHeader (((((lineNum, date), status), code), payee), comment) =
-                Header.create lineNum date status code payee comment
+                Header.make lineNum date status code payee comment
             lineNumber .>>. date .>>. status .>>. (opt code) .>>. payee .>>. (opt comment)
             |>> createHeader
 
@@ -289,7 +290,7 @@ module Parser =
 
         /// Transforms the ParseTree tree data structure into a list of (Header, ParsedPosting list) tuples
         /// Basically, we're dropping all the comment nodes
-        let mapToHeaderParsedPostingTuples (lines : ParseTree list) : (Header * ParsedPosting list) list =
+        let mapToHeaderParsedPostingTuples (lines : ParseTree list) : (Header.T * ParsedPosting list) list =
             let isTransaction (line : ParseTree) =
                 match line with
                 | Transaction(_,_) -> true
@@ -322,7 +323,7 @@ module Parser =
 
         /// Verifies that transactions balance and autobalances transactions if 
         /// one amount is missing.
-        let balanceTransactions (transactions : (Header * ParsedPosting list) list) : (Header * ParsedPosting list) list =
+        let balanceTransactions (transactions : (Header.T * ParsedPosting list) list) : (Header.T * ParsedPosting list) list =
             // Calculates balances by symbol for a transaction. Returns any non-zero balances by symbol
             // and the number of postings with Inferred amounts.
             let postingsBalance (postings : ParsedPosting list) =
@@ -373,7 +374,7 @@ module Parser =
             
 
         /// Convert to a list of journal postings (transaction postings)
-        let toPostingList (txs : (Header * ParsedPosting list) list) : Posting list =
+        let toPostingList (txs : (Header.T * ParsedPosting list) list) : Posting list =
             let transactionToPostings (header, ps) =
                 let toPosting (p : ParsedPosting) =
                     {
