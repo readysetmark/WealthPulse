@@ -230,7 +230,7 @@ module NancyRunner =
         |> List.map presentRegister
 
 
-    let generateNetWorthData (journal : Journal) : LineChartSeries list =
+    let generateNetWorthData (journal : Journal.T) : LineChartSeries list =
         let zeroBalance = Amount.make 0M (Symbol.make "$") Amount.SymbolLeftNoSpace
 
         let tryFindDollarAmount (balances : Amount.T list) =

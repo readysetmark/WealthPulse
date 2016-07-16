@@ -227,38 +227,59 @@ module Header =
         {LineNumber=lineNum; Date=date; Status=status; Code=code; Payee=payee; Comment=comment}
 
 
-/// An amount may be provided or inferred in a transaction
-type AmountSource =
-    | Provided
-    | Inferred
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Posting =
 
-/// Transaction posting.
-type Posting = {
-    LineNumber: int64;
-    Header: Header.T;
-    Account: Account.T;
-    AccountLineage: Account.T list;
-    Amount: Amount.T;
-    AmountSource: AmountSource;
-    Comment: string option;
-}
+    /// Transaction posting.
+    type T = {
+        LineNumber: int64;
+        Header: Header.T;
+        Account: Account.T;
+        AccountLineage: Account.T list;
+        Amount: Amount.T;
+        AmountSource: AmountSource;
+        Comment: string option;
+    }
 
-/// Journal with all postings and accounts.
-type Journal = {
-    Postings: Posting list;
-    MainAccounts: Set<string>;
-    AllAccounts: Set<string>;
-    PriceDB: SymbolPriceDB.T;
-    DownloadedPriceDB : SymbolPriceDB.T;
-}
+    /// An amount may be provided or inferred in a transaction
+    and AmountSource =
+        | Provided
+        | Inferred
+
+    let make lineNum header account accountLineage amount amountSource comment =
+        {
+            LineNumber = lineNum;
+            Header = header;
+            Account = account;
+            AccountLineage = accountLineage;
+            Amount = amount;
+            AmountSource = amountSource;
+            Comment = comment;
+        }
+
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Journal = 
-    
+
+    /// Journal with all postings and accounts.
+    type T = {
+        Postings: Posting.T list;
+        MainAccounts: Set<string>;
+        AllAccounts: Set<string>;
+        PriceDB: SymbolPriceDB.T;
+        DownloadedPriceDB : SymbolPriceDB.T;
+    }
+
     /// Given a list of journal postings, returns a Journal record
-    let create postings priceDB downloadedPriceDB =
-        let mainAccounts = Set.ofList <| List.map (fun (posting : Posting) -> posting.Account) postings
-        let allAccounts = Set.ofList <| List.collect (fun posting -> posting.AccountLineage) postings
+    let make postings priceDB downloadedPriceDB =
+        let mainAccounts =
+            postings
+            |> List.map (fun (posting : Posting.T) -> posting.Account)
+            |> Set.ofList
+        let allAccounts =
+            postings
+            |> List.collect (fun posting -> posting.AccountLineage)
+            |> Set.ofList
         {
             Postings = postings;
             MainAccounts = mainAccounts;
@@ -268,11 +289,15 @@ module Journal =
         }
 
 
-// Symbol Usage Types
-    
-/// Symbol Usage record.
-type SymbolUsage = {
-    Symbol: Symbol.T;
-    FirstAppeared: DateTime;
-    ZeroBalanceDate: DateTime option;
-}
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module SymbolUsage =
+
+    /// Symbol Usage record.
+    type T = {
+        Symbol: Symbol.T;
+        FirstAppeared: DateTime;
+        ZeroBalanceDate: DateTime option;
+    }
+
+    let make symbol firstAppeared zeroBalanceDate =
+        { Symbol = symbol; FirstAppeared = firstAppeared; ZeroBalanceDate = zeroBalanceDate; }

@@ -117,7 +117,7 @@ let printNewPrices (prices : SymbolPrice.T list) : unit =
     |> List.iter (fun sp -> printfn "%s" <| SymbolPrice.render sp)
 
 
-let getPricesForNewSymbol (usage: SymbolUsage) (config : SymbolConfig.T) : SymbolPriceCollection.T option =
+let getPricesForNewSymbol (usage: SymbolUsage.T) (config : SymbolConfig.T) : SymbolPriceCollection.T option =
     let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared usage.ZeroBalanceDate
     let prices = getPrices baseURL 0 usage.Symbol
     match List.length prices with
@@ -125,8 +125,8 @@ let getPricesForNewSymbol (usage: SymbolUsage) (config : SymbolConfig.T) : Symbo
     | otherwise -> Some <| SymbolPriceCollection.fromList prices
 
 
-let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) : SymbolPriceCollection.T =
-    let getEarlierMissingPrices (usage: SymbolUsage) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) =
+let updatePricesForSymbol (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) : SymbolPriceCollection.T =
+    let getEarlierMissingPrices (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) =
         match usage.FirstAppeared, symbolData.FirstDate with
         | firstAppeared, firstDate when firstAppeared < firstDate ->
             let endDate = firstDate.AddDays(-1.0)
@@ -134,7 +134,7 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig.T) (symbol
             getPrices baseURL 0 usage.Symbol
         | otherwise -> List.Empty
 
-    let getLaterMissingPrices (usage: SymbolUsage) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) =
+    let getLaterMissingPrices (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) =
         match usage.ZeroBalanceDate, symbolData.LastDate with
         | None, lastDate when lastDate < System.DateTime.Today ->
             let startDate = lastDate.AddDays(1.0)
@@ -153,17 +153,17 @@ let updatePricesForSymbol (usage: SymbolUsage) (config : SymbolConfig.T) (symbol
     SymbolPriceCollection.fromList allPrices
 
 
-let fetchPricesForSymbol (usage: SymbolUsage) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T option) : SymbolPriceCollection.T option =
+let fetchPricesForSymbol (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T option) : SymbolPriceCollection.T option =
     printfn "Fetching prices for: %s" <| Symbol.render usage.Symbol
     match usage, symbolData with
     | usage, Some symbolData -> Some <| updatePricesForSymbol usage config symbolData
     | usage, None            -> getPricesForNewSymbol usage config
 
 
-let updateSymbolPriceDB (usages : SymbolUsage list) (configs : SymbolConfigCollection.T) (priceDB : SymbolPriceDB.T) : SymbolPriceDB.T =
-    let symbolsWithConfig (usage : SymbolUsage) =
+let updateSymbolPriceDB (usages : SymbolUsage.T list) (configs : SymbolConfigCollection.T) (priceDB : SymbolPriceDB.T) : SymbolPriceDB.T =
+    let symbolsWithConfig (usage : SymbolUsage.T) =
         Map.containsKey usage.Symbol.Value configs
-    let getUpdatedSymbolPriceCollection (usage : SymbolUsage) =
+    let getUpdatedSymbolPriceCollection (usage : SymbolUsage.T) =
         let config = Map.find usage.Symbol.Value configs
         let symbolData = Map.tryFind config.Symbol.Value priceDB
         fetchPricesForSymbol usage config symbolData

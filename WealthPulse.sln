@@ -41,4 +41,20 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		Policies = $0
+		$0.TextStylePolicy = $1
+		$1.inheritsSet = null
+		$1.scope = text/x-fsharp
+		$0.FSharpFormattingPolicy = $2
+		$2.DefaultFormat = $3
+		$3.IndentOnTryWith = False
+		$3.ReorderOpenDeclaration = False
+		$3.SpaceAfterComma = True
+		$3.SpaceAfterSemicolon = True
+		$3.SpaceAroundDelimiter = True
+		$3.SpaceBeforeArgument = True
+		$3.SpaceBeforeColon = True
+		$2.scope = text/x-fsharp
+	EndGlobalSection
 EndGlobal

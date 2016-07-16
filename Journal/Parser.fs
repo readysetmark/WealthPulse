@@ -4,6 +4,7 @@ open FParsec
 open Journal.Types
 open Journal.Types.Symbol
 open Journal.Types.Header
+open Journal.Types.Posting
 
 /// Parser module contains functions for parsing the Ledger journal file
 module Parser =
@@ -374,18 +375,11 @@ module Parser =
             
 
         /// Convert to a list of journal postings (transaction postings)
-        let toPostingList (txs : (Header.T * ParsedPosting list) list) : Posting list =
+        let toPostingList (txs : (Header.T * ParsedPosting list) list) : Posting.T list =
             let transactionToPostings (header, ps) =
                 let toPosting (p : ParsedPosting) =
-                    {
-                        LineNumber = p.LineNumber;
-                        Header = header; 
-                        Account = p.Account;
-                        AccountLineage = Account.getAccountLineage p.Account;
-                        Amount = p.Amount.Value;
-                        AmountSource = p.AmountSource;
-                        Comment = p.Comment 
-                    }
+                    let accountLineage = Account.getAccountLineage p.Account
+                    Posting.make p.LineNumber header p.Account accountLineage p.Amount.Value p.AmountSource p.Comment
                 List.map toPosting ps
             List.collect transactionToPostings txs
 
@@ -407,10 +401,9 @@ module Parser =
             lines
             |> List.choose priceOnly
             |> SymbolPriceDB.fromList
-            
-            
 
-    
+
+
     let private extractResult result =
         match result with
         | Success(r, _, _)        -> r

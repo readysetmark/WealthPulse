@@ -13,7 +13,7 @@ module JournalService =
 
     /// Interface for Nancy Dependency Injection
     type IJournalService =
-        abstract member Journal : Journal
+        abstract member Journal : Journal.T
         abstract member OutstandingPayees : OutstandingPayee list
         abstract member JournalLastModified : DateTime
         abstract member GetAndClearException : string option
@@ -28,7 +28,7 @@ module JournalService =
         let pricesFilePath = Environment.GetEnvironmentVariable("WEALTH_PULSE_PRICES_FILE")
         let rwlock = new ReaderWriterLock()
 
-        let mutable journal = Journal.create List.empty Map.empty Map.empty
+        let mutable journal = Journal.make List.empty Map.empty Map.empty
         let mutable outstandingPayees = List.empty
         let mutable journalLastModified = DateTime.MinValue
         let mutable exceptionMessage = None
@@ -50,7 +50,7 @@ module JournalService =
                 do printfn "Ledger last modified: %s" <| lastModified.ToString()
                 rwlock.AcquireWriterLock(Timeout.Infinite)
                 try
-                    journal <- Journal.create postings pricedb journal.DownloadedPriceDB
+                    journal <- Journal.make postings pricedb journal.DownloadedPriceDB
                     outstandingPayees <- Query.outstandingPayees journal
                     journalLastModified <- lastModified
                     exceptionMessage <- None

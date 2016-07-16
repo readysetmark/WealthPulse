@@ -113,7 +113,7 @@ module private Support =
         | _, _                             -> true
 
     /// Apply filters to retrieve journal postings
-    let filterPostings (filters : QueryOptions) (journal : Journal) : Posting list =
+    let filterPostings (filters : QueryOptions) (journal : Journal.T) : Posting.T list =
         // apply account filters to construct a set of accounts
         // TODO: Not fond of the call to "containsOneOf" needing the default parameter, there must be a better way...
         let accounts = 
@@ -128,8 +128,8 @@ module private Support =
                                         && (withinPeriod posting.Header.Date filters.PeriodStart filters.PeriodEnd))
 
     /// Sums a list of postings by account and returns a list of AccountBalance records
-    let sumPostingsByAccount (postings : Posting list) : AccountBalance list =
-        let buildAccountAmountsMap (accountAmounts : AccountAmountsMap) (posting : Posting) =
+    let sumPostingsByAccount (postings : Posting.T list) : AccountBalance list =
+        let buildAccountAmountsMap (accountAmounts : AccountAmountsMap) (posting : Posting.T) =
             let updatedSymbolAmounts =
                 match Map.tryFind posting.Account accountAmounts with
                 | Some symbolAmounts -> SymbolAmountMap.add symbolAmounts posting.Amount
@@ -224,7 +224,7 @@ module private Support =
         |> List.filter (existsChildAccountWithSameAmount accountBalances)
 
     /// Try to find a symbol price as of periodEnd or today. Return Some SymbolPrice if found or None otherwise.
-    let tryFindSymbolPrice (symbol : Symbol.Value) (periodEnd : DateTime option) (journal : Journal) : SymbolPrice.T option =
+    let tryFindSymbolPrice (symbol : Symbol.Value) (periodEnd : DateTime option) (journal : Journal.T) : SymbolPrice.T option =
         let selectPricePointByDate (symbolPriceCollection : SymbolPriceCollection.T) =
             symbolPriceCollection.Prices
             |> List.filter (fun symbolPrice -> symbolPrice.Date <= if periodEnd.IsSome then periodEnd.Value else symbolPrice.Date)
@@ -242,7 +242,7 @@ module private Support =
             | None -> None
 
     /// Compute the basis amount for a symbol over a period specified by the filters.
-    let computeBasis (account : Account.T) (filters : QueryOptions) (journal : Journal) : Amount.T =
+    let computeBasis (account : Account.T) (filters : QueryOptions) (journal : Journal.T) : Amount.T =
         let basisAccountParts =
             "Basis" :: (
                 account.Split ':'
@@ -253,14 +253,14 @@ module private Support =
         let basisAmount = 
             journal
             |> filterPostings basisFilter
-            |> List.filter (fun (p:Posting) -> p.Amount.Symbol.Value = "$")
-            |> List.sumBy (fun (p:Posting) -> p.Amount.Quantity)
+            |> List.filter (fun (p:Posting.T) -> p.Amount.Symbol.Value = "$")
+            |> List.sumBy (fun (p:Posting.T) -> p.Amount.Quantity)
         Amount.make basisAmount (Symbol.make "$") Amount.SymbolLeftNoSpace
 
     // TODO: How do I handle if we're computing commodity values and an account has more than one commodity?
     /// Compute real and basis values for commodities held in an account. 
     /// Making an assumption right now that an account should only hold one type of commodity.
-    let computeCommodityValues (options : QueryOptions) (journal : Journal) (accountBalances : AccountBalance list) : AccountBalance list =
+    let computeCommodityValues (options : QueryOptions) (journal : Journal.T) (accountBalances : AccountBalance list) : AccountBalance list =
         let computeRealBalance (accountBalance : AccountBalance) =
             match List.length accountBalance.Balance with
             | 1 ->
@@ -291,7 +291,7 @@ module private Support =
             accountBalances
 
     /// Groups postings by header and returns (date, payee, postings) tuples
-    let calculateRegisterLines (postings : Posting list) : Register list =
+    let calculateRegisterLines (postings : Posting.T list) : Register list =
         let postingTotalMap = 
             postings
             |> Seq.scan (fun symbolAmounts posting -> SymbolAmountMap.add symbolAmounts posting.Amount) Map.empty
@@ -327,7 +327,7 @@ open Support
 
 
 /// Returns a tuple of (accountBalances, totalBalance) that match the filters in parameters
-let balance (options : QueryOptions) (journal : Journal) : (AccountBalance list * AccountBalance) =
+let balance (options : QueryOptions) (journal : Journal.T) : (AccountBalance list * AccountBalance) =
     let accountBalances =
         journal
         |> filterPostings options
@@ -350,7 +350,7 @@ let balance (options : QueryOptions) (journal : Journal) : (AccountBalance list 
 
 
 /// Returns a list of register entries that match the filters.
-let register (options : QueryOptions) (journal : Journal) : Register list =
+let register (options : QueryOptions) (journal : Journal.T) : Register list =
     journal
     |> filterPostings options
     |> calculateRegisterLines
@@ -358,8 +358,8 @@ let register (options : QueryOptions) (journal : Journal) : Register list =
 
 /// Returns a list of Outstanding Payees, which is any account with an outstanding
 /// receivable or payable amount.
-let outstandingPayees (journal : Journal) : OutstandingPayee list =
-    let calculatePayeeAmounts (payees : Map<Account.T,SymbolAmountMap>) (posting : Posting) =
+let outstandingPayees (journal : Journal.T) : OutstandingPayee list =
+    let calculatePayeeAmounts (payees : Map<Account.T,SymbolAmountMap>) (posting : Posting.T) =
         if posting.Account.StartsWith("Assets:Receivables:") || posting.Account.StartsWith("Liabilities:Payables:") then 
             let payee = posting.Account.Replace("Assets:Receivables:", "").Replace("Liabilities:Payables:", "")
             let payeeBalance =
@@ -380,8 +380,8 @@ let outstandingPayees (journal : Journal) : OutstandingPayee list =
 
 
 /// Returns a list of symbols used in the journal
-let identifySymbolUsage (journal : Journal) : SymbolUsage list =
-    let buildSymbolMap map (posting : Posting) =
+let identifySymbolUsage (journal : Journal.T) : SymbolUsage.T list =
+    let buildSymbolMap (map : Map<Symbol.Value, SymbolUsage.T>) (posting : Posting.T) =
         let symbol = posting.Amount.Symbol.Value
         match Map.tryFind symbol map with
         | Some symbolUsage when symbolUsage.FirstAppeared > posting.Header.Date ->
@@ -389,12 +389,12 @@ let identifySymbolUsage (journal : Journal) : SymbolUsage list =
         | Some symbolUsage ->
             map
         | otherwise ->
-            Map.add symbol {Symbol = posting.Amount.Symbol; FirstAppeared = posting.Header.Date; ZeroBalanceDate = None;} map
+            Map.add symbol (SymbolUsage.make posting.Amount.Symbol posting.Header.Date None) map
 
-    let determineZeroBalanceDate (postings : Posting list) (symbol : Symbol.Value) (symbolUsage : SymbolUsage) =
+    let determineZeroBalanceDate (postings : Posting.T list) (symbol : Symbol.Value) (symbolUsage : SymbolUsage.T) =
         let assetPostingsWithSymbol =
             postings 
-            |> List.filter (fun (p : Posting) -> 
+            |> List.filter (fun (p : Posting.T) -> 
                 p.Amount.Symbol.Value = symbol 
                 && p.AccountLineage.Head.ToLower() = "assets")
         let balance =

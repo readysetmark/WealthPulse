@@ -6,6 +6,7 @@ open Journal.Parser.Combinators
 open Journal.Parser.PostProcess
 open Journal.Parser.Types
 open Journal.Types
+open Journal.Types.Posting
 
 let testfilesPath = "../../testfiles"
 let simpleFile = testfilesPath + "/simple.dat"

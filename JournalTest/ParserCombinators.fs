@@ -5,6 +5,7 @@ open FParsec
 open Journal.Parser.Combinators
 open Journal.Parser.Types
 open Journal.Types
+open Journal.Types.Posting
 
 
 let parse parser text =

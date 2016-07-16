@@ -425,7 +425,7 @@ Types
 - [ ] Include a list of account levels field on Posting?
 	- How am I actually using Account & AccountLineage in the app?
 	- Also change Account to a Subaccount list and Subaccount = String
-- [ ] Review all types for consistency
+- [x] Review all types for consistency
 - [x] Symbol Price: Hard-coded line number to -1 -- feels like a hack
 
 Reports
