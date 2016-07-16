@@ -388,7 +388,9 @@ server process with a web browser pointed at it
 	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
 
 Tooling
-- [ ] Setup CI (TravisCI?)
+- [ ] Setup CI
+	- [x] TravisCI
+	- [ ] Appveyor
 - [ ] Add a real logger
 - [ ] Use npm/FAKE/grunt/gulp automation?
 - Automate:
