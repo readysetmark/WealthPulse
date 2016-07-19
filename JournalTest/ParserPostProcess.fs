@@ -29,14 +29,14 @@ let mapToHeaderParsedPostingTuplesTests =
                 |> mapToHeaderParsedPostingTuples
 
             Assert.Equal("8 transactions", 8, List.length txs)
-            Assert.Equal("3 postings in 1st transaction", 3, List.item 0 txs |> snd |> List.length)
-            Assert.Equal("2 postings in 2nd transaction", 2, List.item 1 txs |> snd |> List.length)
-            Assert.Equal("4 postings in 3rd transaction", 4, List.item 2 txs |> snd |> List.length)
-            Assert.Equal("4 postings in 4th transaction", 4, List.item 3 txs |> snd |> List.length)
-            Assert.Equal("2 postings in 5th transaction", 2, List.item 4 txs |> snd |> List.length)
-            Assert.Equal("2 postings in 6th transaction", 2, List.item 5 txs |> snd |> List.length)
-            Assert.Equal("2 postings in 7th transaction", 2, List.item 6 txs |> snd |> List.length)
-            Assert.Equal("5 postings in 8th transaction", 5, List.item 7 txs |> snd |> List.length)
+            Assert.Equal("3 postings in 1st transaction", 3, txs.[0] |> snd |> List.length)
+            Assert.Equal("2 postings in 2nd transaction", 2, txs.[1] |> snd |> List.length)
+            Assert.Equal("4 postings in 3rd transaction", 4, txs.[2] |> snd |> List.length)
+            Assert.Equal("4 postings in 4th transaction", 4, txs.[3] |> snd |> List.length)
+            Assert.Equal("2 postings in 5th transaction", 2, txs.[4] |> snd |> List.length)
+            Assert.Equal("2 postings in 6th transaction", 2, txs.[5] |> snd |> List.length)
+            Assert.Equal("2 postings in 7th transaction", 2, txs.[6] |> snd |> List.length)
+            Assert.Equal("5 postings in 8th transaction", 5, txs.[7] |> snd |> List.length)
     ]
 
 [<Tests>]
@@ -49,7 +49,7 @@ let balanceTransactionsTests =
                 |> balanceTransactions
 
             Assert.Equal("1 transaction", 1, List.length txs)
-            let tx = List.item 0 txs
+            let tx = List.head txs
             Assert.Equal("4 postings in transaction", 4, tx |> snd |> List.length)
             List.iter (fun (posting : ParsedPosting) ->
                             Assert.Equal("Posting has amount", true, posting.Amount.IsSome)
@@ -63,19 +63,19 @@ let balanceTransactionsTests =
                 |> balanceTransactions
 
             Assert.Equal("1 transaction", 1, List.length txs)
-            let tx = List.item 0 txs
+            let tx = List.head txs
             let postings = snd tx
             Assert.Equal("4 postings in transaction", 4, List.length postings)
-            let posting1 = List.item 0 postings
+            let posting1 = postings.[0]
             Assert.Equal("Posting has amount", true, posting1.Amount.IsSome)
             Assert.Equal("Posting amount was provided", true, posting1.AmountSource = Provided)
-            let posting2 = List.item 1 postings
+            let posting2 = postings.[1]
             Assert.Equal("Posting has amount", true, posting2.Amount.IsSome)
             Assert.Equal("Posting amount was provided", true, posting2.AmountSource = Provided)
-            let posting3 = List.item 2 postings
+            let posting3 = postings.[2]
             Assert.Equal("Posting has amount", true, posting3.Amount.IsSome)
             Assert.Equal("Posting amount was provided", true, posting3.AmountSource = Provided)
-            let posting4 = List.item 3 postings
+            let posting4 = postings.[3]
             Assert.Equal("Posting has amount", true, posting4.Amount.IsSome)
             Assert.Equal("Posting amount was provided", true, posting4.AmountSource = Inferred)
 

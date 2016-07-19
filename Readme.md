@@ -2,6 +2,7 @@ Wealth Pulse
 ============
 
 [![Build Status](https://travis-ci.org/readysetmark/WealthPulse.svg?branch=master)](https://travis-ci.org/readysetmark/WealthPulse)
+[![Build status](https://ci.appveyor.com/api/projects/status/s0d0g62syncg8wyi/branch/master?svg=true)](https://ci.appveyor.com/project/readysetmark/wealthpulse/branch/master)
 
 Wealth Pulse is web frontend for a ledger journal file. The ledger journal file
 is based on the command line [Ledger][1] journal file format and features
