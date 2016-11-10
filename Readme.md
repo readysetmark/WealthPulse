@@ -391,9 +391,11 @@ server process with a web browser pointed at it
 	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
 
 Tooling
-- [ ] Setup CI
+- [x] Setup CI
 	- [x] TravisCI
-	- [ ] Appveyor
+	- [x] Appveyor
+- [ ] Switch from nuget to Paket
+- [ ] Convert unit tests to xUnit + Unquote or Expecto?
 - [ ] Add a real logger
 - [ ] Use npm/FAKE/grunt/gulp automation?
 - Automate:

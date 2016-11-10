@@ -1,4 +1,5 @@
 *.userprefs
+*.DS_Store
 */bin
 */obj
 dist
