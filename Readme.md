@@ -28,16 +28,6 @@ as it has been catered for my personal usage.
 Dependencies
 ------------
 
-Journal
-*	FParsec 1.0.1
-*	FsUnit.xUnit.1.2.1.2
-*	Fuchu (unit testing framework)
-
-WealthPulse
-*	FParsec 1.0.1
-*	Nancy 0.21.1
-*	Nancy.Hosting.Self 0.21.1
-
 Frontend
 *	React 0.9.0-rc1
 *	Underscore 1.6.0
@@ -394,7 +384,7 @@ Tooling
 - [x] Setup CI
 	- [x] TravisCI
 	- [x] Appveyor
-- [ ] Switch from nuget to Paket
+- [x] Switch from nuget to Paket
 - [ ] Convert unit tests to xUnit + Unquote or Expecto?
 - [ ] Add a real logger
 - [ ] Use npm/FAKE/grunt/gulp automation?

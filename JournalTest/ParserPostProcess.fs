@@ -8,12 +8,12 @@ open Journal.Parser.Types
 open Journal.Types
 open Journal.Types.Posting
 
-let testfilesPath = "../../testfiles"
-let simpleFile = testfilesPath + "/simple.dat"
-let balancedFile = testfilesPath + "/balanced.dat"
-let unbalancedFile = testfilesPath + "/unbalanced.dat"
-let inferredFile = testfilesPath + "/inferred.dat"
-let missingAmountsFile = testfilesPath + "/missingamounts.dat"
+let testfilesPath = "testfiles/"
+let simpleFile = testfilesPath + "simple.dat"
+let balancedFile = testfilesPath + "balanced.dat"
+let unbalancedFile = testfilesPath + "unbalanced.dat"
+let inferredFile = testfilesPath + "inferred.dat"
+let missingAmountsFile = testfilesPath + "missingamounts.dat"
 
 let parseFile parser filepath =
     match runParserOnFile parser () filepath System.Text.Encoding.UTF8 with

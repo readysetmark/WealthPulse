@@ -1,2 +1,11 @@
 language: csharp
 solution: WealthPulse.sln
+install:
+  - mono .paket/paket.bootstrapper.exe
+  - mono .paket/paket.exe restore
+script:
+  - xbuild /p:Configuration=Release WealthPulse.sln
+  - cd JournalTest/bin/Release
+  - mono JournalTest.exe
+  - cd ../../..
+

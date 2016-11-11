@@ -5,9 +5,6 @@
 dist
 node_modules
 output
-packages/FParsec.*
-packages/Fuchu.*
-packages/Nancy.*
-packages/Nancy.Hosting.Self.*
-.nuget
+packages/*
+.paket/paket.exe
 

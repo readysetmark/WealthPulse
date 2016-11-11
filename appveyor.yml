@@ -1,5 +1,12 @@
 version: 1.1.{build}
 build:
   verbosity: minimal
+configuration:
+  - Release
 before_build:
-  - nuget restore
+  - .paket\paket.bootstrapper.exe
+  - .paket\paket.exe restore
+after_build:
+  - cd JournalTest\bin\Release
+  - JournalTest.exe
+  - cd ..\..\..

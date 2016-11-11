@@ -54,23 +54,11 @@
     <Compile Include="JournalService.fs" />
     <Compile Include="NancyRunner.fs" />
     <Compile Include="main.fs" />
-    <None Include="packages.config" />
+    <None Include="paket.references" />
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FParsec">
-      <HintPath>..\packages\FParsec.1.0.1\lib\net40-client\FParsec.dll</HintPath>
-    </Reference>
-    <Reference Include="FParsecCS">
-      <HintPath>..\packages\FParsec.1.0.1\lib\net40-client\FParsecCS.dll</HintPath>
-    </Reference>
     <Reference Include="mscorlib" />
-    <Reference Include="Nancy">
-      <HintPath>..\packages\Nancy.0.21.1\lib\net40\Nancy.dll</HintPath>
-    </Reference>
-    <Reference Include="Nancy.Hosting.Self, Version=0.21.1.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\Nancy.Hosting.Self.0.21.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -109,4 +97,42 @@ xcopy $(ProjectDir)content content /S</PostBuildEvent>
     <Copy SourceFiles="@(Content)" DestinationFolder="$(TargetDir)\content\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(Views)" DestinationFolder="$(TargetDir)\views\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
+  <Choose>
+    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And ($(TargetFrameworkVersion) == 'v4.5' Or $(TargetFrameworkVersion) == 'v4.5.1' Or $(TargetFrameworkVersion) == 'v4.5.2' Or $(TargetFrameworkVersion) == 'v4.5.3' Or $(TargetFrameworkVersion) == 'v4.6' Or $(TargetFrameworkVersion) == 'v4.6.1' Or $(TargetFrameworkVersion) == 'v4.6.2' Or $(TargetFrameworkVersion) == 'v4.6.3')">
+      <ItemGroup>
+        <Reference Include="FParsec">
+          <HintPath>..\packages\FParsec\lib\net40-client\FParsec.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+        <Reference Include="FParsecCS">
+          <HintPath>..\packages\FParsec\lib\net40-client\FParsecCS.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And ($(TargetFrameworkVersion) == 'v4.5' Or $(TargetFrameworkVersion) == 'v4.5.1' Or $(TargetFrameworkVersion) == 'v4.5.2' Or $(TargetFrameworkVersion) == 'v4.5.3' Or $(TargetFrameworkVersion) == 'v4.6' Or $(TargetFrameworkVersion) == 'v4.6.1' Or $(TargetFrameworkVersion) == 'v4.6.2' Or $(TargetFrameworkVersion) == 'v4.6.3')">
+      <ItemGroup>
+        <Reference Include="Nancy">
+          <HintPath>..\packages\Nancy\lib\net40\Nancy.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And ($(TargetFrameworkVersion) == 'v4.5' Or $(TargetFrameworkVersion) == 'v4.5.1' Or $(TargetFrameworkVersion) == 'v4.5.2' Or $(TargetFrameworkVersion) == 'v4.5.3' Or $(TargetFrameworkVersion) == 'v4.6' Or $(TargetFrameworkVersion) == 'v4.6.1' Or $(TargetFrameworkVersion) == 'v4.6.2' Or $(TargetFrameworkVersion) == 'v4.6.3')">
+      <ItemGroup>
+        <Reference Include="Nancy.Hosting.Self">
+          <HintPath>..\packages\Nancy.Hosting.Self\lib\net40\Nancy.Hosting.Self.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+      </ItemGroup>
+    </When>
+  </Choose>
 </Project>
