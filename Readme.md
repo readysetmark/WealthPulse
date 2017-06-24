@@ -38,6 +38,16 @@ Frontend
 *	Bootstrap 2.3.1
 
 
+How to Build
+------------
+
+This project uses paket for .NET dependency management, so you need to run the
+following commands before building:
+
+	.paket\paket.bootstrapper.exe
+
+	.paket\paket.exe restore
+
 
 How to Run
 ----------
