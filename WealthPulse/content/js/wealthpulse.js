@@ -245,7 +245,8 @@ var RegisterReport = React.createClass({
         var transaction = this.props.register[i];
         for (j = 0; j < transaction.entries.length; j++) {
           var data = {
-            key: transaction.date +"~"+
+            key: i +"~"+ j +"~"+
+                 transaction.date +"~"+
                  transaction.payee +"~"+
                  transaction.entries[j].account +"~"+
                  transaction.entries[j].amount,
