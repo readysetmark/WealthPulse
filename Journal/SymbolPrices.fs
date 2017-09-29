@@ -125,6 +125,11 @@ let getPricesForNewSymbol (usage: SymbolUsage.T) (config : SymbolConfig.T) : Sym
     | otherwise -> Some <| SymbolPriceCollection.fromList prices
 
 
+let filterPricesOutOfRange (startDate: DateTime) (endDate: DateTime) (prices: SymbolPrice.T list) : SymbolPrice.T list =
+    prices
+    |> List.filter (fun price -> price.Date >= startDate && price.Date <= endDate)
+
+
 let updatePricesForSymbol (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) : SymbolPriceCollection.T =
     let getEarlierMissingPrices (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) =
         match usage.FirstAppeared, symbolData.FirstDate with
@@ -132,18 +137,22 @@ let updatePricesForSymbol (usage: SymbolUsage.T) (config : SymbolConfig.T) (symb
             let endDate = firstDate.AddDays(-1.0)
             let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol usage.FirstAppeared (Some endDate)
             getPrices baseURL 0 usage.Symbol
+            |> filterPricesOutOfRange usage.FirstAppeared endDate
         | otherwise -> List.Empty
 
     let getLaterMissingPrices (usage: SymbolUsage.T) (config : SymbolConfig.T) (symbolData : SymbolPriceCollection.T) =
         match usage.ZeroBalanceDate, symbolData.LastDate with
         | None, lastDate when lastDate < System.DateTime.Today ->
             let startDate = lastDate.AddDays(1.0)
-            let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol startDate (Some System.DateTime.Today)
+            let endDate = System.DateTime.Today
+            let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol startDate (Some endDate)
             getPrices baseURL 0 usage.Symbol
+            |> filterPricesOutOfRange startDate endDate
         | Some zeroBalanceDate, lastDate when lastDate < zeroBalanceDate ->
             let startDate = lastDate.AddDays(1.0)
             let baseURL = generateBaseURL config.GoogleFinanceSearchSymbol startDate (Some zeroBalanceDate)
             getPrices baseURL 0 usage.Symbol
+            |> filterPricesOutOfRange startDate zeroBalanceDate
         | otherwise -> List.Empty
 
     let earlierPrices = getEarlierMissingPrices usage config symbolData
