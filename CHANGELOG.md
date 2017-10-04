@@ -4,6 +4,8 @@ Notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.1] - 2017-10-03
+
 ### Fixed
 
 - Fix registry (`reg`) command, which would fail if there were two or more postings with the same date, payee, account, and amount.
