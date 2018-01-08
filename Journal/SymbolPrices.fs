@@ -103,7 +103,7 @@ let generateBaseURL (searchKey : string) (startDate : System.DateTime) (endDate 
         match endDate with
         | Some d -> System.Net.WebUtility.UrlEncode(d.ToString(dateFormat))
         | None   -> System.Net.WebUtility.UrlEncode(System.DateTime.Today.ToString(dateFormat))
-    let baseURL = sprintf "https://www.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
+    let baseURL = sprintf "https://finance.google.com/finance/historical?q=%s&startdate=%s&enddate=%s&num=100" query startDate endDate
     baseURL
 
 
