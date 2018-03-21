@@ -1,7 +1,8 @@
-FRAMEWORK: >= NET45
+RESTRICTION: >= net45
 NUGET
   remote: https://www.nuget.org/api/v2
     FParsec (1.0.1)
+    FSharp.Core (4.3.4)
     Fuchu (0.4)
     Nancy (0.21.1)
     Nancy.Hosting.Self (0.21.1)
