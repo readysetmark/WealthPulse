@@ -371,8 +371,7 @@ calls?
 - [x] Clean up computeCommodityValues (get rid of side-effects)
 
 
-
-### Phase 3: Post-1.0 Someday/Maybe Improvements
+### Post-1.0 Improvements
 
 Electron
 * Use electron to make a bundled app instead of requiring an always-running
@@ -389,12 +388,30 @@ server process with a web browser pointed at it
 		- platform (OS X vs Windows)
 		>> Partially done
 	- [ ] Icon and rename and change 'Electron' app name to 'WealthPulse'
+- Ultimately abandoned this approach -- the overhead of Electron just isn't
+worth it
 
 Tooling
 - [x] Setup CI
 	- [x] TravisCI
 	- [x] Appveyor
 - [x] Switch from nuget to Paket
+
+Price Scraping
+- [x] Retry after delay if fetching prices fails (happens if no internet is
+available) instead of waiting a full day to retry
+
+Types
+- [x] Review all types for consistency
+- [x] Symbol Price: Hard-coded line number to -1 -- feels like a hack
+
+
+### Someday/Maybe Improvements
+
+Infrastructure
+- [ ] Convert/update project to .NET 6 (Core)
+	- [ ] Replace NancyFX
+- [ ] Replace TravisCI (it's dead) -- maybe Appveyor too?
 - [ ] Convert unit tests to xUnit + Unquote or Expecto?
 - [ ] Add a real logger
 - [ ] Use npm/FAKE/grunt/gulp automation?
@@ -408,22 +425,21 @@ Tooling
 		- Windows: TBD
 
 Price Scraping
-- [x] Retry after delay if fetching prices fails (happens if no internet is
-available) instead of waiting a full day to retry
+- [ ] Google Finance went RIP a few years ago (sigh), so I need to redo this
 - [ ] Only write to `.pricedb` if new prices were found
 - [ ] When writing to `.pricedb`, write to temp file first, then replace
 `.pricedb` file (avoid clobbering a file if app exits during write)
 - [ ] Consider using Akka.net actors?
 
 UI
+- [ ] Update the UI with one of:
+	- [ ] Fable
+	- [ ] Elm
+	- [ ] HTMX
+	- [ ] Latest React (with React Router instead of Backbone router)
+	- [ ] Svelte
 - [ ] Use bower or npm to retrieve dependencies, rather than including sources
 for all dependencies in the git repo
-- [ ] Switch to elm or cycle.js instead of React?
-	- [ ] Spike Elm
-	- [ ] Spike cycle.js
-- [ ] If keeping with React...
-	- [ ] Update to latest React
-	- [ ] Switch to React Router instead of Backbone router
 - [ ] Update to Bootstrap from v2 to v3 (or v4...)
 - [ ] Display indicator when ajax call is happening
 - [ ] Combine reports and payables / receivables into one dict?
@@ -432,8 +448,6 @@ Types
 - [ ] Include a list of account levels field on Posting?
 	- How am I actually using Account & AccountLineage in the app?
 	- Also change Account to a Subaccount list and Subaccount = String
-- [x] Review all types for consistency
-- [x] Symbol Price: Hard-coded line number to -1 -- feels like a hack
 
 Reports
 - [ ] Add unit tests
@@ -482,9 +496,10 @@ Nav
 
 Commodities
 - [ ] Write the equivalent of Penny's sell-off command
+- [ ] Script to convert pasted transactions from bank into commodity
+transactions
 
 Server
-- [ ] Switch to Suave instead of NancyFX?
 - [ ] Let server launch on any port?
 - [ ] Server should handle SIGTERM signal gracefully
 
