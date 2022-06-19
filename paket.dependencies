@@ -1,8 +1,0 @@
-source https://www.nuget.org/api/v2/
-framework >= net45
-
-nuget FSharp.Core
-nuget FParsec 1.0.1
-nuget Fuchu 0.4.0.0
-nuget Nancy 0.21.1
-nuget Nancy.Hosting.Self 0.21.1

@@ -108,31 +108,31 @@ module JournalService =
                         do printfn "Error parsing prices: %s" ex.Message
 
 
-        let fetchSymbolPrices () =
-            if pricesEnabled then
-                do printfn "Fetching new symbol prices..."
-                try
-                    let symbolUsage = Query.identifySymbolUsage journal
-                    let priceDB = updateSymbolPriceDB symbolUsage symbolConfig journal.DownloadedPriceDB
-                    do printfn "Storing prices to: %s" pricesFilePath
-                    do saveSymbolPriceDB pricesFilePath priceDB
-                    do printfn "Done storing prices"
-                    rwlock.AcquireWriterLock(Timeout.Infinite)
-                    try
-                        journal <- {journal with DownloadedPriceDB = priceDB}
-                        symbolPricesLastFetched <- DateTime.Now
-                    finally
-                        rwlock.ReleaseWriterLock()
-                with
-                    ex -> 
-                        do printfn "Error fetching new symbol prices: %s" ex.Message
-                        let newLastFetchedTime = symbolPricesLastFetched.Add(fetchPricesRetryDelay)
-                        do printfn "Scheduling retry around %s" <| newLastFetchedTime.ToLongTimeString()
-                        rwlock.AcquireWriterLock(Timeout.Infinite)
-                        try
-                            symbolPricesLastFetched <- newLastFetchedTime
-                        finally
-                            rwlock.ReleaseWriterLock()
+        // let fetchSymbolPrices () =
+        //     if pricesEnabled then
+        //         do printfn "Fetching new symbol prices..."
+        //         try
+        //             let symbolUsage = Query.identifySymbolUsage journal
+        //             let priceDB = updateSymbolPriceDB symbolUsage symbolConfig journal.DownloadedPriceDB
+        //             do printfn "Storing prices to: %s" pricesFilePath
+        //             do saveSymbolPriceDB pricesFilePath priceDB
+        //             do printfn "Done storing prices"
+        //             rwlock.AcquireWriterLock(Timeout.Infinite)
+        //             try
+        //                 journal <- {journal with DownloadedPriceDB = priceDB}
+        //                 symbolPricesLastFetched <- DateTime.Now
+        //             finally
+        //                 rwlock.ReleaseWriterLock()
+        //         with
+        //             ex -> 
+        //                 do printfn "Error fetching new symbol prices: %s" ex.Message
+        //                 let newLastFetchedTime = symbolPricesLastFetched.Add(fetchPricesRetryDelay)
+        //                 do printfn "Scheduling retry around %s" <| newLastFetchedTime.ToLongTimeString()
+        //                 rwlock.AcquireWriterLock(Timeout.Infinite)
+        //                 try
+        //                     symbolPricesLastFetched <- newLastFetchedTime
+        //                 finally
+        //                     rwlock.ReleaseWriterLock()
 
 
         let backgroundTasks () =
@@ -141,7 +141,7 @@ module JournalService =
                 // fetch symbol prices once a day
                 if File.GetLastWriteTime(ledgerFilePath) > journalLastModified then loadJournal ()
                 if configEnabled && File.GetLastWriteTime(configFilePath) > configLastModified then loadConfig ()
-                if pricesEnabled && (System.DateTime.Now - symbolPricesLastFetched).TotalDays >= 1.0 then fetchSymbolPrices ()
+                // if pricesEnabled && (System.DateTime.Now - symbolPricesLastFetched).TotalDays >= 1.0 then fetchSymbolPrices ()
                 do Thread.Sleep(5000)
 
 

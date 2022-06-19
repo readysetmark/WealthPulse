@@ -410,9 +410,14 @@ Types
 
 Infrastructure
 - [ ] Convert/update project to .NET 6 (Core)
-	- [ ] Replace NancyFX
+	- [t] Journal/JournalTest project
+	- [i] WealthPulse driver project
+		- [i] Replace NancyFX
+			- Ok, so not sure if I want to go with Giraffe, Falco, or Saturn...
 - [ ] Replace TravisCI (it's dead) -- maybe Appveyor too?
 - [ ] Convert unit tests to xUnit + Unquote or Expecto?
+- [ ] Need a more robust way of locating test files
+	- i.e. for `testfilesPath` in `src/JournalTest/ParserPostProcess.fs`
 - [ ] Add a real logger
 - [ ] Use npm/FAKE/grunt/gulp automation?
 - Automate:

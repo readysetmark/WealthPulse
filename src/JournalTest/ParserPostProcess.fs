@@ -8,7 +8,7 @@ open Journal.Parser.Types
 open Journal.Types
 open Journal.Types.Posting
 
-let testfilesPath = "testfiles/"
+let testfilesPath = "src/JournalTest/testfiles/"
 let simpleFile = testfilesPath + "simple.dat"
 let balancedFile = testfilesPath + "balanced.dat"
 let unbalancedFile = testfilesPath + "unbalanced.dat"

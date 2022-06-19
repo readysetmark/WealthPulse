@@ -1,7 +1,7 @@
 *.userprefs
 *.DS_Store
-*/bin
-*/obj
+**/*/bin
+**/*/obj
 .vs/*
 dist
 node_modules

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Utility.fs" />
+    <Compile Include="JournalService.fs" />
+    <Compile Include="NancyRunner.fs" />
+    <Compile Include="main.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Journal\Journal.fsproj" />
+  </ItemGroup>
+
+</Project>
